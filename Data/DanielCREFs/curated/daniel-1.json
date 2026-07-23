@@ -1,0 +1,97 @@
+{
+  "book": "DAN",
+  "chapter": 1,
+  "reference_format": "usfm",
+  "versification": "KJV",
+  "caps": { "per_verse": 3, "per_scene": 5 },
+  "note": "Curated, game-facing cross-references for Daniel 1. Picks are scoped to passages (USFM ranges) that add content the Daniel verse does not already state, and favor connections that hold across translations. Derived/re-scoped from ../normalized/daniel-1.json; internal Daniel self-references are set aside. 'section' maps each pick to its cross-reference character group. Notes are plain-language for a general audience.",
+  "scenes": [
+    {
+      "id": 1,
+      "verses": "DAN.1.1",
+      "setting": "Jerusalem under siege",
+      "cross_references": [
+        { "ref": "2KI.24.1-4", "anchor": "DAN.1.1", "section": "OT History", "note": "Kings tells the same invasion and reads it as God's judgment on Judah for generations of sin, not just Babylon flexing its power." },
+        { "ref": "JER.25.2-11", "anchor": "DAN.1.1", "section": "Prophets", "note": "Jeremiah had warned Judah for over two decades; here he announces a 70-year exile and even calls Nebuchadnezzar God's servant, the tool God uses to discipline his own people." }
+      ]
+    },
+    {
+      "id": 2,
+      "verses": "DAN.1.2",
+      "setting": "Jerusalem falls; Temple vessels taken to Babylon",
+      "cross_references": [
+        { "ref": "PSA.106.40-42", "anchor": "DAN.1.2", "section": "OT Poetry/Wisdom", "note": "A recap of Israel's history: God let hostile nations conquer them because they kept turning away from him, the same 'God allowed this' idea behind Daniel 1:2." },
+        { "ref": "ISA.42.21-25", "anchor": "DAN.1.2", "section": "Prophets", "note": "Isaiah asks who really let Israel be plundered, and answers: God did, because they would not follow him. The defeat is discipline, not proof that God is weak." }
+      ]
+    },
+    {
+      "id": 3,
+      "verses": "DAN.1.3-5",
+      "setting": "Babylon palace; selection & training program",
+      "cross_references": [
+        { "ref": "ISA.39.1-7", "anchor": "DAN.1.3", "section": "Prophets", "note": "Long before, Babylon's king sent envoys to Judah's King Hezekiah, who proudly showed them all his palace treasures. Isaiah then warned him it would one day all be carried to Babylon, along with his own royal descendants, taken to serve in the palace there. Daniel and his friends are that warning coming true." },
+        { "ref": "ACT.7.20-22", "anchor": "DAN.1.4", "section": "Gospels/Acts", "note": "A close parallel to Daniel: like Daniel, Moses was a Hebrew raised inside a foreign empire's court and trained in all its wisdom (Egypt's, in his case). Neither let the empire's education erase who they were; both stayed faithful and were used by God to rescue his people. It is the same challenge Daniel faces here, mastering Babylon's learning without losing his faith." },
+        { "ref": "2KI.25.27-30", "anchor": "DAN.1.5", "section": "OT History", "note": "Judah's exiled king Jehoiachin also ended up eating a daily ration at the Babylonian king's table for the rest of his life. The exiles live on the empire's provision, the very thing Daniel is about to decide he cannot accept." }
+      ]
+    },
+    {
+      "id": 4,
+      "verses": "DAN.1.6-7",
+      "setting": "Daniel & friends introduced and renamed",
+      "cross_references": [
+        { "ref": "EZK.14.13-14", "anchor": "DAN.1.6", "section": "Prophets", "note": "Ezekiel, a prophet taken to Babylon around the same time as Daniel, lists Daniel right beside Noah and Job as the gold standard of a righteous person. A fellow exile already thought of Daniel as a legend of faithfulness." },
+        { "ref": "GEN.41.39-45", "anchor": "DAN.1.7", "section": "Torah (Gen-Deut)", "note": "Joseph was another young Hebrew a foreign empire renamed: Pharaoh gave him an Egyptian name, an Egyptian wife, and sweeping power in Egypt. None of it erased who he was or whom he served. It is the encouraging side of what is happening to Daniel, an identity forced on you from the outside does not have to change who you belong to." },
+        { "ref": "2KI.24.15-17", "anchor": "DAN.1.7", "section": "OT History", "note": "When Babylon deported Judah's king and nobles, Nebuchadnezzar installed a puppet king and changed his name from Mattaniah to Zedekiah. Renaming someone was how the empire showed it owned you, the same power move, by the same king, now being worked on Daniel and his friends." }
+      ]
+    },
+    {
+      "id": 5,
+      "verses": "DAN.1.8-10",
+      "setting": "Daniel's integrity",
+      "cross_references": [
+        { "ref": "GEN.39.20-23", "anchor": "DAN.1.9", "section": "Torah (Gen-Deut)", "note": "Joseph's story runs the same way: even as a foreign slave thrown into prison, God was with him and won him favor with the warden, who put everything in his charge. When God's people stay faithful under a foreign power, God repeatedly gives them favor with the officials set over them, exactly what happens for Daniel." },
+        { "ref": "PRO.29.25", "anchor": "DAN.1.10", "section": "OT Poetry/Wisdom", "note": "The official is paralyzed by fear; he openly admits he is afraid of what the king will do to him. This proverb names his exact bind: fear of people becomes a trap, while trusting God keeps you safe. A quiet contrast with Daniel, who trusts God and acts with courage." }
+      ]
+    },
+    {
+      "id": 6,
+      "verses": "DAN.1.11-16",
+      "setting": "The ten-day test",
+      "cross_references": [
+        { "ref": "DEU.8.2-4", "anchor": "DAN.1.12", "section": "Torah (Gen-Deut)", "note": "During Israel's years in the wilderness, God deliberately let them go hungry and fed them only manna, even keeping their clothes and bodies from wearing out, all to teach them that real life comes from depending on God, not from a full, rich plate. That is the principle underneath Daniel's test: trusting God matters more than the king's menu." },
+        { "ref": "HEB.11.24-26", "anchor": "DAN.1.12", "section": "NT Letters", "note": "Moses is the closest mirror to Daniel: a Hebrew raised in a foreign empire's palace who walked away from its royal privileges and pleasures to stand with God's people, counting faithfulness worth more than all the treasures of Egypt. Daniel makes the same trade at the dinner table." },
+        { "ref": "MAT.4.1-4", "anchor": "DAN.1.12", "section": "Gospels/Acts", "note": "Jesus, famished after a forty-day fast, is tempted to turn stones into bread and refuses, insisting that real life comes from God's word, not merely food. The same principle driving Daniel: faithfulness matters more than indulging your appetite, even with the food right in front of you." }
+      ]
+    },
+    {
+      "id": 7,
+      "verses": "DAN.1.17",
+      "setting": "Special gifts of knowledge and wisdom",
+      "cross_references": [
+        { "ref": "JAS.1.5", "anchor": "DAN.1.17", "section": "NT Letters", "note": "The New Testament states the principle outright: if anyone lacks wisdom, they should ask God, who gives it generously to everyone who asks. Daniel and his friends' ability is not self-made brilliance; it is a gift from God, exactly what this verse describes." },
+        { "ref": "PRO.2.6", "anchor": "DAN.1.17", "section": "OT Poetry/Wisdom", "note": "A one-line summary of where their ability comes from: the LORD is the one who gives wisdom, and knowledge and understanding come from him. It keeps the credit on God, not on the training program." },
+        { "ref": "GEN.41.15-16", "anchor": "DAN.1.17", "section": "Torah (Gen-Deut)", "note": "Joseph is the Bible's other great example of a Hebrew in a foreign court with a God-given gift for dreams. Asked to interpret Pharaoh's dream, he is quick to say the ability is not his own; God will give the answer. That is exactly the gift this verse credits to Daniel, and the same humble source." }
+      ]
+    },
+    {
+      "id": 8,
+      "verses": "DAN.1.18-19",
+      "setting": "Babylon throne room; entering the king's service",
+      "cross_references": [
+        { "ref": "PRO.22.29", "anchor": "DAN.1.19", "section": "OT Poetry/Wisdom", "note": "A wisdom saying that lands right on this moment: someone skilled and diligent in their work ends up serving at the highest level, before kings, not nobodies. After three years of training and God's gift of wisdom, that is exactly where the four now stand." },
+        { "ref": "1SA.2.1-10", "anchor": "DAN.1.19", "section": "OT History", "note": "Hannah's song of praise celebrates a God who overturns the expected order: he humbles the proud and mighty and raises the poor from the dust to seat them among princes. That is literally what is happening here: captives from a conquered nation now stand in the throne room as the king's most valued advisors. Their rise is not just talent; it is God lifting up the lowly." },
+        { "ref": "LUK.21.12-15", "anchor": "DAN.1.19", "section": "Gospels/Acts", "note": "Jesus told his followers they would be hauled before kings and rulers, and promised to give them words and wisdom no opponent could withstand. The shape matches Daniel's moment, God's servant standing before the most powerful ruler in the land and proving unmatched. Jesus frames it around testifying under pressure rather than a royal exam, but the promise is the same: wisdom from God that no one can resist." }
+      ]
+    },
+    {
+      "id": 9,
+      "verses": "DAN.1.20-21",
+      "setting": "Daniel a leading member of the service",
+      "cross_references": [
+        { "ref": "ISA.47.12-15", "anchor": "DAN.1.20", "section": "Prophets", "note": "Isaiah taunts Babylon's famous astrologers and star-readers: for all their reputation, they cannot save the city or even themselves. These are the very experts the king measures Daniel and his friends against, and the four come out ten times better. The empire's celebrated wisdom is hollow next to wisdom that comes from God." },
+        { "ref": "PSA.119.98-100", "anchor": "DAN.1.20", "section": "OT Poetry/Wisdom", "note": "The psalmist says God's word has made him wiser than his enemies, his teachers, and even the ancients. That is the secret behind the four being ten times better than Babylon's trained experts: their edge is not raw talent or the king's curriculum, but a life shaped by God. This theme runs all through Daniel." },
+        { "ref": "EST.10.2-3", "anchor": "DAN.1.21", "section": "OT History", "note": "Mordecai is the other great picture of a faithful Jew who did not just survive in a foreign empire but endured at the very top of it, second only to the king, using his standing for his people's good. Daniel's staying power here, still serving as kingdoms rise and fall all the way to Cyrus, is the same story of a believer who outlasts the court around him." }
+      ]
+    }
+  ]
+}

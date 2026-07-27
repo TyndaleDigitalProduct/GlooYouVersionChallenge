@@ -30,3 +30,12 @@ usually stop mattering once the work lands. When in doubt it's a note.
 The full PRD lifecycle, quality gates, and agent constraints are in
 [`../AGENTS.md`](../AGENTS.md). That file is the source of truth; this one is
 just a map.
+
+## Keep these stable
+
+Write docs at a level that does not move when the code moves. `AGENTS.md` and the
+ADRs describe the project's steady state; they should not need editing because a
+feature landed.
+
+Anything in-flight (what is half-built, what is next, what is blocked) goes in a
+PRD, not in a long-lived doc. PRDs are disposable; that is what they are for.

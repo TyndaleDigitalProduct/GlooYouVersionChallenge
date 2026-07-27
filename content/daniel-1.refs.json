@@ -4,7 +4,7 @@
   "reference_format": "usfm",
   "versification": "KJV",
   "caps": { "per_verse": 3, "per_scene": 5 },
-  "note": "Curated, game-facing cross-references for Daniel 1. Picks are scoped to passages (USFM ranges) that add content the Daniel verse does not already state, and favor connections that hold across translations. Derived/re-scoped from ../normalized/daniel-1.json; internal Daniel self-references are set aside. 'section' maps each pick to its cross-reference character group. Notes are plain-language for a general audience.",
+  "note": "Curated, game-facing cross-references for Daniel 1. Picks are scoped to passages (USFM ranges) that add content the Daniel verse does not already state, and favor connections that hold across translations. Derived/re-scoped from Data/DanielCREFs/normalized/daniel-1.json; internal Daniel self-references are set aside. 'section' maps each pick to its cross-reference character group. Notes are plain-language for a general audience.",
   "scenes": [
     {
       "id": 1,

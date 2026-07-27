@@ -10,6 +10,34 @@
 export interface GameEvents {
   /** Emitted once Phaser's placeholder scene has finished booting. */
   "scene:ready": { sceneKey: string };
+
+  // --- PRD-03: core domain events. Data only — no sprite, DOM node, or
+  // pixel coordinate ever appears in a payload below. Deliberately typed
+  // with plain string literals here rather than importing src/core's
+  // domain types, so this bus stays a standalone data contract.
+
+  /** A scene transitioned from incomplete to complete (never re-fires for a repeat). */
+  "scene:completed": { sceneId: string };
+
+  /** A fog-of-war region became revealed for the first time. */
+  "region:revealed": { regionId: string };
+
+  /** A Vale Stone award was appended to the ledger. */
+  "stones:awarded": {
+    sceneId: string;
+    reference: string;
+    cause: "engagement" | "insight";
+    amount: number;
+    balance: number;
+  };
+
+  /** A cross-reference encounter moved forward to a new state. */
+  "encounter:stateChanged": {
+    sceneId: string;
+    reference: string;
+    previousState: "unvisited" | "engaged" | "insight-recognised";
+    newState: "unvisited" | "engaged" | "insight-recognised";
+  };
 }
 
 export type GameEventName = keyof GameEvents;

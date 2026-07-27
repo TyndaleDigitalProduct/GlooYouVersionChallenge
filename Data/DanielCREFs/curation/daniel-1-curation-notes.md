@@ -1,6 +1,6 @@
 # Daniel 1 Cross-Reference Curation — Notes & Decisions
 
-How the curated set in [`../curated/daniel-1.json`](../curated/daniel-1.json) was built,
+How the curated set in [`content/daniel-1.refs.json`](../../../content/daniel-1.refs.json) was built,
 the principles behind it, and what was deliberately cut and why — so Daniel 2–12
 (and any other book) can be curated the same way. The JSON is the source of truth
 for the actual selections; this file is the reasoning around them.

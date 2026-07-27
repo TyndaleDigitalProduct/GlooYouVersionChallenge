@@ -19,8 +19,9 @@ could not name an origin and did not guess one.
 Per `AGENTS.md` §6 an asset may not be *used* until its row here is filled in. Moving
 files that were already committed is not use, so nothing is violated yet. But the first
 PRD that loads any of this art into the game is blocked until the operator completes
-both rows. If any of it is third-party, that also has to reach `THIRD_PARTY.md`, which
-does not exist yet and is already flagged as a release blocker in PRD-02.
+both rows. If any of it is third-party, that also has to reach
+[`THIRD_PARTY.md`](../THIRD_PARTY.md), where these two rows are carried as the one
+remaining open licence question.
 
 If these are bespoke or operator-generated, say so explicitly in the rows. "Created for
 this project" is a complete and valid answer; an empty cell is not.

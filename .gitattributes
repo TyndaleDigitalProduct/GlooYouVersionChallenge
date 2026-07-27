@@ -27,8 +27,12 @@
 *.ogg       binary
 *.wav       binary
 
-# Third-party datasets copied verbatim from upstream. Excluded from
-# GitHub language statistics and from diffs, since they are not our code.
-# Data/ is tracked (not gitignored); these rules apply to it directly.
+# Upstream and machine-derived datasets: not our code, so they are kept out of
+# GitHub language statistics. Authored content under content/ is deliberately
+# absent from this list — it is our writing and should count.
 Data/**/*.json  linguist-vendored
 data/**/*.json  linguist-vendored
+
+# The raw upstream dump is never reviewed by hand. linguist-vendored alone does
+# not suppress diffs, so say so explicitly.
+Data/DanielCREFs/daniel-cross-references_*.json  -diff

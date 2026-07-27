@@ -1,0 +1,28 @@
+# Normalize line endings on commit; check out native.
+* text=auto
+
+# Explicit types for files where auto-detection is unhelpful.
+*.md       text diff=markdown
+*.json     text
+*.sh       text eol=lf
+*.ts       text diff=typescript
+*.tsx      text diff=typescript
+*.py       text diff=python
+
+# Binary — never diff or normalize.
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.webp     binary
+*.woff     binary
+*.woff2    binary
+*.mp3      binary
+*.mp4      binary
+
+# Third-party datasets copied verbatim from upstream. Excluded from
+# GitHub language statistics and from diffs, since they are not our code.
+# (Kept for the case where a dataset is ever tracked; Data/ is currently
+# gitignored — see .gitignore.)
+Data/**/*.json  linguist-vendored
+data/**/*.json  linguist-vendored

@@ -1,0 +1,33 @@
+# ─── Dependencies & build output ─────────────────────────────────────
+node_modules/
+dist/
+build/
+out/
+.next/
+.cache/
+.parcel-cache/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ─── Environment & secrets ───────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+
+# ─── Local agent / editor state ──────────────────────────────────────
+# .mcp.json points at a localhost bridge; it is per-operator, not shared.
+.mcp.json
+.claude/settings.local.json
+.idea/
+.vscode/
+*.swp
+*~
+
+# ─── OS cruft ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

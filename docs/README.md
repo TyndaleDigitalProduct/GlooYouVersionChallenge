@@ -3,22 +3,17 @@
 Project documentation, split four ways so it doesn't turn into one
 undifferentiated pile.
 
-| Directory | Contents |
-|---|---|
-| `prds/` | Product requirement docs — one per unit of work, numbered `NN_short_name.md`. The PRD loop reads these. |
-| `prds/completed/` | PRDs whose work is finished and verified. Moved here at the end of the lifecycle. |
-| `decisions/` | Architecture decision records. Numbered, short, focused on *why*. Human-authored — agents flag decisions but never write them. |
-| `research/` | External inputs: the Gloo/YouVersion challenge brief, platform API docs, prior art, versification references. Durable. |
-| `notes/` | Working scratch: meeting notes, half-formed ideas, debugging trails. Disposable by design. |
+| Directory         | Contents                                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `prds/`           | Product requirement docs — one per unit of work, numbered `NN_short_name.md`. The PRD loop reads these.                        |
+| `prds/completed/` | PRDs whose work is finished and verified. Moved here at the end of the lifecycle.                                              |
+| `decisions/`      | Architecture decision records. Numbered, short, focused on _why_. Human-authored — agents flag decisions but never write them. |
+| `research/`       | External inputs: the Gloo/YouVersion challenge brief, platform API docs, prior art, versification references. Durable.         |
+| `notes/`          | Working scratch: meeting notes, half-formed ideas, debugging trails. Disposable by design.                                     |
 
 The line between `research/` and `notes/`: research is material that came from
 **outside** and stays useful; notes are what **you** thought while working and
 usually stop mattering once the work lands. When in doubt it's a note.
-
-Dataset provenance is deliberately **not** here. It lives next to the data it
-describes (`Data/DanielCREFs/sources.md`) so it travels with the dataset if the
-data is ever moved or published. Note that `Data/` is gitignored — unlike this
-directory, it exists only on the maintainer's machine.
 
 ## Conventions
 

@@ -9,20 +9,26 @@
 *.tsx      text diff=typescript
 *.py       text diff=python
 
+# Map authoring formats: plain text (XML / JSON respectively), diffable.
+*.tmx      text
+*.ldtk     text
+
 # Binary — never diff or normalize.
-*.png      binary
-*.jpg      binary
-*.jpeg     binary
-*.gif      binary
-*.webp     binary
-*.woff     binary
-*.woff2    binary
-*.mp3      binary
-*.mp4      binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.woff      binary
+*.woff2     binary
+*.mp3       binary
+*.mp4       binary
+*.aseprite  binary
+*.ogg       binary
+*.wav       binary
 
 # Third-party datasets copied verbatim from upstream. Excluded from
 # GitHub language statistics and from diffs, since they are not our code.
-# (Kept for the case where a dataset is ever tracked; Data/ is currently
-# gitignored — see .gitignore.)
+# Data/ is tracked (not gitignored); these rules apply to it directly.
 Data/**/*.json  linguist-vendored
 data/**/*.json  linguist-vendored

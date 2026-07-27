@@ -11,6 +11,11 @@ __pycache__/
 .venv/
 venv/
 
+# ─── Test & coverage output ──────────────────────────────────────────
+coverage/
+playwright-report/
+test-results/
+
 # ─── Environment & secrets ───────────────────────────────────────────
 .env
 .env.*

@@ -1,0 +1,35 @@
+/* Reset that keeps the sibling-overlay architecture (ADR-0002) from
+   producing horizontal scroll at any viewport width. */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  max-width: 100vw;
+}
+
+#game-container {
+  width: 100%;
+  line-height: 0;
+}
+
+#game-container canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* React-only overlay. Phaser owns #game-container; this sits on top of it
+   and lets pointer events fall through to the canvas except where a
+   specific overlay component opts back in with pointer-events: auto. */
+#ui-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}

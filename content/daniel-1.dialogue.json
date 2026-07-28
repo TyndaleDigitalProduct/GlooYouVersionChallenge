@@ -1,0 +1,40 @@
+{
+  "status": "placeholder",
+  "note": "Placeholder narrative copy for the PRD-04 vertical slice. None of these lines are authored game dialogue. No line quotes, paraphrases, or reconstructs Scripture: each beat names the narrative job it is holding open so that authored copy can replace it later. Scene settings and cross-references come from content/daniel-1.refs.json, which is real curated content.",
+  "scenes": [
+    {
+      "id": 1,
+      "playable": true,
+      "beats": [
+        {
+          "speaker": "Narrator (placeholder)",
+          "text": "[PLACEHOLDER COPY] Opening beat. Authored narrative copy for DAN.1.1 has not been written yet."
+        },
+        {
+          "speaker": "Narrator (placeholder)",
+          "text": "[PLACEHOLDER COPY] Setting beat. This scene's setting, \"Jerusalem under siege\", is curated content; the prose that establishes it is not written yet."
+        },
+        {
+          "speaker": "Narrator (placeholder)",
+          "text": "[PLACEHOLDER COPY] Orientation beat. Two cross-reference guides are standing in this region. Speaking with them is optional and never blocks the main story."
+        },
+        {
+          "speaker": "Narrator (placeholder)",
+          "text": "[PLACEHOLDER COPY] Transition beat. Authored copy carrying the scene toward its close goes here."
+        },
+        {
+          "speaker": "Narrator (placeholder)",
+          "text": "[PLACEHOLDER COPY] Closing beat. Finishing this line completes scene 1 and reveals the next region on the map."
+        }
+      ]
+    },
+    { "id": 2, "playable": false, "beats": [] },
+    { "id": 3, "playable": false, "beats": [] },
+    { "id": 4, "playable": false, "beats": [] },
+    { "id": 5, "playable": false, "beats": [] },
+    { "id": 6, "playable": false, "beats": [] },
+    { "id": 7, "playable": false, "beats": [] },
+    { "id": 8, "playable": false, "beats": [] },
+    { "id": 9, "playable": false, "beats": [] }
+  ]
+}

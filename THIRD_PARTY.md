@@ -11,8 +11,8 @@ reconciled with GPL-3.0.
 | Component | What it is | Licence | Status |
 | --------- | ---------- | ------- | ------ |
 | Daniel cross-reference dataset | 357 verses of Daniel with 5,174 cross-references | GPL-2.0 | Cleared, see below |
-| `art/characters/**` | 432 files, 16 characters | Not recorded | **Open** |
-| `art/incoming/extras/**` | 351 files, unsorted | Not recorded | **Open** |
+| `art/characters/**` | 432 files, 16 characters | Not third-party — original work | Cleared, see below |
+| `art/incoming/extras/**` | 351 files, unsorted | Not third-party — original work | Cleared, see below |
 
 ## Daniel cross-reference dataset
 
@@ -56,24 +56,25 @@ Per-asset provenance is tracked in [`art/sources.md`](./art/sources.md), which i
 the working record. This section carries only what is third-party and therefore
 licence-relevant.
 
-**Status: open.** 783 image files across `art/characters/` and
-`art/incoming/extras/` have no recorded origin, author, or licence. They were
-committed in `9385bad` and relocated during PRD-02; neither tree carried a
-licence file, readme, or any other marker, so no origin could be named.
+**Status: closed. There is no third-party art in this project.**
 
-This is a question of fact, not law, and legal advice does not answer it: either
-these files were made for this project or they came from somewhere. If they are
-bespoke or operator-generated, recording that in `art/sources.md` closes both
-rows and this section becomes "no third-party art."
+All 783 image files across `art/characters/` and `art/incoming/extras/` are
+original work, created for this project by a member of the operator's team. They
+carry no external licence terms and are covered by this repository's GPL-3.0
+licence. Both rows in [`art/sources.md`](./art/sources.md) record this.
 
-Until then, `AGENTS.md` §6 applies: **never add an asset whose licence you cannot
-name**, and an asset may not be used until its row is filled. Files already
-committed are not "used," so nothing is currently in breach, but the first PRD
-that loads this art into the game is blocked.
+The question was open only because the trees carried no licence file or readme
+when they were relocated during PRD-02, so the origin could not be read off the
+files themselves. It was a question of fact, and the fact is that they are
+bespoke. Nothing about this art is blocked.
 
-Watch for CC-BY-SA and some OpenGameArt terms if any of it does turn out to be
-third-party. ADR-0002 flags that these do not combine cleanly with GPL-3.0, and
-that would be a second licence question rather than a repeat of the first.
+The CC-BY-SA and OpenGameArt incompatibility ADR-0002 flags would only have
+applied if any of this had turned out to be third-party. It did not, so that
+concern is moot for the current asset set — it would return only if third-party
+art is added later.
+
+No audio has been added yet. `public/assets/audio/` is empty; any audio that
+arrives from outside the project needs a row in `art/sources.md` before use.
 
 ## Runtime dependencies
 

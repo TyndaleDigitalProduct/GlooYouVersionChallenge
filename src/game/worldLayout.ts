@@ -22,7 +22,7 @@ export const INTERACT_RADIUS = 68;
 export const NOTICE_RADIUS = 120;
 
 // --- character sprites ----------------------------------------------------
-// The art is 24x32 (see art/sources.md). Drawn at an integer scale, because
+// The art is 24x32 (see spriteDirections.ts). Drawn at an integer scale, because
 // the game config sets pixelArt and a fractional scale would blur it.
 
 export const SPRITE_SCALE = 2;

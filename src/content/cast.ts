@@ -6,9 +6,10 @@
 // none exist yet, so content/characters.json assigns stand-in archetypes and
 // says so. The operator can overrule any row without touching a scene.
 //
-// Sheet geometry and the row-to-direction order are recorded in art/sources.md,
-// not here: they are properties of the art, and they had to be established
-// empirically because the walk sheets and the portraits use opposite orders.
+// Sheet geometry and the row-to-direction order are recorded in
+// src/game/spriteDirections.ts, not here: they are properties of the art, and
+// they had to be established empirically because the walk sheets and the
+// portraits use opposite orders.
 
 import { z } from "zod";
 import { err, ok, type Result } from "@/core/result";

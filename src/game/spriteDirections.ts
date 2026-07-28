@@ -1,11 +1,34 @@
 // Eight-direction sprite sheet geometry. Pure, so the mapping that decides
 // which way a character faces is unit-testable without a canvas.
 //
-// The layout is a property of the art, not a choice made here, and it was
-// established empirically rather than assumed. See art/sources.md: the walk
-// sheets run CLOCKWISE from front, while the dialogue portraits are numbered
-// COUNTER-clockwise, so deriving one order from the other produces sprites
-// facing the wrong way.
+// This comment is the authoritative record of the sheet layout, because the
+// layout is a property of the art rather than a choice made here, and nothing
+// in art/ documents it. It was established empirically, by matching each
+// character's own labelled per-direction crop (`front/`, `left/`, `upleft/`, …)
+// against the sheet frames pixel by pixel. Do not re-derive it from the
+// dialogue portraits: those are numbered the opposite way round, and assuming
+// otherwise renders every character facing backwards.
+//
+//   Walk sheets     art/characters/<name>/<name>_sheet_8dir_24x32_tone<N>.png
+//                   art/incoming/extras/1B - Godot Sheets/skin-<N>-<tone>/<name>.png
+//                   96x256 = 4 columns x 8 rows of 24x32 frames.
+//                   Rows are directions, running CLOCKWISE from front:
+//                     0 front (S)      4 back (N)
+//                     1 down-left (SW)  5 up-right (NE)
+//                     2 left (W)        6 right (E)
+//                     3 up-left (NW)    7 down-right (SE)
+//                   Columns are a 4-frame walk cycle: 0 and 2 are the same
+//                   neutral pose, 1 and 3 are the opposite steps. Column 0
+//                   doubles as the idle frame.
+//
+//   Portraits       art/incoming/extras/3A - Dialogue Portraits/skin-<N>-<tone>/<name>/<n>-<DIR>.png
+//                   24x24 head-and-shoulders busts, one per direction, numbered
+//                   COUNTER-clockwise: 1-S, 2-SE, 3-E, 4-NE, 5-N, 6-NW, 7-W,
+//                   8-SW. The reverse of the row order above.
+//
+//   Skin tones      tone1/skin-1-light, tone2/skin-2-medium, tone3/skin-3-deep.
+//                   Same artwork, different palette, so tones are freely
+//                   substitutable without changing frame geometry.
 
 /** Sheet row order, clockwise from front. Index is the row index. */
 export const DIRECTION_NAMES = [

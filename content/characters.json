@@ -1,6 +1,6 @@
 {
   "status": "provisional",
-  "note": "Art direction for the cast, kept in content rather than in code because which character stands in for which biblical section is a product decision. PROVISIONAL: ADR-0002 calls for six designed guide personas with names and voices, and none of them are designed yet. These are stand-in archetypes assigned to a section so the slice has characters instead of coloured squares, and the operator can overrule any row here without touching code. Sheet and portrait geometry, and the row-to-direction order, are recorded in art/sources.md.",
+  "note": "Art direction for the cast, kept in content rather than in code because which character stands in for which biblical section is a product decision. PROVISIONAL: ADR-0002 calls for six designed guide personas with names and voices, and none of them are designed yet. These are stand-in archetypes assigned to a section so the slice has characters instead of coloured squares, and the operator can overrule any row here without touching code. Sheet and portrait geometry, and the row-to-direction order, are recorded in src/game/spriteDirections.ts.",
   "player": {
     "sprite": "daniel_judean-tone2"
   },

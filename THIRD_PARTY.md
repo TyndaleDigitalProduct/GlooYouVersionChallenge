@@ -11,8 +11,8 @@ reconciled with GPL-3.0.
 | Component | What it is | Licence | Status |
 | --------- | ---------- | ------- | ------ |
 | Daniel cross-reference dataset | 357 verses of Daniel with 5,174 cross-references | GPL-2.0 | Cleared, see below |
-| `art/characters/**` | 432 images, 16 characters | Not third-party, original work | Cleared, see below |
-| `art/incoming/extras/**` | 351 images, unsorted | Not third-party, original work | Cleared, see below |
+| `art/characters/**` | 432 files, 16 characters | Not third-party — original work | Cleared, see below |
+| `art/incoming/extras/**` | 351 files, unsorted | Not third-party — original work | Cleared, see below |
 
 ## Daniel cross-reference dataset
 
@@ -52,7 +52,9 @@ section. A bare clearance is enough to unblock work but is thin as a record.
 
 ## Art and audio
 
-**There is no third-party art in this repository.**
+Per-asset provenance is tracked in [`art/sources.md`](./art/sources.md), which is
+the working record. This section carries only what is third-party and therefore
+licence-relevant.
 
 **Status: closed. There is no third-party art in this project.**
 
@@ -66,15 +68,10 @@ when they were relocated during PRD-02, so the origin could not be read off the
 files themselves. It was a question of fact, and the fact is that they are
 bespoke. Nothing about this art is blocked.
 
-Per-asset provenance, and the sprite sheet layout conventions that PRD-04 had to
-establish empirically, are recorded in [`art/sources.md`](./art/sources.md),
-which remains the working record.
-
 The CC-BY-SA and OpenGameArt incompatibility ADR-0002 flags would only have
 applied if any of this had turned out to be third-party. It did not, so that
-concern is moot for the current asset set. It would return only if third-party
-art is added later, and `AGENTS.md` §6 still requires a provenance row before any
-asset is used.
+concern is moot for the current asset set — it would return only if third-party
+art is added later.
 
 No audio has been added yet. `public/assets/audio/` is empty; any audio that
 arrives from outside the project needs a row in `art/sources.md` before use.

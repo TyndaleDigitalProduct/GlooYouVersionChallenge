@@ -140,8 +140,9 @@ could start until that was written down.
 ### What the art is
 
 Established empirically, because the two trees do not follow the same convention
-and neither carried a readme. Recorded in `art/sources.md` so the next PRD does
-not have to work it out again.
+and neither carried a readme. The authoritative record is the header comment of
+`src/game/spriteDirections.ts`, next to the code that depends on it, so the next
+PRD does not have to work it out again.
 
 - Walk sheets are 96x256: 4 columns by 8 rows of 24x32 frames.
 - Rows are one direction each, running **clockwise from front**: front,
@@ -358,4 +359,6 @@ Where the content comes from:
   notes: `content/daniel-1.refs.json`.
 - Overlay architecture, state ownership, and the deferred decisions:
   ADR-0002.
-- Sprite sheet geometry, row order, and art provenance: `art/sources.md`.
+- Art provenance and licence position: `art/sources.md` and `THIRD_PARTY.md`.
+- Sprite sheet geometry and row order: the header comment of
+  `src/game/spriteDirections.ts`.

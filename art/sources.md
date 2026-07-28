@@ -6,24 +6,26 @@ came from and under what licence — see `AGENTS.md` §6.
 
 | Asset | Origin | Author | Licence | URL | Retrieval date |
 | ----- | ------ | ------ | ------- | --- | --------------- |
-| `art/characters/**` (432 files, 16 characters) | Created for this project | Tyndale Digital Product | Project licence (GPL-3.0) | n/a, not third-party | n/a, not retrieved |
-| `art/incoming/extras/**` (352 files) | Created for this project | Tyndale Digital Product | Project licence (GPL-3.0) | n/a, not third-party | n/a, not retrieved |
+| `art/characters/**` (432 images, 16 characters) | Created for this project | Tyndale Digital Product team | GPL-3.0, as part of this repository | n/a, not retrieved | n/a, original work |
+| `art/incoming/extras/**` (351 images) | Created for this project | Tyndale Digital Product team | GPL-3.0, as part of this repository | n/a, not retrieved | n/a, original work |
 
-## Provenance
+## Provenance resolved
 
-**Resolved 2026-07-28.** Both trees were created for this project, on the operator's
-attestation. Neither is third-party, so neither carries an external licence and neither
-needs reconciling against GPL-3.0; both are covered by the project's own licence.
+**Resolved 2026-07-28.** Both trees are **original work, created for this project by a
+member of the operator's team.** No third party holds rights in them and no external
+licence terms apply; they are covered by this repository's GPL-3.0 licence like any
+other file authored here.
 
-This closes what had been recorded here as a blocker. For the history: both trees were
-relocated out of `Data/` during PRD-02 (commit `9385bad` had placed them there), and
-neither carried a licence file, readme, or any other provenance marker, so the agent
-that moved them could not name an origin and correctly declined to guess one. PRD-04 is
-the first PRD to load any of this art into the game, and it was blocked on this record
-until the rows above were filled.
+This closes the question left open when the trees were relocated out of `Data/` during
+PRD-02 (commit `9385bad` had placed them there). Neither carried a licence file or
+readme, so the agent that moved them could not name an origin and correctly declined to
+guess one. The files were bespoke all along, which no marker in the tree could show.
 
-`AGENTS.md` §6 still applies to anything added later: never add an asset whose licence
-you cannot name, and no asset may be used until it has a row here.
+Nothing here blocks use. `AGENTS.md` §6 is satisfied: the licence is named. It still
+applies to anything added later, and no asset may be used until it has a row above.
+
+If the artist should be credited by name rather than as "team", replace the Author cell
+in both rows.
 
 ## Layout and conventions
 

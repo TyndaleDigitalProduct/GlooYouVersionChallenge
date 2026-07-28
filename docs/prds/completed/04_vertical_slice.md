@@ -29,6 +29,39 @@ Two consequences, stated up front rather than discovered later:
    implements it so the slice can exist. The operator writes or declines the
    ADR afterward, having seen it run. Agents still never author an ADR.
 
+## Superseded in part by storyboard v2
+
+**Read this before reviewing the code.** `docs/notes/storyboard-v2.md` and
+`docs/notes/scene-01-flow.md` were written after this PRD was built and are now
+the design authority. Several things this PRD implemented are not what the game
+is going to do:
+
+| This PRD built | Storyboard v2 says |
+| --- | --- |
+| Keyboard movement (arrows and WASD) | Click to move, click to talk |
+| Encounter panel with a "recognise the connection" button | Read both Scripture cards, then pick at most three of six generated cards, then all six values revealed |
+| No home screen; boots straight into scene 1 | Home screen with Continue / New game, required name entry, skippable and reopenable intro |
+| Free-text-adjacent conversational stub | No free-text input anywhere. Rejected, not deferred |
+| Stand-in archetypes per biblical section | Six named personas: Chronicler, Watchman, Songkeeper, Elder, Witness, Courier |
+| Stones: engagement 1, insight 2 | Four causes: engagement 1, insight 0 to 15, scene complete 5, all-references bonus 10 |
+| One scene as a slice | All nine scenes ship |
+| No Lamplighter | A Lamplighter opens and closes every scene |
+
+What this PRD built that storyboard v2 keeps: the domain core and its rules, the
+versioned save format, the content loader and manifest, the sibling-overlay
+architecture, the stub seams, fog of war driven off the completion set, and the
+character art pipeline.
+
+Two of those deltas need `src/core` changes, which is code behind the 90%
+coverage gate, and both are recorded as blockers in storyboard v2: the ledger has
+no cause for a scene-completion or all-references award and requires a verse
+reference a scene-scoped award does not have, and encounter state is a bare
+string that cannot carry generated cards and selections.
+
+This PRD is not edited to match. It is the record of the spike that made the
+storyboard possible to write against something real, which was its stated
+purpose.
+
 ## Prerequisites
 
 - PRD-03 merged. `src/core` is complete, covered, and boundary-tested.

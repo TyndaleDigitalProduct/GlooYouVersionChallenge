@@ -154,7 +154,7 @@ Watched so failures are visible. None of these is a number to push up.
 ### Integration Points
 
 - YouVersion Platform API (scripture cards, login, highlights)
-- Gloo AI Studio API (guide conversations)
+- Gloo AI Studio API (server-side generation of insight cards, one structured call per encounter)
 
 ### Data Storage & Privacy
 
@@ -201,7 +201,7 @@ Phase B (Days 3–5): Scripture Cards & YouVersion Integration (1–2 days)
 Phase C (Days 5–7): AI Guides (1–2 days)
 
 - Critical deliverable: One optional AI guide persona integrated with a simple prompt template to provide cross-reference suggestions; lightweight guardrails and opt-out option.
-- In-scope: curated prompts, minimal conversation UI, demonstration of Vale Stone reward on meaningful interaction.
+- In-scope: curated prompts, minimal card-selection and reveal UI, demonstration of Vale Stone reward on meaningful interaction.
 - Out-of-scope: multi-persona system, deep theological validation—deferred.
 
 Phase D (Days 7–8): Polish, UX, and Performance (1–2 days)

@@ -175,17 +175,18 @@ Ordered by how much they cost to resolve late.
 
 ## Blocking work, not decisions
 
-- **For Ben:** several of these decisions reverse choices recorded in ADR-0002
-  (the reward scale, and the shape of the Gloo integration). Whether that needs a
-  new ADR is a repo-convention call, not a design one — the reasoning is written
-  up in [`adr-0003-proposal.md`](./adr-0003-proposal.md) if it's useful.
+- ~~**For Ben:** several of these decisions reverse choices recorded in
+  ADR-0002.~~ Settled 2026-07-28. They are recorded in
+  [ADR-0003](../decisions/0003-card-selection-encounters.md), which partly
+  supersedes ADR-0002 and is the authority for the reward scale, the encounter
+  format, and the shape of the Gloo integration.
 - **`LedgerCause` has no value for scene-complete or all-refs-bonus, and
   `LedgerEntry.reference` is required** — a scene-scoped award has no reference.
   Hard blocker on rewards, in already-tested code behind a 90% coverage gate.
 - **`EncountersState` is a bare string per encounter** and must carry generated
   cards plus selections. Save-format migration.
-- **Product PRD** needs two edits: the line-25 non-goal wording (keep "no skill
-  gates"), and the Success Metrics section, which still optimises for judging.
+- ~~**Product PRD** needs two edits: the non-goal wording, and the Success
+  Metrics section.~~ Done 2026-07-28, alongside ADR-0003.
 - **Environment art** — `public/assets/{maps,tiles}` empty; masters not staged
   into `public/assets/sprites/`.
 - **Lamplighter and persona sprites** — ~8 sheets, or 5 plus recolours.

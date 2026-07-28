@@ -6,22 +6,21 @@ came from and under what licence — see `AGENTS.md` §6.
 
 | Asset | Origin | Author | Licence | URL | Retrieval date |
 | ----- | ------ | ------ | ------- | --- | --------------- |
-| `art/characters/**` (432 files, 16 characters) | UNRESOLVED | UNRESOLVED | UNRESOLVED | UNRESOLVED | UNRESOLVED |
-| `art/incoming/extras/**` (351 files) | UNRESOLVED | UNRESOLVED | UNRESOLVED | UNRESOLVED | UNRESOLVED |
+| `art/characters/**` (432 files, 16 characters) | Created for this project | Tyndale Digital Product team | GPL-3.0, as part of this repository | n/a — not retrieved | n/a — original work |
+| `art/incoming/extras/**` (351 files) | Created for this project | Tyndale Digital Product team | GPL-3.0, as part of this repository | n/a — not retrieved | n/a — original work |
 
-## Unresolved provenance
+## Provenance resolved
 
-The two rows above are **blockers, not placeholders.** Both trees were relocated out
-of `Data/` during PRD-02 (commit `9385bad` had placed them there). Neither tree carried
-a licence file, readme, or any other provenance marker, so the agent that moved them
-could not name an origin and did not guess one.
+Both trees are **original work, created for this project by a member of the operator's
+team.** No third party holds rights in them and no external licence terms apply; they
+are covered by this repository's GPL-3.0 licence like any other file authored here.
 
-Per `AGENTS.md` §6 an asset may not be *used* until its row here is filled in. Moving
-files that were already committed is not use, so nothing is violated yet. But the first
-PRD that loads any of this art into the game is blocked until the operator completes
-both rows. If any of it is third-party, that also has to reach
-[`THIRD_PARTY.md`](../THIRD_PARTY.md), where these two rows are carried as the one
-remaining open licence question.
+This closes the question left open when the trees were relocated out of `Data/` during
+PRD-02 (commit `9385bad` had placed them there). Neither carried a licence file or
+readme, so the agent that moved them could not name an origin and correctly declined to
+guess one — the files were bespoke all along, which no marker in the tree could show.
 
-If these are bespoke or operator-generated, say so explicitly in the rows. "Created for
-this project" is a complete and valid answer; an empty cell is not.
+Nothing here blocks use. `AGENTS.md` §6 is satisfied: the licence is named.
+
+If the artist should be credited by name rather than as "team", replace the Author cell
+in both rows.

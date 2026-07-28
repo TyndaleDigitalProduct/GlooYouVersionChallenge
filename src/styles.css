@@ -6,23 +6,29 @@ body {
   padding: 0;
   width: 100%;
   overflow-x: hidden;
+  background: #0b0e14;
 }
 
+/* The canvas is sized and centred by Phaser's Scale.FIT + CENTER_BOTH, which
+   needs a parent with a real height to fit into. Giving the parent one, and
+   then keeping our hands off the canvas box, is what stops the game rendering
+   at its unscaled 960x540 in the corner of a large viewport. */
 #app {
   position: relative;
   width: 100%;
   max-width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 #game-container {
   width: 100%;
+  height: 100%;
   line-height: 0;
 }
 
 #game-container canvas {
   display: block;
-  max-width: 100%;
-  height: auto;
 }
 
 /* React-only overlay. Phaser owns #game-container; this sits on top of it
@@ -32,4 +38,327 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+/* --- overlay layout ---------------------------------------------------- */
+
+.vv-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: clamp(0.5rem, 1.5vw, 1rem);
+  box-sizing: border-box;
+  color: #eef1f6;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: clamp(0.75rem, 1.4vw, 0.95rem);
+  line-height: 1.5;
+}
+
+.vv-overlay__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.vv-overlay__bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+/* --- shared pieces ----------------------------------------------------- */
+
+.vv-panel {
+  pointer-events: auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #2c3545;
+  border-radius: 0.5rem;
+  background: rgb(11 14 20 / 92%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+.vv-button {
+  pointer-events: auto;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #3b485c;
+  border-radius: 0.35rem;
+  background: #1b2230;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vv-button:hover:not(:disabled) {
+  background: #253044;
+}
+
+.vv-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.vv-button--quiet {
+  background: transparent;
+  border-color: #2c3545;
+}
+
+.vv-placeholder-tag {
+  margin: 0 0 0.4rem;
+  padding: 0.15rem 0.4rem;
+  display: inline-block;
+  border: 1px dashed #d4b24f;
+  border-radius: 0.25rem;
+  color: #e8cd82;
+  font-size: 0.72em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.vv-build-tag {
+  margin: 0;
+  color: #8f9bb0;
+  font-size: 0.75em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* --- HUD ---------------------------------------------------------------- */
+
+.vv-hud {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #2c3545;
+  border-radius: 999px;
+  background: rgb(11 14 20 / 88%);
+}
+
+.vv-hud__label {
+  color: #8f9bb0;
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vv-hud__value {
+  color: #f2c14e;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.vv-hud__divider {
+  width: 1px;
+  height: 1em;
+  background: #2c3545;
+}
+
+/* --- notices ------------------------------------------------------------ */
+
+.vv-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 46rem;
+}
+
+.vv-notice {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #3b485c;
+  border-left-width: 4px;
+  border-radius: 0.35rem;
+  background: rgb(11 14 20 / 94%);
+}
+
+.vv-notice--warning {
+  border-left-color: #d4b24f;
+}
+
+.vv-notice--error {
+  border-left-color: #d4674f;
+}
+
+.vv-notice--info {
+  border-left-color: #4f8fd4;
+}
+
+.vv-notice__message {
+  margin: 0;
+  flex: 1;
+}
+
+/* --- dialogue ----------------------------------------------------------- */
+
+.vv-dialogue {
+  max-width: 52rem;
+}
+
+.vv-dialogue__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.vv-dialogue__speaker {
+  margin: 0;
+  font-weight: 600;
+  color: #cdd6e4;
+}
+
+.vv-dialogue__setting {
+  margin: 0;
+  color: #8f9bb0;
+  font-size: 0.82em;
+}
+
+.vv-dialogue__text {
+  margin: 0 0 0.6rem;
+}
+
+.vv-dialogue__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.vv-dialogue__progress {
+  margin: 0;
+  color: #8f9bb0;
+  font-size: 0.82em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- proximity prompt --------------------------------------------------- */
+
+.vv-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-color: #4f8fd4;
+}
+
+.vv-prompt__key {
+  padding: 0 0.35rem;
+  border: 1px solid #4f8fd4;
+  border-radius: 0.2rem;
+  color: #9dc2ee;
+  font-size: 0.78em;
+}
+
+/* --- encounter panel ---------------------------------------------------- */
+
+/* A scrim, so the panel reads as modal and the dialogue behind it does not
+   show through. It also swallows clicks aimed at the world underneath, which
+   is the behaviour you want while a conversation is open. */
+.vv-scrim {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: rgb(5 7 11 / 72%);
+}
+
+.vv-encounter {
+  width: min(38rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  background: #10141c;
+}
+
+.vv-encounter__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.vv-encounter__title {
+  margin: 0;
+  font-size: 1.05em;
+}
+
+.vv-encounter__reference {
+  margin: 0.1rem 0 0;
+  color: #8f9bb0;
+  font-size: 0.85em;
+}
+
+.vv-encounter__subhead {
+  margin: 0.75rem 0 0.2rem;
+  color: #8f9bb0;
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vv-encounter__note p,
+.vv-encounter__passage p {
+  margin: 0;
+}
+
+.vv-encounter__stub {
+  color: #b6a06a;
+  font-style: italic;
+}
+
+.vv-encounter__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid #2c3545;
+}
+
+.vv-encounter__state {
+  margin: 0;
+  color: #cdd6e4;
+  font-size: 0.85em;
+}
+
+/* --- fatal error -------------------------------------------------------- */
+
+.vv-fatal {
+  margin: auto;
+  max-width: 40rem;
+}
+
+.vv-fatal__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15em;
+}
+
+.vv-fatal__reason {
+  margin: 0.5rem 0 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.3rem;
+  background: #161c26;
+  color: #e8a08f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  word-break: break-word;
 }

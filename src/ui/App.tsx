@@ -1,35 +1,34 @@
-import { useEffect, useState } from "react";
-import { eventBus } from "@/core/eventBus";
+import type { AppRuntime } from "@/app/runtime";
+import { DialogueBox } from "./DialogueBox";
+import { EncounterPanel } from "./EncounterPanel";
+import { NoticeStack } from "./NoticeStack";
+import { ProximityPrompt } from "./ProximityPrompt";
+import { RuntimeProvider } from "./RuntimeContext";
+import { ValeStonesHud } from "./ValeStonesHud";
 
 /**
- * Placeholder overlay component. Real narrative UI (DialogueBox,
- * ScriptureCard, GuideChat, ValeStones — see ADR-0002) replaces this in
- * later PRDs. This scaffold only proves the sibling-overlay wiring: React
- * renders discrete state read off the event bus, never per-frame state.
+ * The DOM overlay. Phaser owns the canvas underneath; this layer owns
+ * everything readable (ADR-0002). It is transparent to pointer events except
+ * on its own controls, so the world stays clickable through the gaps.
  */
-export function App() {
-  const [sceneKey, setSceneKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    return eventBus.on("scene:ready", ({ sceneKey }) => {
-      setSceneKey(sceneKey);
-    });
-  }, []);
-
+export function App({ runtime }: { runtime: AppRuntime }) {
   return (
-    <div
-      style={{
-        pointerEvents: "auto",
-        position: "absolute",
-        top: 0,
-        left: 0,
-        padding: "0.5rem 0.75rem",
-        color: "#f2f2f2",
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "0.875rem",
-      }}
-    >
-      {sceneKey ? `Scene ready: ${sceneKey}` : "Loading…"}
-    </div>
+    <RuntimeProvider runtime={runtime}>
+      <div className="vv-overlay">
+        <div className="vv-overlay__top">
+          <ValeStonesHud />
+          <p className="vv-build-tag">PRD-04 vertical slice · placeholder content</p>
+        </div>
+
+        <NoticeStack />
+
+        <div className="vv-overlay__bottom">
+          <ProximityPrompt />
+          <DialogueBox />
+        </div>
+
+        <EncounterPanel />
+      </div>
+    </RuntimeProvider>
   );
 }

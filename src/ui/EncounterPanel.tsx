@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { requestVerdict } from "@/app/encounterController";
 import type { PassageResult } from "@/app/providers";
+import { guideArtFor } from "@/content/cast";
 import { findCrossReferenceContent } from "@/content/loadContent";
 import { encounterState } from "@/core/encounters";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
@@ -38,6 +39,9 @@ function EncounterPanelBody({ reference }: { reference: string }) {
   );
 
   const [passage, setPassage] = useState<PassageResult | null>(null);
+  // A missing portrait degrades to a panel without one, never to a broken
+  // image icon.
+  const [portraitBroken, setPortraitBroken] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +56,8 @@ function EncounterPanelBody({ reference }: { reference: string }) {
   if (!crossRef) return null;
 
   const alreadyRecognised = state === "insight-recognised";
+  const art = guideArtFor(runtime.cast, crossRef.section);
+  const showPortrait = art !== undefined && !portraitBroken;
 
   return (
     <div className="vv-scrim">
@@ -62,11 +68,22 @@ function EncounterPanelBody({ reference }: { reference: string }) {
         data-testid="encounter-panel"
       >
         <header className="vv-encounter__header">
-          <div>
-            <h2 className="vv-encounter__title">{crossRef.section} guide</h2>
-            <p className="vv-encounter__reference" data-testid="encounter-reference">
-              {crossRef.reference} · illuminating {crossRef.anchor}
-            </p>
+          <div className="vv-encounter__identity">
+            {showPortrait ? (
+              <img
+                className="vv-portrait"
+                src={`assets/portraits/${art.portraitKey}.png`}
+                alt=""
+                data-testid="encounter-portrait"
+                onError={() => setPortraitBroken(true)}
+              />
+            ) : null}
+            <div>
+              <h2 className="vv-encounter__title">{crossRef.section} guide</h2>
+              <p className="vv-encounter__reference" data-testid="encounter-reference">
+                {crossRef.reference} · illuminating {crossRef.anchor}
+              </p>
+            </div>
           </div>
           <button
             type="button"

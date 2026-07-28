@@ -11,6 +11,7 @@
 //      the test fixture;
 //   4. attach persistence, so every subsequent change is written.
 
+import { buildCast, type Cast } from "@/content/cast";
 import { buildGameContent, type GameContent } from "@/content/loadContent";
 import type { EventBus } from "@/core/eventBus";
 import { eventBus } from "@/core/eventBus";
@@ -18,6 +19,7 @@ import { ok, type Result } from "@/core/result";
 import { loadGame } from "@/core/save";
 import type { Storage as CoreStorage } from "@/core/storage";
 import { createGameStore, type GameStoreApi } from "@/core/store";
+import rawCastDocument from "../../content/characters.json";
 import rawDialogueDocument from "../../content/daniel-1.dialogue.json";
 import rawRefsDocument from "../../content/daniel-1.refs.json";
 import { createBrowserStorage, SAVE_KEY } from "./browserStorage";
@@ -37,6 +39,7 @@ export interface AppRuntime {
   view: ViewStoreApi;
   bus: EventBus;
   content: GameContent;
+  cast: Cast;
   scripture: ScriptureProvider;
   verdicts: VerdictProvider;
   session: SessionProvider;
@@ -45,6 +48,7 @@ export interface AppRuntime {
 export interface CreateAppRuntimeOptions {
   refsDocument?: unknown;
   dialogueDocument?: unknown;
+  castDocument?: unknown;
   storage?: CoreStorage;
   bus?: EventBus;
   saveKey?: string;
@@ -57,6 +61,7 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
   const {
     refsDocument = rawRefsDocument,
     dialogueDocument = rawDialogueDocument,
+    castDocument = rawCastDocument,
     // Evaluated lazily by destructuring, so a caller that injects storage
     // never touches `window` at all.
     storage = createBrowserStorage(),
@@ -69,6 +74,11 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
 
   const content = buildGameContent(refsDocument, dialogueDocument);
   if (!content.ok) return content;
+
+  // Validated against the content above, so a curated section with no
+  // character art fails here rather than as a missing sprite mid-game.
+  const cast = buildCast(castDocument, content.value);
+  if (!cast.ok) return cast;
 
   const view = createViewStore();
   const loaded = loadGame(storage, saveKey);
@@ -100,6 +110,7 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     view,
     bus,
     content: content.value,
+    cast: cast.value,
     scripture,
     verdicts,
     session,

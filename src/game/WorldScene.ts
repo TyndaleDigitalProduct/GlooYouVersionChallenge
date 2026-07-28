@@ -1,13 +1,25 @@
 import Phaser from "phaser";
 import type { AppRuntime } from "@/app/runtime";
+import { guideArtFor, spriteKeysToPreload } from "@/content/cast";
 import { encounterState } from "@/core/encounters";
+import {
+  directionRowFor,
+  FRAME_HEIGHT,
+  FRAME_WIDTH,
+  idleFrame,
+  walkAnimKey,
+  walkFrames,
+} from "./spriteDirections";
 import {
   clampToWorld,
   FOG_ALPHA,
+  FOOT_MARKER_HEIGHT,
+  FOOT_MARKER_OFFSET_Y,
+  FOOT_MARKER_WIDTH,
   INTERACT_RADIUS,
-  MARKER_SIZE,
   type MarkerPlacement,
   markerPlacements,
+  NOTICE_RADIUS,
   nearestMarker,
   PALETTE,
   PLAYER_SIZE,
@@ -15,7 +27,9 @@ import {
   PLAYER_SPEED,
   type RegionRect,
   regionRects,
-  sectionColor,
+  SPRITE_ORIGIN_Y,
+  SPRITE_SCALE,
+  WALK_FRAME_RATE,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./worldLayout";
@@ -24,18 +38,22 @@ export const WORLD_SCENE_KEY = "WorldScene";
 
 interface GuideMarker extends MarkerPlacement {
   sceneId: string;
-  section: string;
-  shape: Phaser.GameObjects.Rectangle;
+  sprite: Phaser.GameObjects.Sprite;
+  /** Section-coloured disc at the guide's feet; carries encounter state. */
+  footMarker: Phaser.GameObjects.Ellipse;
 }
 
 /**
- * The scene-1 world, drawn programmatically from rectangles.
+ * The scene-1 world.
  *
  * Everything readable is in the React overlay, so this scene renders no text
  * at all (ADR-0002). It holds no rules either: what is revealed comes from
- * `store.revealedRegionIds()`, and how a marker looks comes from the encounter
- * state in the store. The scene's only write to the rest of the app is telling
- * the view store which guide the player is standing next to.
+ * `store.revealedRegionIds()`, and how a guide's marker looks comes from the
+ * encounter state in the store. The scene's only write to the rest of the app
+ * is telling the view store which guide the player is standing next to.
+ *
+ * The ground is still rectangles, not a tilemap, so ADR-0002's Tiled versus
+ * LDtk decision stays open. Only the characters are real art.
  */
 export class WorldScene extends Phaser.Scene {
   private readonly runtime: AppRuntime;
@@ -43,13 +61,23 @@ export class WorldScene extends Phaser.Scene {
   private readonly guides: GuideMarker[] = [];
   private readonly teardown: Array<() => void> = [];
 
-  private player!: Phaser.GameObjects.Rectangle;
+  private player!: Phaser.GameObjects.Sprite;
+  private playerFacingRow = 0;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<string, Phaser.Input.Keyboard.Key>;
 
   constructor(runtime: AppRuntime) {
     super(WORLD_SCENE_KEY);
     this.runtime = runtime;
+  }
+
+  preload(): void {
+    for (const key of spriteKeysToPreload(this.runtime.cast)) {
+      this.load.spritesheet(key, `assets/sprites/${key}.png`, {
+        frameWidth: FRAME_WIDTH,
+        frameHeight: FRAME_HEIGHT,
+      });
+    }
   }
 
   create(): void {
@@ -59,6 +87,7 @@ export class WorldScene extends Phaser.Scene {
       this.runtime.content.manifest.scenes.map((scene) => scene.regionId),
     );
 
+    this.createWalkAnimations();
     this.drawRegions(regions);
     this.drawGuides(regions);
     this.drawPlayer();
@@ -77,6 +106,7 @@ export class WorldScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.movePlayer(delta / 1000);
+    this.turnGuidesTowardPlayer();
 
     this.runtime.view
       .getState()
@@ -86,6 +116,27 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // --- construction -------------------------------------------------------
+
+  /**
+   * One walk animation per direction per sheet. Keys are namespaced by sprite,
+   * so two characters sharing a direction never collide in Phaser's global
+   * animation registry.
+   */
+  private createWalkAnimations(): void {
+    for (const spriteKey of spriteKeysToPreload(this.runtime.cast)) {
+      for (let row = 0; row < 8; row += 1) {
+        const key = walkAnimKey(spriteKey, row);
+        if (this.anims.exists(key)) continue;
+
+        this.anims.create({
+          key,
+          frames: this.anims.generateFrameNumbers(spriteKey, walkFrames(row)),
+          frameRate: WALK_FRAME_RATE,
+          repeat: -1,
+        });
+      }
+    }
+  }
 
   private drawRegions(regions: readonly RegionRect[]): void {
     const playableRegions = new Set(
@@ -135,32 +186,44 @@ export class WorldScene extends Phaser.Scene {
 
       for (const [index, placement] of placements.entries()) {
         const crossRef = scene.crossReferences[index];
-        const shape = this.add
-          .rectangle(
+        const art = guideArtFor(this.runtime.cast, crossRef.section);
+        if (!art) continue;
+
+        // A section-coloured disc at the feet. With characters instead of
+        // coloured squares, this is what still tells the player at a glance
+        // which part of the canon a guide speaks for.
+        const footMarker = this.add
+          .ellipse(
             placement.x,
-            placement.y,
-            MARKER_SIZE,
-            MARKER_SIZE,
-            sectionColor(crossRef.section),
+            placement.y + FOOT_MARKER_OFFSET_Y,
+            FOOT_MARKER_WIDTH,
+            FOOT_MARKER_HEIGHT,
+            art.markerColor,
+            0.75,
           )
-          .setOrigin(0.5, 0.5)
+          .setDepth(1);
+
+        const sprite = this.add
+          .sprite(placement.x, placement.y, art.spriteKey, idleFrame(0))
+          .setOrigin(0.5, SPRITE_ORIGIN_Y)
+          .setScale(SPRITE_SCALE)
           .setDepth(2);
 
-        this.guides.push({
-          ...placement,
-          sceneId: scene.id,
-          section: crossRef.section,
-          shape,
-        });
+        this.guides.push({ ...placement, sceneId: scene.id, sprite, footMarker });
       }
     }
   }
 
   private drawPlayer(): void {
     this.player = this.add
-      .rectangle(PLAYER_SPAWN.x, PLAYER_SPAWN.y, PLAYER_SIZE, PLAYER_SIZE, PALETTE.player)
-      .setOrigin(0.5, 0.5)
-      .setStrokeStyle(2, 0xffffff, 0.85)
+      .sprite(
+        PLAYER_SPAWN.x,
+        PLAYER_SPAWN.y,
+        this.runtime.cast.playerSpriteKey,
+        idleFrame(this.playerFacingRow),
+      )
+      .setOrigin(0.5, SPRITE_ORIGIN_Y)
+      .setScale(SPRITE_SCALE)
       .setDepth(3);
 
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
@@ -199,11 +262,11 @@ export class WorldScene extends Phaser.Scene {
       const state = encounterState(encounters, guide.sceneId, guide.reference);
 
       if (state === "insight-recognised") {
-        guide.shape.setAlpha(1).setStrokeStyle(4, PALETTE.player, 1);
+        guide.footMarker.setAlpha(0.95).setStrokeStyle(2, PALETTE.player, 1);
       } else if (state === "engaged") {
-        guide.shape.setAlpha(0.8).setStrokeStyle(2, 0xffffff, 0.35);
+        guide.footMarker.setAlpha(0.45).setStrokeStyle(1, 0xffffff, 0.3);
       } else {
-        guide.shape.setAlpha(1).setStrokeStyle(3, 0xffffff, 0.9);
+        guide.footMarker.setAlpha(0.75).setStrokeStyle(1, 0xffffff, 0.6);
       }
     }
   }
@@ -218,7 +281,17 @@ export class WorldScene extends Phaser.Scene {
 
     const dx = (right ? 1 : 0) - (left ? 1 : 0);
     const dy = (down ? 1 : 0) - (up ? 1 : 0);
-    if (dx === 0 && dy === 0) return;
+
+    const row = directionRowFor(dx, dy);
+    if (row === null) {
+      // Standing still keeps the last facing rather than snapping to front.
+      this.player.anims.stop();
+      this.player.setFrame(idleFrame(this.playerFacingRow));
+      return;
+    }
+
+    this.playerFacingRow = row;
+    this.player.anims.play(walkAnimKey(this.runtime.cast.playerSpriteKey, row), true);
 
     const length = Math.hypot(dx, dy);
     const step = PLAYER_SPEED * deltaSeconds;
@@ -229,5 +302,17 @@ export class WorldScene extends Phaser.Scene {
     );
 
     this.player.setPosition(next.x, next.y);
+  }
+
+  /** Guides look up when the player comes close, and face front otherwise. */
+  private turnGuidesTowardPlayer(): void {
+    for (const guide of this.guides) {
+      const dx = this.player.x - guide.x;
+      const dy = this.player.y - guide.y;
+      const withinNotice = Math.hypot(dx, dy) <= NOTICE_RADIUS;
+      const row = withinNotice ? (directionRowFor(dx, dy) ?? 0) : 0;
+
+      guide.sprite.setFrame(idleFrame(row));
+    }
   }
 }

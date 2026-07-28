@@ -9,9 +9,9 @@ abstract.
 Scope is deliberately one scene deep and the full stack wide: Phaser renders a
 world, React renders the readable UI over it, both driven by the `src/core`
 store built in PRD-03, with save and reload working through the real save
-format. Content, art, AI, and scripture text are stubbed. Everything that is
-stubbed sits behind a named interface so the PRD that replaces it does not have
-to unpick this one.
+format. The characters are the project's real art. Dialogue, AI, and scripture
+text are stubbed. Everything that is stubbed sits behind a named interface so
+the PRD that replaces it does not have to unpick this one.
 
 ## Status: provisional
 
@@ -32,6 +32,8 @@ Two consequences, stated up front rather than discovered later:
 ## Prerequisites
 
 - PRD-03 merged. `src/core` is complete, covered, and boundary-tested.
+- **`art/sources.md` provenance rows filled in**, before any art is loaded. See
+  "Character art" below. This was a hard blocker, not bookkeeping.
 
 ## Numbering note
 
@@ -53,9 +55,14 @@ These are the guardrails that keep the spike from costing more than it earns.
 - **No rules outside core.** No component or scene may decide what is unlocked,
   what is revealed, or what a stone is worth. Those are all reads off the store.
 - **The map pipeline decision stays open.** ADR-0002 defers Tiled vs LDtk. The
-  slice therefore draws its world programmatically (rectangles, no tilemap), so
-  that shipping it commits to neither.
+  slice therefore draws its *ground* programmatically (rectangles, no tilemap),
+  so that shipping it commits to neither. Characters are real art; the map is
+  not.
 - **No scripture text and no invented scripture.** See "Content and text" below.
+- **Art direction lives in content, not code.** Which character stands in for
+  which biblical section is a product decision, so it goes in a content file
+  with a schema, never in a `switch` in a scene.
+- **No asset is loaded before its provenance is recorded.** AGENTS.md §6.
 - **Sibling overlay, per ADR-0002.** Phaser owns the canvas, React owns a DOM
   layer above it, and they talk only over the event bus and the store.
 
@@ -80,6 +87,50 @@ filler:
 Scene 1 is DAN.1.1, "Jerusalem under siege", with two curated cross-references:
 `2KI.24.1-4` (OT History) and `JER.25.2-11` (Prophets).
 
+## Character art
+
+The art has been in the repo since PRD-02. Using it was blocked, and the block
+had to be cleared before a single sprite was loaded.
+
+### The provenance blocker
+
+`AGENTS.md` §6: never add an asset whose licence you cannot name, and no asset
+may be used until it has a provenance row. `art/sources.md` recorded both art
+trees as UNRESOLVED and said in terms that the first PRD to load any of this art
+was blocked until the operator completed the rows.
+
+Resolved 2026-07-28: the operator attests both trees were created for this
+project. `art/sources.md` and `THIRD_PARTY.md` are updated, and the latter now
+records that there is no third-party art in the repository at all. Nothing here
+could start until that was written down.
+
+### What the art is
+
+Established empirically, because the two trees do not follow the same convention
+and neither carried a readme. Recorded in `art/sources.md` so the next PRD does
+not have to work it out again.
+
+- Walk sheets are 96x256: 4 columns by 8 rows of 24x32 frames.
+- Rows are one direction each, running **clockwise from front**: front,
+  down-left, left, up-left, back, up-right, right, down-right.
+- Columns are a four-frame walk cycle. Columns 0 and 2 are the same neutral
+  pose; 1 and 3 are the opposite steps. Column 0 doubles as the idle frame.
+- Dialogue portraits are 24x24 busts numbered **counter-clockwise**
+  (`1-S, 2-SE, 3-E, …`), the reverse of the sheet row order. Deriving one from
+  the other would have rendered characters walking backwards.
+- Three skin tones per character, identical geometry, palette only.
+
+The row order was confirmed by matching each character's own labelled
+per-direction crop against the sheet frames pixel by pixel.
+
+### The stand-in cast
+
+ADR-0002 calls for six designed guide personas with names and voices. None are
+designed. So `content/characters.json` assigns a stand-in archetype and a skin
+tone to each of the six biblical sections, names the player's character, and is
+marked provisional. Changing any row is a one-line content edit, because this is
+the one judgement call in this PRD that is really a product decision.
+
 ## Acceptance criteria
 
 Written as observable behaviour, since this PRD is not test-first. Each is
@@ -88,13 +139,39 @@ verifiable by hand in a browser and, where marked, by an e2e test.
 ### Boot and world
 
 - [ ] `pnpm dev` serves an app that boots to scene 1 with no console errors.
-- [ ] Phaser renders a programmatically-drawn scene-1 world: a ground plane, a
-      player-controlled marker, and two distinct cross-reference character
-      markers placed in it.
-- [ ] The player marker moves under keyboard input (arrows or WASD) and cannot
-      leave the world bounds.
+- [ ] Phaser renders a programmatically-drawn scene-1 ground plane with a
+      player-controlled character and two distinct cross-reference guides
+      placed in it.
+- [ ] The player moves under keyboard input (arrows or WASD) and cannot leave
+      the world bounds.
 - [ ] The React overlay renders above the canvas and does not intercept pointer
       events except on its own controls.
+
+### Sprites and animation
+
+- [ ] The player is `daniel_judean`, animated, not a coloured rectangle.
+- [ ] Walking in any of the eight directions plays that direction's walk cycle;
+      releasing the keys settles on that direction's idle frame, keeping the
+      facing rather than snapping back to front.
+- [ ] Direction-to-row mapping is a pure function, unit tested against all eight
+      directions plus the stationary case.
+- [ ] The two scene-1 guides are animated character sprites.
+- [ ] Guides turn to face the player when the player is near them.
+- [ ] Each guide keeps a section-coloured marker at their feet, so the biblical
+      section stays readable at a glance, and that marker carries the encounter
+      state.
+
+### Art direction as content
+
+- [ ] A content file maps each of ADR-0002's six biblical sections to a
+      character and a skin tone, and names the player's character.
+- [ ] It is validated by zod on load, like the other content files.
+- [ ] Loading fails with a visible, defined error if a section present in the
+      curated cross-references has no character mapped to it. A missing guide
+      must not be discovered as a broken sprite at runtime.
+- [ ] A test asserts every sprite and portrait key names a file that actually
+      exists, so a typo fails in unit tests rather than as a 404 in e2e.
+- [ ] The mapping is marked provisional in the file.
 
 ### Content loading
 
@@ -125,8 +202,11 @@ verifiable by hand in a browser and, where marked, by an e2e test.
 
 ### Cross-reference encounters
 
-- [ ] Interacting with a character marker opens an encounter panel showing the
-      USFM reference, its section (OT History, Prophets), and the curated note.
+- [ ] Interacting with a guide opens an encounter panel showing the USFM
+      reference, its section (OT History, Prophets), and the curated note.
+- [ ] The panel shows the guide's dialogue portrait, rendered crisp rather than
+      smoothed. A missing portrait degrades to the panel without one, not to a
+      broken image icon.
 - [ ] Opening the encounter calls `store.engageEncounter(...)` once and awards
       the base stone. Re-opening it awards nothing further and the panel shows
       it as already engaged.
@@ -169,6 +249,8 @@ verifiable by hand in a browser and, where marked, by an e2e test.
 - [ ] The e2e suite grows a walkthrough: boot, read dialogue to the end, engage
       one encounter, see the balance rise, complete the scene, reload, and see
       the state persist.
+- [ ] No asset 404s. The e2e zero-console-errors check covers this, so a wrong
+      asset path fails the gate rather than shipping quietly.
 - [ ] All five gates in AGENTS.md §4 pass.
 
 ## Decisions this PRD forces
@@ -184,18 +266,35 @@ the slice can run; each is reversible afterward.
    that ADR-0002 assigns to `src/core`. The cost is that content errors surface
    at runtime rather than at compile time, which the schema plus a test
    mitigates.
-2. **Map authoring pipeline.** Not forced. The slice draws programmatically
-   precisely so Tiled vs LDtk stays open for the world PRD.
+2. **Map authoring pipeline.** Not forced. The slice draws its ground
+   programmatically precisely so Tiled vs LDtk stays open for the world PRD.
+   Loading character sprites does not touch this: characters are not a map.
 3. **Placeholder content policy.** Proposed: filler is allowed for narrative
    dialogue when marked in both the file and the UI, and is never allowed for
    scripture text or scripture paraphrase.
+4. **Art provenance.** Not an engineering call and not made here. The operator's
+   attestation that the art was created for this project is what unblocked
+   loading it, and it is recorded in `art/sources.md` and `THIRD_PARTY.md`
+   rather than in this PRD.
+5. **Section-to-character mapping.** Proposed: stand-in archetypes assigned to
+   each of ADR-0002's six biblical sections, in `content/characters.json`,
+   marked provisional. This is a product decision standing in for the six
+   designed guide personas that ADR-0002 calls for and that do not exist yet.
+   It is in content, not code, so the operator can overrule it cheaply.
 
 ## Out of scope
 
 - Scenes 2 through 9 as playable content. They exist in the manifest so
   progression and fog are real; they have no dialogue.
-- Real art, tiles, sprites, and audio. `public/assets/` stays empty.
+- Tiles, scenery, and audio. Characters are real art; the world they stand on is
+  not.
 - A tilemap of any kind, per the design constraint above.
+- The other 14 characters and 11 archetypes in `art/`. Only the seven sheets the
+  cast names ship in `public/assets/`.
+- Animation beyond walk and idle. No talk, sit, carry, or gesture states.
+- Guides for scenes 2 through 9. Those scenes have no dialogue to stand in.
+- The six guide personas as designed characters, with names and voices. This
+  PRD assigns stand-in art to a section; it does not invent a persona.
 - Real AI guide calls, prompts, personas, and verdict scoring. PRD-08.
 - Real scripture text, YouVersion or bundled WEB. PRD-07.
 - YouVersion sign-in and highlight sync. PRD-09.
@@ -214,6 +313,11 @@ The second failure mode is placeholder text escaping into a demo and being read
 as authored content. That is why the marking requirement is in the acceptance
 criteria twice, and why scripture is excluded from filler entirely.
 
+The third arrives with the art: characters standing on a plain rectangle field
+look unfinished, and the temptation will be to start drawing scenery to
+compensate. That is the world PRD's job and it needs the map pipeline decided
+first.
+
 Where the content comes from:
 
 - Scene list, settings, and progression: `docs/notes/scenes and cross refrences.md`.
@@ -221,3 +325,4 @@ Where the content comes from:
   notes: `content/daniel-1.refs.json`.
 - Overlay architecture, state ownership, and the deferred decisions:
   ADR-0002.
+- Sprite sheet geometry, row order, and art provenance: `art/sources.md`.

@@ -11,8 +11,6 @@ reconciled with GPL-3.0.
 | Component | What it is | Licence | Status |
 | --------- | ---------- | ------- | ------ |
 | Daniel cross-reference dataset | 357 verses of Daniel with 5,174 cross-references | GPL-2.0 | Cleared, see below |
-| `art/characters/**` | 432 files, 16 characters | Not recorded | **Open** |
-| `art/incoming/extras/**` | 351 files, unsorted | Not recorded | **Open** |
 
 ## Daniel cross-reference dataset
 
@@ -52,28 +50,23 @@ section. A bare clearance is enough to unblock work but is thin as a record.
 
 ## Art and audio
 
-Per-asset provenance is tracked in [`art/sources.md`](./art/sources.md), which is
-the working record. This section carries only what is third-party and therefore
-licence-relevant.
+**There is no third-party art in this repository.**
 
-**Status: open.** 783 image files across `art/characters/` and
-`art/incoming/extras/` have no recorded origin, author, or licence. They were
-committed in `9385bad` and relocated during PRD-02; neither tree carried a
-licence file, readme, or any other marker, so no origin could be named.
+**Resolved 2026-07-28.** The 784 image files across `art/characters/` and
+`art/incoming/extras/` were created for this project, on the operator's
+attestation. They are covered by the project's own GPL-3.0 licence and there is
+no external licence to reconcile. This closes what this section previously
+carried as the one remaining open licence question.
 
-This is a question of fact, not law, and legal advice does not answer it: either
-these files were made for this project or they came from somewhere. If they are
-bespoke or operator-generated, recording that in `art/sources.md` closes both
-rows and this section becomes "no third-party art."
+Per-asset provenance, and the sprite sheet layout conventions, are recorded in
+[`art/sources.md`](./art/sources.md), which remains the working record.
 
-Until then, `AGENTS.md` §6 applies: **never add an asset whose licence you cannot
-name**, and an asset may not be used until its row is filled. Files already
-committed are not "used," so nothing is currently in breach, but the first PRD
-that loads this art into the game is blocked.
+ADR-0002's warning about CC-BY-SA and some OpenGameArt terms not combining
+cleanly with GPL-3.0 is therefore moot for the current asset set. It still
+applies to anything added later: `AGENTS.md` §6 requires a provenance row before
+an asset is used, and no asset may be added whose licence cannot be named.
 
-Watch for CC-BY-SA and some OpenGameArt terms if any of it does turn out to be
-third-party. ADR-0002 flags that these do not combine cleanly with GPL-3.0, and
-that would be a second licence question rather than a repeat of the first.
+No audio ships yet. ADR-0002 defers the audio approach.
 
 ## Runtime dependencies
 

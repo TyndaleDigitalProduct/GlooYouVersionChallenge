@@ -13,11 +13,28 @@ export const REGION_ROWS = 3;
 export const REGION_WIDTH = WORLD_WIDTH / REGION_COLUMNS;
 export const REGION_HEIGHT = WORLD_HEIGHT / REGION_ROWS;
 
+/** Collision footprint, not display size: the drawn sprite is larger. */
 export const PLAYER_SIZE = 22;
 export const PLAYER_SPEED = 260;
-export const MARKER_SIZE = 34;
 /** How close the player must stand before a guide can be spoken to. */
 export const INTERACT_RADIUS = 68;
+/** How close before a guide turns to look at the player. */
+export const NOTICE_RADIUS = 120;
+
+// --- character sprites ----------------------------------------------------
+// The art is 24x32 (see art/sources.md). Drawn at an integer scale, because
+// the game config sets pixelArt and a fractional scale would blur it.
+
+export const SPRITE_SCALE = 2;
+/** Origin near the feet, so a character's position is where they stand. */
+export const SPRITE_ORIGIN_Y = 0.9;
+export const WALK_FRAME_RATE = 8;
+// Section-coloured disc under a guide's feet. Wider than the sprite and offset
+// below the standing point, because the sprite draws over anything behind it
+// and a disc hidden under a robe communicates nothing.
+export const FOOT_MARKER_WIDTH = 44;
+export const FOOT_MARKER_HEIGHT = 14;
+export const FOOT_MARKER_OFFSET_Y = 7;
 
 /** Left edge of region 1, on the same line as its guides, so "walk right" works. */
 export const PLAYER_SPAWN = { x: 72, y: REGION_HEIGHT / 2 };
@@ -102,21 +119,10 @@ export function nearestMarker(
   return nearest;
 }
 
-/** Guide colour by biblical section, matching ADR-0002's six persona groups. */
-const SECTION_COLORS: Record<string, number> = {
-  "Torah (Gen-Deut)": 0xc98b3f,
-  "OT History": 0x4f8fd4,
-  "OT Poetry/Wisdom": 0x9a6fd4,
-  Prophets: 0xd4674f,
-  "Gospels/Acts": 0x4fb783,
-  "NT Letters": 0xd4b24f,
-};
-
-export const UNKNOWN_SECTION_COLOR = 0x9aa0a6;
-
-export function sectionColor(section: string): number {
-  return SECTION_COLORS[section] ?? UNKNOWN_SECTION_COLOR;
-}
+// Guide colour by biblical section used to live here. It moved to
+// content/characters.json in PRD-05, alongside the rest of the art direction,
+// because which colour represents which part of the canon is a product
+// decision rather than a layout constant.
 
 export const PALETTE = {
   playedGround: 0x2f4739,

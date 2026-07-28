@@ -9,8 +9,6 @@ import {
   REGION_HEIGHT,
   REGION_WIDTH,
   regionRects,
-  sectionColor,
-  UNKNOWN_SECTION_COLOR,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./worldLayout";
@@ -99,15 +97,5 @@ describe("nearestMarker", () => {
   it("picks the nearer of two overlapping ranges", () => {
     expect(nearestMarker(151, 100, markers, INTERACT_RADIUS)).toBe("B");
     expect(nearestMarker(149, 100, markers, INTERACT_RADIUS)).toBe("A");
-  });
-});
-
-describe("sectionColor", () => {
-  it("gives each curated section its own colour", () => {
-    expect(sectionColor("OT History")).not.toBe(sectionColor("Prophets"));
-  });
-
-  it("falls back to a neutral colour for an unrecognised section", () => {
-    expect(sectionColor("Apocrypha")).toBe(UNKNOWN_SECTION_COLOR);
   });
 });

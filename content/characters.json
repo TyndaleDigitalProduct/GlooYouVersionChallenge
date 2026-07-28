@@ -1,0 +1,39 @@
+{
+  "status": "provisional",
+  "note": "Art direction for the cast, kept in content rather than in code because which character stands in for which biblical section is a product decision. PROVISIONAL: ADR-0002 calls for six designed guide personas with names and voices, and none of them are designed yet. These are stand-in archetypes assigned to a section so the slice has characters instead of coloured squares, and the operator can overrule any row here without touching code. Sheet and portrait geometry, and the row-to-direction order, are recorded in art/sources.md.",
+  "player": {
+    "sprite": "daniel_judean-tone2"
+  },
+  "guidesBySection": {
+    "Torah (Gen-Deut)": {
+      "sprite": "ex_elder-tone2",
+      "portrait": "ex_elder-tone2",
+      "markerColor": "0xc98b3f"
+    },
+    "OT History": {
+      "sprite": "ex_scribe-tone1",
+      "portrait": "ex_scribe-tone1",
+      "markerColor": "0x4f8fd4"
+    },
+    "OT Poetry/Wisdom": {
+      "sprite": "ex_woman-tone3",
+      "portrait": "ex_woman-tone3",
+      "markerColor": "0x9a6fd4"
+    },
+    "Prophets": {
+      "sprite": "ex_priest-tone2",
+      "portrait": "ex_priest-tone2",
+      "markerColor": "0xd4674f"
+    },
+    "Gospels/Acts": {
+      "sprite": "ex_shepherd-tone1",
+      "portrait": "ex_shepherd-tone1",
+      "markerColor": "0x4fb783"
+    },
+    "NT Letters": {
+      "sprite": "ex_merchant-tone3",
+      "portrait": "ex_merchant-tone3",
+      "markerColor": "0xd4b24f"
+    }
+  }
+}

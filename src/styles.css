@@ -294,6 +294,23 @@ body {
   margin-bottom: 0.4rem;
 }
 
+.vv-encounter__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+/* 24x24 pixel-art bust, scaled by a whole number and told not to smooth. */
+.vv-portrait {
+  width: 72px;
+  height: 72px;
+  flex: none;
+  border: 1px solid #2c3545;
+  border-radius: 0.3rem;
+  background: #1b2230;
+  image-rendering: pixelated;
+}
+
 .vv-encounter__title {
   margin: 0;
   font-size: 1.05em;

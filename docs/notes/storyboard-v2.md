@@ -139,8 +139,9 @@ who skips has no route to the rules. Put it behind the HUD menu.
 
 ## 5. Scene 1 — Daniel 1:1, Jerusalem under siege
 
-Full beats, cast, sprite assignments, dialogue, card-generation contract, and the
-two fallback card sets: **[`scene-01-flow.md`](./scene-01-flow.md)**.
+Full beats, cast, sprite assignments, dialogue, and the card-generation
+contract: **[`scene-01-flow.md`](./scene-01-flow.md)**. The two fallback card
+sets themselves live in `content/daniel-1.cards.json`.
 
 In brief: the Lamplighter opens with `DAN.1.1`; the **Chronicler**
 (`2KI.24.1-4`) and the **Watchman** (`JER.25.2-11`) are the two encounters, in

@@ -158,38 +158,16 @@ scale that is the eval. It does not ship.
 
 ## Development fallback sets — Scene 1
 
-Ships in `content/`. Purpose is building the card UI without spending Gloo calls
-on every reload, and it is what a failed generation degrades to. These also
-demonstrate the distractor rule.
+**Authority: `content/daniel-1.cards.json`.** Scene 1's two sets were drafted
+here and have moved there; the tables that used to be in this section are gone
+so there is one copy to keep correct. Keyed by scene id, then cross-reference,
+matching `daniel-1.refs.json`. That file also carries the validator constraints
+and the distractor rule as data.
 
-### the Chronicler — `DAN.1.1` × `2KI.24.1-4`
-
-Note: *Kings tells the same invasion and reads it as God's judgment on Judah for
-generations of sin, not just Babylon flexing its power.*
-
-| Value | Card |
-| --- | --- |
-| 5 | Kings frames the invasion as God's judgment on Judah, not just Babylon's ambition. |
-| 4 | The same invasion is told twice in Scripture, so Daniel 1:1 sits inside a longer history. |
-| 3 | Judah's sin had been building for generations before this moment. |
-| 0 | Babylon attacked out of nowhere, and Judah had done nothing that led to it. |
-| 0 | Kings says Jehoiakim defeated Nebuchadnezzar and drove him out of Judah. |
-| 0 | The invasion happened because God had abandoned his promises to Israel for good. |
-
-### the Watchman — `DAN.1.1` × `JER.25.2-11`
-
-Note: *Jeremiah had warned Judah for over two decades; here he announces a
-70-year exile and even calls Nebuchadnezzar God's servant, the tool God uses to
-discipline his own people.*
-
-| Value | Card |
-| --- | --- |
-| 5 | Jeremiah calls Nebuchadnezzar God's servant — the empire is a tool in God's hand, not his rival. |
-| 4 | Judah had been warned for more than twenty years before Babylon ever arrived. |
-| 3 | The exile is given a limit: seventy years. |
-| 0 | Jeremiah promised Judah that Babylon would never reach Jerusalem. |
-| 0 | The exile was announced as permanent, with no end in sight. |
-| 0 | Jeremiah gave his warning only days before the invasion, leaving no time to turn back. |
+Purpose is building the card UI without spending Gloo calls on every reload, and
+it is what a failed generation degrades to. Scene 1 covers 2 of 24 encounters;
+the other 22 come from the calibration pass above and are reviewed before they
+land in `content/`.
 
 ## Sprite assignments — Scene 1
 

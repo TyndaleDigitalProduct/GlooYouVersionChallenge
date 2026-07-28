@@ -1,0 +1,47 @@
+{
+  "book": "DAN",
+  "chapter": 1,
+  "reference_format": "usfm",
+  "note": "Reviewed fallback insight-card sets, keyed by scene id then cross-reference. Two purposes, per ADR-0003: building and iterating the card UI without spending a Gloo call on every reload, and the set a failed or schema-violating generation degrades to. These are NOT the shipped scoring key for a live encounter; at runtime Gloo generates a set per encounter, grounded in the curated note. Curated notes are not duplicated here, they live in daniel-1.refs.json keyed by the same scene id and ref.",
+  "coverage": "Scene 1 only (2 of 24 encounters). The remaining 22 are produced by the calibration pass described in docs/notes/scene-01-flow.md and reviewed before they land here.",
+  "constraints": {
+    "cards_per_encounter": 6,
+    "value_range": [0, 5],
+    "min_zero_value_cards": 1,
+    "min_nonzero_value_cards": 3,
+    "correct_value_range": [3, 5],
+    "duplicate_text": false,
+    "note": "Same constraints the runtime schema validator enforces on generated output. A card scoring 0 must contradict the passage or import a claim absent from it. A statement that is true of the passage but merely absent from the curated note is never a valid distractor: it would score 0 and punish a player for reading well."
+  },
+  "scenes": {
+    "1": {
+      "anchor": "DAN.1.1",
+      "encounters": {
+        "2KI.24.1-4": {
+          "persona": "the Chronicler",
+          "section": "OT History",
+          "cards": [
+            { "value": 5, "text": "Kings frames the invasion as God's judgment on Judah, not just Babylon's ambition." },
+            { "value": 4, "text": "The same invasion is told twice in Scripture, so Daniel 1:1 sits inside a longer history." },
+            { "value": 3, "text": "Judah's sin had been building for generations before this moment." },
+            { "value": 0, "text": "Babylon attacked out of nowhere, and Judah had done nothing that led to it." },
+            { "value": 0, "text": "Kings says Jehoiakim defeated Nebuchadnezzar and drove him out of Judah." },
+            { "value": 0, "text": "The invasion happened because God had abandoned his promises to Israel for good." }
+          ]
+        },
+        "JER.25.2-11": {
+          "persona": "the Watchman",
+          "section": "Prophets",
+          "cards": [
+            { "value": 5, "text": "Jeremiah calls Nebuchadnezzar God's servant, so the empire is a tool in God's hand, not his rival." },
+            { "value": 4, "text": "Judah had been warned for more than twenty years before Babylon ever arrived." },
+            { "value": 3, "text": "The exile is given a limit: seventy years." },
+            { "value": 0, "text": "Jeremiah promised Judah that Babylon would never reach Jerusalem." },
+            { "value": 0, "text": "The exile was announced as permanent, with no end in sight." },
+            { "value": 0, "text": "Jeremiah gave his warning only days before the invasion, leaving no time to turn back." }
+          ]
+        }
+      }
+    }
+  }
+}

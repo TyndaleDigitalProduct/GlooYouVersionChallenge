@@ -1,39 +1,36 @@
-# Proposal — not an ADR
-
-**For Ben.** The design decisions of 2026-07-28 reverse several choices recorded
-in ADR-0002: the reward scale, the encounter interface, and the shape of the Gloo
-integration. This file writes up the reasoning in ADR form so you have it if you
-want a decision record.
-
-Whether it becomes one is your call — `docs/decisions/0001:28-30` says ADRs are
-human-authored, and `0001:32-33` says a changed decision gets a new ADR that
-supersedes the old one with a note on both. That's repo convention, not design.
-
-The design itself is [`storyboard-v2.md`](./storyboard-v2.md) and
-[`scene-01-flow.md`](./scene-01-flow.md); those are self-contained and don't
-depend on this file.
-
----
-
 # 0003. Card-selection encounters, generated at runtime
 
 Date: 2026-07-28
 
 ## Status
 
-Proposed
+Accepted, 2026-07-28.
+
+Accepted by the operator. The decisions below are binding.
 
 Partly supersedes [ADR-0002](./0002-frontend-and-runtime-stack.md): the sections
 "Rewards: two-tier, never punitive", "AI guides: grounded in our own notes", and
 the streaming justification in "Hosting: Vercel, static SPA plus two serverless
-routes".
+routes". Everything else in ADR-0002 stands.
+
+Two procedural notes, following the precedent ADR-0002 set for itself. This
+document was drafted by an agent at the operator's explicit request, waiving the
+agents-do-not-write-ADRs rule in ADR-0001 and `AGENTS.md` §7 for this one file;
+that waiver does not extend to any other ADR. And per ADR-0001 this ADR is now
+immutable. A decision that changes here gets a new ADR that supersedes it, with
+a note added to both.
+
+The design this record follows is
+[`storyboard-v2.md`](../notes/storyboard-v2.md) and
+[`scene-01-flow.md`](../notes/scene-01-flow.md), which are self-contained and do
+not depend on this file.
 
 ## Context
 
 ADR-0002 resolved the tension between the product PRD's "no Bible quizzes"
 non-goal and its request for stones awarded for meaningful connections by making
-insight something *recognised in conversation* rather than *marked as an answer*
-— which explicitly ruled out multiple choice.
+insight something *recognised in conversation* rather than *marked as an answer*,
+which explicitly ruled out multiple choice.
 
 Three things have changed since.
 
@@ -53,17 +50,17 @@ assumption that a broken demo was the worst outcome, that trade no longer holds.
 The non-goal exists to prevent trivia and skill gates. Asking a player to choose
 the *three most important* connections out of six, where nothing is deducted and
 nothing is gated, tests discernment rather than recall, and cannot block or
-punish. The letter of "no multiple choice" is overturned here; the intent behind
-it — never punitive, never gated, narrative first — is kept and restated below.
+punish. The letter of "no multiple choice" is overturned here. The intent behind
+it (never punitive, never gated, narrative first) is kept and restated below.
 
 ## Decision
 
 ### Encounters are card selection. There is no free-text input anywhere.
 
-A cross-reference encounter runs: persona intro → both Scripture cards read →
-six insight cards presented → player locks up to three → all six values revealed
-with the curated note → persona closing line → character goes inactive with a
-summary card.
+A cross-reference encounter runs: persona intro, both Scripture cards read, six
+insight cards presented, player locks up to three, all six values revealed with
+the curated note, persona closing line, character goes inactive with a summary
+card.
 
 No keyboard input, no streamed model response, no follow-up conversation. This
 is a rejection, not a deferral: the conversational interface is out of the
@@ -79,8 +76,8 @@ invariant in `src/core/ledger.ts` stands unchanged.
 **The player may select at most three cards.** Without a cap, and with no
 penalty for a wrong pick, selecting all six would be strictly optimal and the
 choice would be meaningless. The cap makes an incorrect pick cost an
-opportunity rather than points — which restores the decision without
-introducing punishment.
+opportunity rather than points, which restores the decision without introducing
+punishment.
 
 Correct cards stay in a narrow 3–5 band deliberately. Importance is a curatorial
 judgment and players will disagree in good faith; a correct pick worth 1 against
@@ -90,8 +87,8 @@ Card values are hidden until selections are locked.
 
 ### The reveal is the teaching beat
 
-Once locked, all six values are shown — including the cards the player did not
-pick — alongside the curated note from `content/daniel-1.refs.json`, which is
+Once locked, all six values are shown, including the cards the player did not
+pick, alongside the curated note from `content/daniel-1.refs.json`, which is
 the authoritative explanation of the connection.
 
 - Value is rendered as a **number**. Colour distinguishes selected from
@@ -117,8 +114,8 @@ allow. The mitigation is prompt calibration plus the two constraints below, and
 the residual risk is accepted knowingly: exercising this pipeline is one of the
 two learning goals of the project.
 
-**Distractors must be clearly wrong** — contradicting the passage, or importing
-a claim absent from it. They must never be statements that are true of the
+**Distractors must be clearly wrong.** They contradict the passage, or import a
+claim absent from it. They must never be statements that are true of the
 passage but merely absent from the note: those score 0 and would punish a player
 for reading well, which is the failure mode most likely to survive casual
 testing.
@@ -140,8 +137,8 @@ renderable on revisit.
 The no-RAG reasoning (24 notes, ~6.6 KB, retrieval is a dictionary lookup) and
 the six personas mapping onto the `section` field both survive. So does the
 two-route server tier: Gloo's API key still means a secret still means a server.
-Only the streaming justification for that route falls away — generation is a
-single non-streamed structured call.
+Only the streaming justification for that route falls away, since generation is
+a single non-streamed structured call.
 
 ## Consequences
 
@@ -155,12 +152,12 @@ single non-streamed structured call.
 - `EncountersState` currently stores a bare state string per encounter. It must
   now carry the generated cards and the player's selections, which is a change
   to the versioned save format and needs a migration.
-- The product PRD's non-goal "No trivia/minigames or skill gates—the focus is
-  narrative, not Bible quizzes" is now partly contradicted and needs rewording.
-  Keep "no skill gates" — encounters still never block progress.
+- The product PRD's non-goal on trivia and skill gates was partly contradicted
+  by this decision and has been reworded alongside it. "No skill gates" is kept:
+  encounters still never block progress.
 - The product PRD's Success Metrics (judge ratings, uptime at judging, 1,000+
-  concurrent users, repo stars) no longer describe what this project optimises
-  for and should be replaced.
+  concurrent users, repo stars) no longer described what this project optimises
+  for and have been replaced alongside this decision.
 - A Gloo outage degrades encounters to the fallback set rather than breaking
   them, and the bundled WEB text keeps Scripture available regardless.
 

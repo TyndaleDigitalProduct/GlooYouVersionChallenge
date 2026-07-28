@@ -24,6 +24,7 @@ three binding architecture invariants are all in
 | Question                                       | Authority                                              |
 | ---------------------------------------------- | ------------------------------------------------------ |
 | Stack, architecture, invariants, licence risks | `docs/decisions/0002-frontend-and-runtime-stack.md`    |
+| Encounter format, rewards, card generation     | `docs/decisions/0003-card-selection-encounters.md`     |
 | Why we keep ADRs, and their rules              | `docs/decisions/0001-record-architecture-decisions.md` |
 | What we are building, and why                  | `docs/notes/Verse & Vale - Daniel 1 Experience PRD.md` |
 | Scene breakdown and cross-reference design     | `docs/notes/scenes and cross refrences.md`             |

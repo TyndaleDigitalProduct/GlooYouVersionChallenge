@@ -4,7 +4,13 @@ Date: 2026-07-27
 
 ## Status
 
-Accepted, 2026-07-27.
+Accepted, 2026-07-27. **Partly superseded by
+[ADR-0003](./0003-card-selection-encounters.md), 2026-07-28**, which replaces
+three things below: the section "Rewards: two-tier, never punitive", the section
+"AI guides: grounded in our own notes", and the streaming justification inside
+"Hosting: Vercel, static SPA plus two serverless routes". Everything else in
+this ADR still stands. This note is the only edit made after acceptance, and it
+is the one ADR-0001 requires.
 
 Accepted by the operator as written. The decisions below are binding: they are
 the authority for `AGENTS.md` §1 and §3, and PRD-02 implements them.

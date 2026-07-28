@@ -22,7 +22,8 @@ Verse & Vale is a 2D pixel-art narrative web game designed for the “Scripture 
 
 ### Non-Goals
 
-- No trivia/minigames or skill gates—the focus is narrative, not Bible quizzes
+- No skill gates. Nothing a player does inside a cross-reference encounter can block progress, deduct stones, or fail them. Side content is always skippable.
+- No trivia. Encounters ask which connections matter most, which is a judgment call, not a recall test on Bible facts. Cross-reference encounters use a capped card selection; why that is not the quiz this rules out is in [ADR-0003](../decisions/0003-card-selection-encounters.md).
 - Not intended as a digital workbook or study guide
 - No support for multiplayer or books outside Daniel 1 in the MVP
 
@@ -106,33 +107,41 @@ Verse & Vale follows a spiritually curious player who, tired of conventional app
 
 ## Success Metrics
 
-### User-Centric Metrics
+This project has two goals: produce a game that is fun, and build hands-on
+familiarity with the YouVersion Platform API and Gloo AI Studio. It is not
+optimising for judge scores, concurrent-user ceilings, or repository popularity.
+The reasoning is in [ADR-0003](../decisions/0003-card-selection-encounters.md);
+the earlier judge-and-adoption metrics were replaced with the list below.
 
-- % of players who complete Daniel 1 experience
-- Engagement with scripture/highlights (per player, per session)
-- Rate of interaction with cross-reference content
-- YouVersion integration opt-in rate, highlight frequency
-- Vale Stones earned and spent per player
+### Did we build something fun?
 
-### Business Metrics
+- Playtesters reach the end of Daniel 1 without being prompted to keep going
+- Players open cross-reference encounters even though they are optional
+- Players can name something the reveal taught them that they did not already know
+- Card selection reads as a judgment call rather than a guess
 
-- Demo video rating by hackathon judges/reviewers
-- Feature delivery against timeline milestones
-- Open source adoption (repo stars, forks, contributions)
+### Did we learn the platforms?
 
-### Technical Metrics
+- Scripture cards render from the live YouVersion Platform API, not only from the bundled WEB fallback
+- OAuth sign-in and highlight sync work end to end at least once against the real API
+- Card generation runs against Gloo inside the shipped product, with schema validation and the fallback path both exercised
+- The calibration pass over all 24 encounters has been read by a human and the distractor rule holds
 
-- Web uptime and accessibility at judging
-- API request success/error rates (YouVersion, Gloo)
-- End-to-end bug rates and deploy time
+### Health checks, not targets
+
+Watched so failures are visible. None of these is a number to push up.
+
+- Gloo generation: schema-violation rate, retry rate, fallback rate
+- YouVersion: request success and error rates
+- Save loads: no corrupt or white-screening restores after a schema migration
 
 ### Tracking Plan
 
-- Player session/completion events
-- Scripture card displays
-- Vale Stone earning and spending
-- YouVersion login/highlight actions
-- AI guide conversation launches
+- Player session and scene-completion events
+- Scripture card displays, and whether the read gate was satisfied before selection unlocked
+- Vale Stone earning and spending, by cause
+- YouVersion login and highlight actions
+- Encounter starts, locked selections, and cards left unselected
 
 ## Technical Considerations
 
@@ -155,7 +164,7 @@ Verse & Vale follows a spiritually curious player who, tired of conventional app
 
 ### Scalability & Performance
 
-- Designed for public demo and hackathon; should support 1,000+ concurrent users with smooth performance
+- No concurrent-user target. The deploy is a static bundle plus two stateless routes on Vercel, which scales without our help, and load is not something this project is trying to prove
 - API fallback and local cache for robustness
 
 ### Potential Challenges

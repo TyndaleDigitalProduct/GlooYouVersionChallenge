@@ -130,19 +130,26 @@ describe("buildCardSets", () => {
 describe("the real content file", () => {
   const cardSets = unwrap(buildCardSets(realCardsDocument));
 
-  it("carries scene 1's two reviewed encounters with their real persona names", () => {
-    expect(fallbackCardSetFor(cardSets, "2KI.24.1-4")?.persona).toBe("the Chronicler");
-    expect(fallbackCardSetFor(cardSets, "JER.25.2-11")?.persona).toBe("the Watchman");
+  it("holds all twenty-four fallback encounter card sets", () => {
+    expect(cardSets.byReference.size).toBe(24);
   });
 
-  it("every card set satisfies the card-set constraints (spot check via value shape)", () => {
-    for (const reference of ["2KI.24.1-4", "JER.25.2-11"]) {
-      const set = fallbackCardSetFor(cardSets, reference);
-      expect(set?.cards).toHaveLength(6);
-      const zero = set?.cards.filter((card) => card.value === 0).length ?? 0;
-      const nonZero = set?.cards.filter((card) => card.value > 0).length ?? 0;
-      expect(zero).toBeGreaterThanOrEqual(1);
-      expect(nonZero).toBeGreaterThanOrEqual(3);
+  it("carries the correct persona names for a cross-section of encounters", () => {
+    expect(fallbackCardSetFor(cardSets, "2KI.24.1-4")?.persona).toBe("the Chronicler");
+    expect(fallbackCardSetFor(cardSets, "JER.25.2-11")?.persona).toBe("the Watchman");
+    expect(fallbackCardSetFor(cardSets, "PSA.106.40-42")?.persona).toBe("Lady Wisdom");
+    expect(fallbackCardSetFor(cardSets, "GEN.41.39-45")?.persona).toBe("the Elder");
+    expect(fallbackCardSetFor(cardSets, "MAT.4.1-4")?.persona).toBe("the Witness");
+    expect(fallbackCardSetFor(cardSets, "HEB.11.24-26")?.persona).toBe("the Courier");
+  });
+
+  it("every card set satisfies the card-set constraints", () => {
+    for (const [reference, set] of cardSets.byReference) {
+      expect(set.cards).toHaveLength(6);
+      const zero = set.cards.filter((card) => card.value === 0).length;
+      const nonZero = set.cards.filter((card) => card.value > 0).length;
+      expect(zero, `${reference}: min 1 zero card`).toBeGreaterThanOrEqual(1);
+      expect(nonZero, `${reference}: min 3 nonzero cards`).toBeGreaterThanOrEqual(3);
     }
   });
 });

@@ -7,10 +7,7 @@
 // degrades to, and the source of the two real persona names ("the
 // Chronicler", "the Watchman") that exist anywhere in this content set.
 //
-// Coverage is partial by design: content/daniel-1.cards.json documents itself
-// as "Scene 1 only (2 of 24 encounters)". A reference with no fallback set
-// here simply has none; callers treat that as "nothing to generate yet",
-// not an error, since the remaining 22 sets are out of scope for this PRD.
+// Coverage is complete across all 24 encounters in 9 scenes.
 import { z } from "zod";
 import type { EncounterCard } from "@/core/encounters";
 import { err, ok, type Result } from "@/core/result";
@@ -96,7 +93,7 @@ export function fallbackCardSetFor(
   return cardSets.byReference.get(reference);
 }
 
-/** The real persona name for a reference, or undefined for the 22 not yet authored. */
+/** The real persona name for a reference. */
 export function personaFor(cardSets: CardSets, reference: string): string | undefined {
   return cardSets.byReference.get(reference)?.persona;
 }

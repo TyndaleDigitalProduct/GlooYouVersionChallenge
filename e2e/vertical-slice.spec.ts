@@ -45,7 +45,9 @@ test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", a
   await expect(page.getByTestId("encounter-reference")).toContainText("2KI.24.1-4");
   // The guide's portrait loaded: onError would have unmounted a broken image.
   await expect(page.getByTestId("encounter-portrait")).toBeVisible();
-  await expect(page.getByTestId("passage-slot")).toContainText("later PRD");
+  // PRD-08 phase 2: real bundled WEB text now resolves, replacing the stub's
+  // "not wired up" message.
+  await expect(page.getByTestId("passage-slot")).toContainText("Nebuchadnezzar");
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("1");
 
   await page.getByTestId("encounter-close").click();

@@ -68,20 +68,30 @@ describe("createAppRuntime", () => {
     expect(second.store.getState().revealedRegionIds()).toEqual(["region-1", "region-2"]);
   });
 
-  it("wires the remaining stubs and labels them as stubs", () => {
+  it("wires the remaining stub and labels it as one", () => {
     const runtime = boot();
 
-    expect(runtime.scripture.isStub).toBe(true);
     expect(runtime.session.isStub).toBe(true);
     expect(runtime.session.current()).toBeNull();
   });
 
-  it("has no Scripture text to give, and says why", async () => {
+  it("wires the real Scripture provider, not a stub, since PRD-08 phase 2", async () => {
     const runtime = boot();
 
+    expect(runtime.scripture.isStub).toBe(false);
     await expect(runtime.scripture.getPassage("2KI.24.1-4")).resolves.toMatchObject({
-      status: "unavailable",
+      status: "available",
       reference: "2KI.24.1-4",
+      translation: "World English Bible",
+    });
+  });
+
+  it("still reports the defined unavailable outcome for a reference outside the bundle", async () => {
+    const runtime = boot();
+
+    await expect(runtime.scripture.getPassage("JHN.3.16")).resolves.toMatchObject({
+      status: "unavailable",
+      reference: "JHN.3.16",
     });
   });
 });

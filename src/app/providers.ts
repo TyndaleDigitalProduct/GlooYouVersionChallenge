@@ -1,8 +1,10 @@
-// The seams this slice stubs, each a named interface with a deterministic
-// stub implementation. Everything the slice fakes is faked here and nowhere
-// else, and every stub is constructed at exactly one composition point
-// (runtime.ts). Replacing a stub with a real implementation in a later PRD
-// touches that composition point and the new implementation only.
+// The seams this app fakes or has faked, each a named interface. Everything
+// still stubbed is faked here and nowhere else, and every implementation
+// (stub or real) is constructed at exactly one composition point
+// (runtime.ts). Replacing a stub with a real implementation touches that
+// composition point and the new implementation only, which is why the
+// Scripture stub is gone from this file as of PRD-08 phase 2 but the
+// interface it implemented is not.
 //
 // PRD-04 also stubbed a third seam here, insight verdicts, for the free-text
 // conversational mechanic ADR-0002 originally specified. ADR-0003 rejected
@@ -20,9 +22,13 @@ import { err } from "@/core/result";
 import type { YouVersionSession } from "@/core/save";
 
 // --- Scripture text -------------------------------------------------------
-// PRD-04 ships no Scripture text at all: not YouVersion, not the bundled WEB
-// fallback, and certainly not model-generated text. The stub says so, and the
-// UI renders the reason where passage text will eventually go.
+// PRD-04 shipped no Scripture text at all: not YouVersion, not the bundled
+// WEB fallback, and certainly not model-generated text. PRD-08 phase 2
+// commits the bundled WEB fallback and replaces the stub that used to live
+// here with the real implementation in ./scriptureProvider.ts. The interface
+// stays here and stays exactly this shape (async, an explicit `unavailable`
+// status) so PRD-09 can swap in a YouVersion fetch without a signature
+// change.
 
 export type PassageResult =
   | { status: "available"; reference: string; translation: string; text: string }
@@ -31,22 +37,6 @@ export type PassageResult =
 export interface ScriptureProvider {
   readonly isStub: boolean;
   getPassage(reference: string): Promise<PassageResult>;
-}
-
-export const PASSAGE_UNAVAILABLE_REASON =
-  "Passage text is not wired up in this build. Real Scripture text arrives in a later PRD.";
-
-export function createStubScriptureProvider(): ScriptureProvider {
-  return {
-    isStub: true,
-    getPassage(reference) {
-      return Promise.resolve({
-        status: "unavailable",
-        reference,
-        reason: PASSAGE_UNAVAILABLE_REASON,
-      });
-    },
-  };
 }
 
 // --- YouVersion session ---------------------------------------------------

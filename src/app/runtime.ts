@@ -25,11 +25,11 @@ import rawRefsDocument from "../../content/daniel-1.refs.json";
 import { createBrowserStorage, SAVE_KEY } from "./browserStorage";
 import { attachPersistence } from "./persistence";
 import {
-  createStubScriptureProvider,
   createStubSessionProvider,
   type ScriptureProvider,
   type SessionProvider,
 } from "./providers";
+import { createScriptureProvider } from "./scriptureProvider";
 import { createViewStore, type ViewStoreApi } from "./viewStore";
 
 export interface AppRuntime {
@@ -63,7 +63,7 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     storage = createBrowserStorage(),
     bus = eventBus,
     saveKey = SAVE_KEY,
-    scripture = createStubScriptureProvider(),
+    scripture = createScriptureProvider(),
     session = createStubSessionProvider(),
   } = options;
 

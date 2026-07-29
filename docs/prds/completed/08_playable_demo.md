@@ -15,8 +15,13 @@ Supersedes PRD-05 layers 1 to 3 and PRD-06 workstream A, unchanged in substance.
 The re-cut exists because PRD-05 was sequenced by architectural layer and PRD-06 by
 parallel workstream, which meant neither document answered "what ships next" and the
 dependencies between them ran in both directions. They now run one way: this PRD,
-then [PRD-09](./09_challenge_integrations.md) and
-[PRD-10](./10_shell_and_scene_framing.md) in either order.
+then [PRD-09](./09_gloo_card_generation.md),
+[PRD-10](./10_youversion_sign_in_and_highlight_sync.md),
+[PRD-11](./11_home_screen_and_intro.md), and
+[PRD-12](./12_lamplighter_scene_closing.md), in any order beyond their own
+internal dependencies. PRD-09 and PRD-10 were originally one document, "the
+challenge integrations," later split further; likewise PRD-11 and PRD-12 were
+originally "shell and scene framing."
 
 ## Prerequisites
 
@@ -113,12 +118,12 @@ Inherited, not invented here. Each has a test.
       that converts bare encounter strings into records and maps the renamed
       state.
 - [ ] The v3 schema carries an **optional player-name field that this PRD does not
-      read or write**. It exists only so PRD-10's home-screen work can fill it
+      read or write**. It exists only so PRD-11's home-screen work can fill it
       without a second migration; a required name is settled design
       (`storyboard-v2.md` "Settled") and it has to be persisted somewhere. Optional
       at the schema level because a v2 save being migrated has no name to supply, so
       `migrateV2ToV3` leaves it absent and a test asserts absent is legal. Cheaper
-      than the v4 migration the alternative forces on PRD-10.
+      than the v4 migration the alternative forces on PRD-11.
 - [ ] A v2 encounter resolved under the old model has no cards, so its summary
       card cannot show per-card values. The migration produces a record that
       renders as resolved with the curated note only, and a test asserts the
@@ -176,7 +181,7 @@ Inherited, not invented here. Each has a test.
 - [ ] An e2e test drives a full encounter: walk up, read both passages, pick
       three, lock, see the reveal, see the balance move.
 
-**Seam owed to PRD-09.** The read gate here is what defines "read", and PRD-09
+**Seam owed to PRD-10.** The read gate here is what defines "read", and PRD-10
 captures a highlight for every reference read. Capture belongs there, the trigger
 comes from here. Agree the seam before either side writes it. Nothing in this PRD
 fires a highlight.
@@ -220,12 +225,15 @@ and says nothing about input; the source here is the storyboard.
 
 ## Out of scope
 
-- **Gloo card generation and YouVersion.** [PRD-09](./09_challenge_integrations.md).
-  Phase 3 builds against the committed fallback sets, so nothing here waits on either.
-- **Home screen, name entry, intro, and the Lamplighter.**
-  [PRD-10](./10_shell_and_scene_framing.md). Name *entry* is PRD-10's; this PRD only
-  reserves the optional v3 schema slot it lands in, so that PRD-10 does not need a v4
-  migration of its own.
+- **Gloo card generation.** [PRD-09](./09_gloo_card_generation.md).
+- **YouVersion sign-in, sync, and consent.**
+  [PRD-10](./10_youversion_sign_in_and_highlight_sync.md).
+  Phase 3 builds against the committed fallback sets, so nothing here waits on
+  either integration.
+- **Home screen, name entry, and intro.** [PRD-11](./11_home_screen_and_intro.md).
+  Name *entry* is PRD-11's; this PRD only reserves the optional v3 schema slot it
+  lands in, so that PRD-11 does not need a v4 migration of its own.
+- **The Lamplighter.** [PRD-12](./12_lamplighter_scene_closing.md).
 - **CI.** PRD-07, complete.
 - **Dialogue for scenes 2 through 9.** Zero beats exist and scene 1's are
   placeholders. Authoring work, not engineering, and it gates "all nine scenes
@@ -238,7 +246,7 @@ and says nothing about input; the source here is the storyboard.
   live path; the fallback only matters for offline and outage play.
 - **World art, tilemaps, and audio.** `maps/`, `tiles/`, and `audio/` are empty.
 - **Scene revisit** and the **highlight colour scheme**. Both still open decisions
-  in `storyboard-v2.md`. Revisit lands in PRD-10, colour in PRD-09.
+  in `storyboard-v2.md`. Revisit lands in PRD-12, colour in PRD-10.
 
 ## Notes
 

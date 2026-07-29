@@ -9,8 +9,10 @@ biblical canon.
 
 ## Status
 
-Early. No application code yet — the work so far is dataset preparation and
-project scaffolding. The tech stack has not been chosen.
+A playable vertical slice of Scene 1 exists: TypeScript, Phaser 4, React 19,
+and Vite, with the core game rules, save format, and card-selection encounter
+design in place. The five mandatory quality gates (test, coverage, build,
+lint, e2e) run locally and in GitHub Actions on every PR.
 
 ## Repository layout
 
@@ -20,12 +22,11 @@ CLAUDE.md        pointer to AGENTS.md
 THIRD_PARTY.md   upstream data provenance and licence terms
 LICENSE          GPL-3.0
 docs/            PRDs, decisions, research, notes — see docs/README.md
+src/             application source (core rules, game, UI, app shell)
+content/         authored game content: curated refs, dialogue, characters
+Data/            upstream and machine-derived datasets (see ADR-0002)
+art/             art masters and their provenance
 ```
-
-One directory is **local to the maintainer's machine and not tracked here**:
-`Data/`, which holds the Daniel cross-reference datasets and their provenance.
-If you have cloned this repository it will be absent — that is expected, not a
-broken checkout.
 
 ## Working on this project
 

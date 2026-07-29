@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createViewStore } from "./viewStore";
+import { createViewStore, hasReadBothPassages, hasReadPassage } from "./viewStore";
 
 describe("view store", () => {
   it("starts with nothing open and no notices", () => {
@@ -85,6 +85,45 @@ describe("view store", () => {
     store.getState().dismissNotice("a");
 
     expect(store.getState().notices.map((notice) => notice.id)).toEqual(["b"]);
+  });
+
+  it("starts with no passages read", () => {
+    const view = createViewStore().getState();
+    expect(view.readPassages).toEqual({});
+  });
+
+  it("marks a passage read for an encounter, scoped by encounter reference", () => {
+    const store = createViewStore();
+
+    store.getState().markPassageRead("2KI.24.1-4", "DAN.1.1");
+
+    expect(hasReadPassage(store.getState(), "2KI.24.1-4", "DAN.1.1")).toBe(true);
+    expect(hasReadPassage(store.getState(), "2KI.24.1-4", "2KI.24.1-4")).toBe(false);
+    // A different encounter's read state is unaffected.
+    expect(hasReadPassage(store.getState(), "JER.25.2-11", "DAN.1.1")).toBe(false);
+  });
+
+  it("the read gate opens only once both an encounter's passages are read", () => {
+    const store = createViewStore();
+
+    expect(hasReadBothPassages(store.getState(), "2KI.24.1-4", "DAN.1.1")).toBe(false);
+
+    store.getState().markPassageRead("2KI.24.1-4", "DAN.1.1");
+    expect(hasReadBothPassages(store.getState(), "2KI.24.1-4", "DAN.1.1")).toBe(false);
+
+    store.getState().markPassageRead("2KI.24.1-4", "2KI.24.1-4");
+    expect(hasReadBothPassages(store.getState(), "2KI.24.1-4", "DAN.1.1")).toBe(true);
+  });
+
+  it("does not notify subscribers when a passage already marked read is marked again", () => {
+    const store = createViewStore();
+    store.getState().markPassageRead("2KI.24.1-4", "DAN.1.1");
+
+    const listener = vi.fn();
+    store.subscribe(listener);
+    store.getState().markPassageRead("2KI.24.1-4", "DAN.1.1");
+
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it("keeps the same notices array identity when dismissing an unknown id", () => {

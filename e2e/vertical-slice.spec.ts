@@ -45,17 +45,18 @@ test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", a
   await expect(page.getByTestId("encounter-reference")).toContainText("2KI.24.1-4");
   // The guide's portrait loaded: onError would have unmounted a broken image.
   await expect(page.getByTestId("encounter-portrait")).toBeVisible();
-  // PRD-08 phase 2: real bundled WEB text now resolves, replacing the stub's
-  // "not wired up" message.
-  await expect(page.getByTestId("passage-slot")).toContainText("Nebuchadnezzar");
+  // PRD-08 phase 3: the passage is gated behind an explicit "Read" action —
+  // the read gate — rather than shown automatically.
+  await page.getByTestId("passage-card-reference-open").click();
+  await expect(page.getByTestId("passage-card-reference-text")).toContainText("Nebuchadnezzar");
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("1");
 
   await page.getByTestId("encounter-close").click();
   await expect(page.getByTestId("encounter-panel")).toHaveCount(0);
 
   // Re-opening the same encounter awards nothing further: the engagement
-  // stone is earned once. The six-card reveal that resolves an encounter is
-  // a later phase of this PRD, so the state stays "engaged" here.
+  // stone is earned once. The six insight cards resolve the encounter only
+  // once selections are locked, so the state stays "engaged" here.
   await page.getByTestId("proximity-prompt").click();
   await expect(page.getByTestId("encounter-state")).toContainText("Engaged");
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("1");

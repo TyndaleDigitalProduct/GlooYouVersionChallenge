@@ -11,6 +11,7 @@
 //      the test fixture;
 //   4. attach persistence, so every subsequent change is written.
 
+import { buildCardSets, type CardSets } from "@/content/cardSets";
 import { buildCast, type Cast } from "@/content/cast";
 import { buildGameContent, type GameContent } from "@/content/loadContent";
 import type { EventBus } from "@/core/eventBus";
@@ -20,6 +21,7 @@ import { loadGame } from "@/core/save";
 import type { Storage as CoreStorage } from "@/core/storage";
 import { createGameStore, type GameStoreApi } from "@/core/store";
 import rawCastDocument from "../../content/characters.json";
+import rawCardsDocument from "../../content/daniel-1.cards.json";
 import rawDialogueDocument from "../../content/daniel-1.dialogue.json";
 import rawRefsDocument from "../../content/daniel-1.refs.json";
 import { createBrowserStorage, SAVE_KEY } from "./browserStorage";
@@ -38,6 +40,8 @@ export interface AppRuntime {
   bus: EventBus;
   content: GameContent;
   cast: Cast;
+  /** The reviewed fallback card sets (ADR-0003), keyed by reference. */
+  cardSets: CardSets;
   scripture: ScriptureProvider;
   session: SessionProvider;
 }
@@ -46,6 +50,7 @@ export interface CreateAppRuntimeOptions {
   refsDocument?: unknown;
   dialogueDocument?: unknown;
   castDocument?: unknown;
+  cardsDocument?: unknown;
   storage?: CoreStorage;
   bus?: EventBus;
   saveKey?: string;
@@ -58,6 +63,7 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     refsDocument = rawRefsDocument,
     dialogueDocument = rawDialogueDocument,
     castDocument = rawCastDocument,
+    cardsDocument = rawCardsDocument,
     // Evaluated lazily by destructuring, so a caller that injects storage
     // never touches `window` at all.
     storage = createBrowserStorage(),
@@ -74,6 +80,9 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
   // character art fails here rather than as a missing sprite mid-game.
   const cast = buildCast(castDocument, content.value);
   if (!cast.ok) return cast;
+
+  const cardSets = buildCardSets(cardsDocument);
+  if (!cardSets.ok) return cardSets;
 
   const view = createViewStore();
   const loaded = loadGame(storage, saveKey);
@@ -106,6 +115,7 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     bus,
     content: content.value,
     cast: cast.value,
+    cardSets: cardSets.value,
     scripture,
     session,
   });

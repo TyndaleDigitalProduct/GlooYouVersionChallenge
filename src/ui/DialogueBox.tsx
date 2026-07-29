@@ -1,4 +1,5 @@
 import { findSceneContent } from "@/content/loadContent";
+import { substituteName } from "./nameSubstitution";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
 
 /**
@@ -15,6 +16,10 @@ import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
 export function DialogueBox() {
   const runtime = useRuntime();
   const currentSceneId = useGameState((state) => state.currentSceneId());
+  // Setup (PRD-11) enforces a non-blank name before dialogue can ever be
+  // reached, so an empty fallback here is defensive only, never the normal
+  // path — see nameSubstitution.ts.
+  const playerName = useGameState((state) => state.playerName ?? "");
   const dialogueIndex = useViewState((state) => state.dialogueIndex);
 
   const scene = currentSceneId ? findSceneContent(runtime.content, currentSceneId) : undefined;
@@ -54,7 +59,7 @@ export function DialogueBox() {
 
       <p className="vv-placeholder-tag">Placeholder copy, not authored dialogue</p>
       <p className="vv-dialogue__text" data-testid="dialogue-text">
-        {beat.text}
+        {substituteName(beat.text, playerName)}
       </p>
 
       <footer className="vv-dialogue__footer">

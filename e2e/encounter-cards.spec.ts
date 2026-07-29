@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { continueToPlaying, seedReturningPlayerSave } from "./gameEntry";
 import { clickWorldPoint, scene1GuidePositions } from "./worldPoints";
 
 // PRD-08 phase 3's last criterion: an e2e test driving a full encounter —
@@ -12,8 +13,10 @@ import { clickWorldPoint, scene1GuidePositions } from "./worldPoints";
 test("full encounter: read both passages, pick three, lock, see the reveal and the balance move", async ({
   page,
 }) => {
+  await seedReturningPlayerSave(page);
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
+  await continueToPlaying(page);
 
   // Clicking directly on the character walks the player to them and opens
   // the interaction in one gesture (PRD-08 phase 4): no separate

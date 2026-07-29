@@ -14,6 +14,22 @@
 // finding in the PRD-04 handoff.
 import { createStore } from "zustand/vanilla";
 
+/**
+ * PRD-11: which full-screen flow the DOM overlay is showing. The world
+ * (Phaser) boots regardless of phase (ADR-0002's shell keeps rendering
+ * underneath); an opaque overlay for every phase but "playing" is what
+ * actually stops the player from clicking through to it.
+ *
+ * - "home": title/tagline/Enter, or Continue/New game, decided by whether
+ *   `GameStoreState.playerName` is already set (storyboard-v2.md §1). This
+ *   is always the first phase, for both first-time and returning players.
+ * - "setup": required name entry, plus the optional YouVersion sign-in
+ *   offer (§2). Reached only from "home" via Enter or a confirmed New game.
+ * - "intro": skippable, reopenable cast/mechanics walkthrough (§3).
+ * - "playing": the encounter/world loop PRD-08 already built.
+ */
+export type Phase = "home" | "setup" | "intro" | "playing";
+
 export type NoticeTone = "info" | "warning" | "error";
 
 export interface Notice {
@@ -46,6 +62,13 @@ export interface ViewState {
   readPassages: Record<string, readonly string[]>;
   notices: Notice[];
 
+  /** PRD-11: which full-screen flow is showing. Starts at "home" always. */
+  phase: Phase;
+  /** PRD-11: the "New game" destructive confirm, open over the home screen. */
+  newGameConfirmOpen: boolean;
+  /** PRD-11: the in-game HUD menu (replay intro, connect YouVersion). */
+  menuOpen: boolean;
+
   advanceDialogue(): void;
   setNearbyReference(reference: string | null): void;
   openEncounter(reference: string): void;
@@ -53,6 +76,27 @@ export interface ViewState {
   markPassageRead(encounterReference: string, passageReference: string): void;
   pushNotice(notice: Notice): void;
   dismissNotice(id: string): void;
+
+  /** Home's *Enter*, for a first-time player: home -> setup. */
+  goToSetup(): void;
+  /** Home's *Continue*, for a returning player: home -> playing, no setup. */
+  continueGame(): void;
+  /** Home's *New game*, over an existing save: opens the destructive confirm. */
+  openNewGameConfirm(): void;
+  /** Backs out of the New game confirm without resetting anything. */
+  cancelNewGameConfirm(): void;
+  /**
+   * Setup's *Continue* once a name is committed, or the New game confirm's
+   * accept: both land on the (re)playable intro, never back at setup, since
+   * an existing player's name is kept (storyboard-v2.md §1).
+   */
+  beginIntro(): void;
+  /** Skip or finish the intro: either way, intro -> playing. */
+  leaveIntro(): void;
+  openMenu(): void;
+  closeMenu(): void;
+  /** The HUD menu's "Replay intro": playing -> intro, menu closes. */
+  reopenIntro(): void;
 }
 
 export function createViewStore() {
@@ -62,6 +106,9 @@ export function createViewStore() {
     openEncounterReference: null,
     readPassages: {},
     notices: [],
+    phase: "home",
+    newGameConfirmOpen: false,
+    menuOpen: false,
 
     advanceDialogue() {
       set((state) => ({ ...state, dialogueIndex: state.dialogueIndex + 1 }));
@@ -117,6 +164,50 @@ export function createViewStore() {
         state.notices.some((notice) => notice.id === id)
           ? { ...state, notices: state.notices.filter((notice) => notice.id !== id) }
           : state,
+      );
+    },
+
+    goToSetup() {
+      set((state) => (state.phase === "setup" ? state : { ...state, phase: "setup" }));
+    },
+
+    continueGame() {
+      set((state) => (state.phase === "playing" ? state : { ...state, phase: "playing" }));
+    },
+
+    openNewGameConfirm() {
+      set((state) => (state.newGameConfirmOpen ? state : { ...state, newGameConfirmOpen: true }));
+    },
+
+    cancelNewGameConfirm() {
+      set((state) => (state.newGameConfirmOpen ? { ...state, newGameConfirmOpen: false } : state));
+    },
+
+    beginIntro() {
+      set((state) =>
+        state.phase === "intro" && !state.newGameConfirmOpen
+          ? state
+          : { ...state, phase: "intro", newGameConfirmOpen: false },
+      );
+    },
+
+    leaveIntro() {
+      set((state) => (state.phase === "playing" ? state : { ...state, phase: "playing" }));
+    },
+
+    openMenu() {
+      set((state) => (state.menuOpen ? state : { ...state, menuOpen: true }));
+    },
+
+    closeMenu() {
+      set((state) => (state.menuOpen ? { ...state, menuOpen: false } : state));
+    },
+
+    reopenIntro() {
+      set((state) =>
+        state.phase === "intro" && !state.menuOpen
+          ? state
+          : { ...state, phase: "intro", menuOpen: false },
       );
     },
   }));

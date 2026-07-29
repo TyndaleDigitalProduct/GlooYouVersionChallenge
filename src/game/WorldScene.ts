@@ -318,6 +318,13 @@ export class WorldScene extends Phaser.Scene {
     this.teardown.push(
       this.runtime.bus.on("region:revealed", () => this.syncFog()),
       this.runtime.bus.on("encounter:stateChanged", () => this.syncGuides()),
+      // PRD-11 "New game" wipes completion and encounter state wholesale
+      // rather than incrementally, so re-fogging and re-marking guides has
+      // to be a full resync too, not an attempt to undo specific events.
+      this.runtime.bus.on("game:reset", () => {
+        this.syncFog();
+        this.syncGuides();
+      }),
     );
   }
 

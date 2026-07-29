@@ -50,6 +50,15 @@ export interface GameEvents {
     selections?: readonly string[];
     amountAwarded?: number;
   };
+
+  /**
+   * PRD-11: "New game" wiped progress (completion, ledger, encounters,
+   * highlights) back to a fresh state, keeping playerName and session.
+   * Carries no data: every reader that cares (WorldScene's fog and guide
+   * markers) already derives its display wholesale from the store rather
+   * than incrementally, so a bare signal to resync is all this needs to be.
+   */
+  "game:reset": Record<string, never>;
 }
 
 export type GameEventName = keyof GameEvents;

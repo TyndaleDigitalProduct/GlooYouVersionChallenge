@@ -126,6 +126,93 @@ describe("view store", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  describe("phase flow (PRD-11)", () => {
+    it("starts on the home phase, with the confirm and menu both closed", () => {
+      const view = createViewStore().getState();
+      expect(view.phase).toBe("home");
+      expect(view.newGameConfirmOpen).toBe(false);
+      expect(view.menuOpen).toBe(false);
+    });
+
+    it("first-time flow: home -> setup -> intro -> playing", () => {
+      const store = createViewStore();
+
+      store.getState().goToSetup();
+      expect(store.getState().phase).toBe("setup");
+
+      store.getState().beginIntro();
+      expect(store.getState().phase).toBe("intro");
+
+      store.getState().leaveIntro();
+      expect(store.getState().phase).toBe("playing");
+    });
+
+    it("returning-player flow: home -> playing directly via Continue", () => {
+      const store = createViewStore();
+
+      store.getState().continueGame();
+
+      expect(store.getState().phase).toBe("playing");
+    });
+
+    it("new-game flow: confirm opens, cancel backs out without changing phase", () => {
+      const store = createViewStore();
+
+      store.getState().openNewGameConfirm();
+      expect(store.getState().newGameConfirmOpen).toBe(true);
+      expect(store.getState().phase).toBe("home");
+
+      store.getState().cancelNewGameConfirm();
+      expect(store.getState().newGameConfirmOpen).toBe(false);
+      expect(store.getState().phase).toBe("home");
+    });
+
+    it("new-game flow: confirming closes the confirm and goes straight to intro, skipping setup", () => {
+      const store = createViewStore();
+      store.getState().openNewGameConfirm();
+
+      store.getState().beginIntro();
+
+      expect(store.getState().newGameConfirmOpen).toBe(false);
+      expect(store.getState().phase).toBe("intro");
+    });
+
+    it("HUD menu: opens and closes independent of phase", () => {
+      const store = createViewStore();
+      store.getState().continueGame();
+
+      store.getState().openMenu();
+      expect(store.getState().menuOpen).toBe(true);
+
+      store.getState().closeMenu();
+      expect(store.getState().menuOpen).toBe(false);
+    });
+
+    it("reopening the intro from the HUD menu closes the menu and returns to playing on leave", () => {
+      const store = createViewStore();
+      store.getState().continueGame();
+      store.getState().openMenu();
+
+      store.getState().reopenIntro();
+      expect(store.getState().phase).toBe("intro");
+      expect(store.getState().menuOpen).toBe(false);
+
+      store.getState().leaveIntro();
+      expect(store.getState().phase).toBe("playing");
+    });
+
+    it("does not notify subscribers for a phase transition that is already a no-op", () => {
+      const store = createViewStore();
+      store.getState().continueGame();
+
+      const listener = vi.fn();
+      store.subscribe(listener);
+      store.getState().continueGame();
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+  });
+
   it("keeps the same notices array identity when dismissing an unknown id", () => {
     // React reads this array through useSyncExternalStore, which compares by
     // identity; a fresh array on a no-op would re-render for nothing.

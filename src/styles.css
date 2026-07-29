@@ -6,7 +6,10 @@ body {
   padding: 0;
   width: 100%;
   overflow-x: hidden;
-  background: #0b0e14;
+  /* The letterbox around the fitted canvas. A warm near-black rather than the
+     old blue-black, so the bars read as the frame of the sandstone art rather
+     than as a different application behind it. */
+  background: #160f08;
 }
 
 /* The canvas is sized and centred by Phaser's Scale.FIT + CENTER_BOTH, which
@@ -40,6 +43,86 @@ body {
   pointer-events: none;
 }
 
+/* --- theme tokens --------------------------------------------------------
+   Every colour below is sampled out of the shipped art rather than picked to
+   taste, which is what keeps the DOM overlay and the canvas reading as one
+   piece: the parchment is the interior fill of `art/dialog_boxes/`, the wood
+   and gold are those frames' own borders, and the sand, sky, and stone blue
+   are the dominant colours of `start-screen.png`. Nothing here is a colour
+   the artist did not already use.
+
+   Contrast was checked against the surface each token is used on. `--vv-gold`
+   is 1.9:1 on parchment, so it is a border and fill colour only, never text
+   on a light ground; `--vv-rust` (4.9:1) and `--vv-ink-soft` (4.6:1) are the
+   emphasis and secondary text colours instead. */
+:root {
+  /* parchment family — the interiors of the wood and gold dialog frames */
+  --vv-parchment: #e8d6a8;
+  --vv-parchment-light: #f0e4c4;
+  --vv-parchment-deep: #d9c08a;
+  --vv-sand: #f9e3aa;
+
+  /* ink family — the frames' darkest woods, used for text on parchment */
+  --vv-ink: #3a2410;
+  --vv-ink-soft: #7a5330;
+
+  /* structure — the wood frame's own browns */
+  --vv-wood: #7a5330;
+  --vv-wood-dark: #4a3018;
+  --vv-wood-deep: #2e1c0c;
+
+  /* accents */
+  --vv-gold: #c8974a;
+  --vv-gold-light: #e0b45e;
+  --vv-rust: #9c3a30;
+  --vv-lapis: #2f4a86;
+  --vv-lapis-deep: #16233f;
+  --vv-verdigris: #16493c;
+  --vv-verdigris-light: #c7ede7;
+  --vv-sky: #94c4d5;
+
+  /* Frame border widths. These are the measured slice insets of the frame
+     art (30px for wood, 27px for gold), so at desktop the nine-slice draws
+     at exactly 1:1 and every pixel of the artist's border survives. Only the
+     narrow breakpoint scales them down, where giving a phone-width panel a
+     30px border on each side would cost more room than the border is worth. */
+  --vv-frame-wood: 30px;
+  --vv-frame-gold: 27px;
+
+  --vv-font-display: "Biblia COVENANT", "Trebuchet MS", Verdana, sans-serif;
+  --vv-font-body: "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
+}
+
+@media (max-width: 700px) {
+  :root {
+    --vv-frame-wood: 18px;
+    --vv-frame-gold: 16px;
+  }
+}
+
+/* The artist's pixel display face, one of the four in `art/fonts/`. Covenant
+   rather than Herald, Manna, or Tablet for a legibility reason worth writing
+   down: Herald's capital M and W are drawn so close to its H that "Menu" reads
+   as "Henu" and "Welcome" as "Helcome" at button size, and Manna is a dotted
+   face that falls apart below about 20px. Covenant draws every capital
+   distinctly and holds together small.
+
+   All four fonts carry only 72 glyphs — letters, digits, and a little
+   punctuation — with no ampersand, em dash, middot, parenthesis, or slash. A
+   missing glyph falls back per-character, mid-word, so the display face is
+   applied by selector to strings known to stay inside that set (buttons, shell
+   headings) and never to content-driven text. `.vv-dialogue__speaker` and
+   `.vv-encounter__title` are the ones that look like headings but come from
+   content/, and are deliberately left in the body serif: today's speaker is
+   literally "Narrator (placeholder)", whose parentheses would break. */
+@font-face {
+  font-family: "Biblia COVENANT";
+  src: url("/assets/fonts/Biblia-Covenant.ttf");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* --- overlay layout ---------------------------------------------------- */
 
 .vv-overlay {
@@ -50,10 +133,12 @@ body {
   gap: 0.5rem;
   padding: clamp(0.5rem, 1.5vw, 1rem);
   box-sizing: border-box;
-  color: #eef1f6;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: clamp(0.75rem, 1.4vw, 0.95rem);
-  line-height: 1.5;
+  /* The overlay root's own colour is for the few things that sit directly on
+     the world with no panel under them; panels set ink on parchment. */
+  color: var(--vv-sand);
+  font-family: var(--vv-font-body);
+  font-size: clamp(0.82rem, 1.5vw, 1rem);
+  line-height: 1.55;
 }
 
 .vv-overlay__top {
@@ -72,6 +157,15 @@ body {
   gap: 0.5rem;
 }
 
+/* One focus ring for the whole overlay, in gold so it reads on both the
+   parchment interiors and the dark world. Several controls below replace
+   their outline with a transform or a filter on hover; this is what keeps
+   keyboard focus visible anyway. */
+.vv-overlay :focus-visible {
+  outline: 3px solid var(--vv-gold-light);
+  outline-offset: 2px;
+}
+
 /* --- shared pieces ----------------------------------------------------- */
 
 /* Reachable by a screen reader, invisible on screen. Used where the visible
@@ -88,97 +182,217 @@ body {
   white-space: nowrap;
 }
 
+/* Every popup in the game is one of the artist's dialog frames, drawn as a
+   CSS nine-slice: `border-image` with the measured 30px slice and `fill`, so
+   the border art wraps the panel at any size and the frame's own parchment
+   interior becomes the panel's background for free. The `background` beneath
+   it is the same parchment as a flat colour, which is what the panel degrades
+   to if the image ever fails to load — a readable panel, not a transparent
+   one.
+
+   `stretch` rather than `repeat` on purpose: the wood is a noise texture with
+   no motif to line up, so stretching hides the seams that repeating would
+   put at the midpoint of every edge. */
 .vv-panel {
   pointer-events: auto;
   width: 100%;
   box-sizing: border-box;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid #2c3545;
-  border-radius: 0.5rem;
-  background: rgb(11 14 20 / 92%);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  padding: 0.85rem 1rem;
+  border: var(--vv-frame-wood) solid transparent;
+  border-image: url("/assets/ui/frames/frame-wood-oak.png") 30 fill stretch;
+  background: var(--vv-parchment);
+  color: var(--vv-ink);
+  /* A hard offset shadow rather than a soft one: pixel art reads as stacked
+     flat planes, and a blurred edge is the one thing that makes a DOM panel
+     look pasted onto the canvas instead of sitting in it. */
+  box-shadow:
+    0 6px 0 rgb(20 12 5 / 35%),
+    0 16px 30px rgb(0 0 0 / 40%);
 }
 
+/* Buttons are carved plates rather than the frame art: at button size the
+   30px frame would be almost entirely border, so they are built from the same
+   wood and gold instead — a gold face, the frame's darkest wood as the edge,
+   and a hard bottom shadow that the press state collapses. Nothing here uses
+   a border radius; the art has no rounded corners anywhere in it. */
 .vv-button {
   pointer-events: auto;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid #3b485c;
-  border-radius: 0.35rem;
-  background: #1b2230;
-  color: inherit;
-  font: inherit;
+  display: inline-block;
+  padding: 0.4rem 0.85rem;
+  border: 3px solid var(--vv-wood-dark);
+  border-radius: 0;
+  background: linear-gradient(180deg, var(--vv-gold-light) 0%, var(--vv-gold) 100%);
+  color: var(--vv-ink);
+  font-family: var(--vv-font-display);
+  font-size: 0.95em;
+  letter-spacing: 0.02em;
+  text-align: center;
   cursor: pointer;
+  box-shadow:
+    inset 0 2px 0 rgb(255 243 214 / 45%),
+    0 3px 0 var(--vv-wood-deep);
+  transition:
+    filter 90ms steps(2),
+    transform 90ms steps(2);
 }
 
 .vv-button:hover:not(:disabled) {
-  background: #253044;
+  filter: brightness(1.09);
+}
+
+.vv-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: inset 0 2px 0 rgb(255 243 214 / 30%);
 }
 
 .vv-button:disabled {
-  opacity: 0.55;
+  filter: grayscale(0.55) brightness(0.86);
+  opacity: 0.75;
   cursor: default;
 }
 
+/* The secondary action: parchment rather than gold, so "Skip intro" and
+   "Cancel" are plainly the quieter of the two without being any harder to
+   read (ink on parchment either way). */
 .vv-button--quiet {
-  background: transparent;
-  border-color: #2c3545;
+  background: linear-gradient(180deg, var(--vv-parchment-light) 0%, var(--vv-parchment) 100%);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 50%),
+    0 3px 0 var(--vv-wood-deep);
 }
 
+/* The affirmative action, in the deep blue of the title screen's gem and the
+   lapis dialog frame. Sand on lapis is 8.5:1, and the gold edge ties it back
+   to the other buttons. */
+.vv-button--primary {
+  border-color: var(--vv-gold);
+  background: linear-gradient(180deg, var(--vv-lapis) 0%, var(--vv-lapis-deep) 100%);
+  color: var(--vv-sand);
+  box-shadow:
+    inset 0 2px 0 rgb(148 196 213 / 35%),
+    0 3px 0 var(--vv-wood-deep);
+}
+
+.vv-button--danger {
+  border-color: var(--vv-wood-deep);
+  background: linear-gradient(180deg, var(--vv-rust) 0%, #6d2721 100%);
+  color: var(--vv-sand);
+  box-shadow:
+    inset 0 2px 0 rgb(255 200 180 / 30%),
+    0 3px 0 var(--vv-wood-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vv-button {
+    transition: none;
+  }
+}
+
+/* The "this copy is filler" marker, in the frames' rust inner line — the one
+   colour in the palette the artist uses as a warning rule. */
 .vv-placeholder-tag {
-  margin: 0 0 0.4rem;
-  padding: 0.15rem 0.4rem;
+  margin: 0 0 0.45rem;
+  padding: 0.15rem 0.45rem;
   display: inline-block;
-  border: 1px dashed #d4b24f;
-  border-radius: 0.25rem;
-  color: #e8cd82;
-  font-size: 0.72em;
+  border: 2px dashed var(--vv-rust);
+  color: var(--vv-rust);
+  font-size: 0.74em;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
+/* Sits on the world with no panel under it, so it carries its own shadow to
+   stay legible over both the pale sky and the sand. */
 .vv-build-tag {
   margin: 0;
-  color: #8f9bb0;
-  font-size: 0.75em;
+  color: var(--vv-sand);
+  font-size: 0.78em;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  text-shadow: 0 2px 0 rgb(20 12 5 / 85%);
 }
 
 /* --- HUD ---------------------------------------------------------------- */
 
+/* A lapis plate with a gold edge, matching the lapis dialog frame rather than
+   the wood one: the HUD is the only chrome that stays on screen the whole
+   time, and the dark plate keeps it from competing with the parchment popups
+   that open in front of it. Square, not a pill — `border-image` cannot follow
+   a border radius, and nothing in the art is rounded. */
 .vv-hud {
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid #2c3545;
-  border-radius: 999px;
-  background: rgb(11 14 20 / 88%);
+  gap: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  border: 3px solid var(--vv-gold);
+  border-radius: 0;
+  /* Dark end of the lapis frame's own range rather than its mid blue: the
+     Vale Stone below is a deep indigo gem, and on a mid-blue plate it
+     disappeared into its own background. */
+  background: linear-gradient(180deg, rgb(30 48 88 / 95%) 0%, rgb(14 22 41 / 96%) 100%);
+  box-shadow:
+    inset 0 2px 0 rgb(148 196 213 / 25%),
+    0 3px 0 var(--vv-wood-deep);
+}
+
+/* The Vale Stone itself, straight from `art/objects/Vale Stones/`, so the
+   balance is labelled by the object the player is actually collecting. It is
+   decorative — the adjacent text already names it — hence a background image
+   on a pseudo-element rather than an <img> a screen reader would announce.
+   The height is the source sprite's 3:4 ratio so the gem is never stretched,
+   and the drop shadow is a sand-coloured 1px halo, which is how the art
+   itself separates the gem from the sky on the title screen. */
+.vv-hud::before {
+  content: "";
+  flex: none;
+  width: 1.2em;
+  height: 1.6em;
+  background-image: url("/assets/icons/vale-stone.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 1px rgb(249 227 170 / 75%));
 }
 
 .vv-hud__label {
-  color: #8f9bb0;
-  font-size: 0.78em;
+  color: var(--vv-sky);
+  font-size: 0.8em;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .vv-hud__value {
-  color: #f2c14e;
+  color: var(--vv-gold-light);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .vv-hud__divider {
-  width: 1px;
+  width: 2px;
   height: 1em;
-  background: #2c3545;
+  background: var(--vv-gold);
+  opacity: 0.6;
 }
 
 /* --- notices ------------------------------------------------------------ */
 
+/* Deliberately not `.vv-panel`: a notice is a one-line aside, and a 30px
+   carved frame around one line of text would read as more important than the
+   dialogue it interrupts. It gets the palette and the hard shadow, with the
+   tone carried on a thick left rule. */
+/* Raised above the phase overlays. `App.tsx` renders `NoticeStack` in every
+   phase on the grounds that a recovered-save notice matters just as much on
+   the home screen as in play, but it is the *first* child of `.vv-overlay`
+   while `.vv-home`, `.vv-setup`, and `.vv-intro` are later siblings with
+   inset: 0 — so in paint order the notice was behind the title art, neither
+   readable nor dismissible in the one phase it is most likely to fire in. It
+   still passed `toBeVisible()`, which is geometric and does not see occlusion
+   by a later sibling. */
 .vv-notices {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -188,25 +402,26 @@ body {
 .vv-notice {
   pointer-events: auto;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.7rem;
-  border: 1px solid #3b485c;
-  border-left-width: 4px;
-  border-radius: 0.35rem;
-  background: rgb(11 14 20 / 94%);
+  border: 3px solid var(--vv-wood-dark);
+  border-left-width: 10px;
+  background: var(--vv-parchment-light);
+  color: var(--vv-ink);
+  box-shadow: 0 3px 0 rgb(20 12 5 / 40%);
 }
 
 .vv-notice--warning {
-  border-left-color: #d4b24f;
+  border-left-color: var(--vv-gold);
 }
 
 .vv-notice--error {
-  border-left-color: #d4674f;
+  border-left-color: var(--vv-rust);
 }
 
 .vv-notice--info {
-  border-left-color: #4f8fd4;
+  border-left-color: var(--vv-lapis);
 }
 
 .vv-notice__message {
@@ -226,19 +441,27 @@ body {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.35rem;
+  /* The rust hairline the gold frame draws inside its own border, reused as
+     the rule between who is speaking and what they say. */
+  border-bottom: 2px solid rgb(156 58 48 / 45%);
 }
 
+/* Body serif, not the display face: speaker names come from content/ and are
+   not guaranteed to stay inside the pixel font's 72 glyphs. */
 .vv-dialogue__speaker {
   margin: 0;
-  font-weight: 600;
-  color: #cdd6e4;
+  font-weight: 700;
+  font-size: 1.05em;
+  color: var(--vv-ink);
 }
 
 .vv-dialogue__setting {
   margin: 0;
-  color: #8f9bb0;
-  font-size: 0.82em;
+  color: var(--vv-ink-soft);
+  font-size: 0.85em;
+  font-style: italic;
 }
 
 .vv-dialogue__text {
@@ -254,25 +477,32 @@ body {
 
 .vv-dialogue__progress {
   margin: 0;
-  color: #8f9bb0;
-  font-size: 0.82em;
+  color: var(--vv-ink-soft);
+  font-size: 0.85em;
   font-variant-numeric: tabular-nums;
 }
 
 /* --- proximity prompt --------------------------------------------------- */
 
+/* A `.vv-button` in the world rather than in a panel, so it takes the primary
+   lapis plate: it is an invitation, and it has to hold up against sand and
+   sky behind it rather than parchment. */
 .vv-prompt {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border-color: #4f8fd4;
+  border-color: var(--vv-gold);
+  background: linear-gradient(180deg, var(--vv-lapis) 0%, var(--vv-lapis-deep) 100%);
+  color: var(--vv-sand);
+  box-shadow:
+    inset 0 2px 0 rgb(148 196 213 / 35%),
+    0 3px 0 var(--vv-wood-deep);
 }
 
 .vv-prompt__key {
   padding: 0 0.35rem;
-  border: 1px solid #4f8fd4;
-  border-radius: 0.2rem;
-  color: #9dc2ee;
+  border: 2px solid var(--vv-gold);
+  color: var(--vv-gold-light);
   font-size: 0.78em;
 }
 
@@ -280,7 +510,9 @@ body {
 
 /* A scrim, so the panel reads as modal and the dialogue behind it does not
    show through. It also swallows clicks aimed at the world underneath, which
-   is the behaviour you want while a conversation is open. */
+   is the behaviour you want while a conversation is open. Tinted with the
+   frames' darkest wood rather than neutral black, so dimming the world reads
+   as lamplight falling off rather than as a grey sheet over the art. */
 .vv-scrim {
   pointer-events: auto;
   position: absolute;
@@ -290,14 +522,20 @@ body {
   justify-content: center;
   padding: 1rem;
   box-sizing: border-box;
-  background: rgb(5 7 11 / 72%);
+  background: radial-gradient(ellipse at center, rgb(46 28 12 / 62%) 0%, rgb(20 12 5 / 84%) 100%);
 }
 
+/* The one popup that gets the gold frame instead of the wood one. It is the
+   panel Scripture is read in, and gold-on-cream is the art's own illuminated
+   register — which also means the centre of the game is never mistakable for
+   the menus and confirms that share the everyday oak. */
 .vv-encounter {
   width: min(38rem, 100%);
   max-height: 100%;
   overflow-y: auto;
-  background: #10141c;
+  border-width: var(--vv-frame-gold);
+  border-image: url("/assets/ui/frames/frame-gold.png") 27 fill stretch;
+  background: var(--vv-parchment-light);
 }
 
 .vv-encounter__header {
@@ -314,34 +552,45 @@ body {
   gap: 0.7rem;
 }
 
-/* 24x24 pixel-art bust, scaled by a whole number and told not to smooth. */
+/* 24x24 pixel-art bust, scaled by a whole number and told not to smooth. The
+   wood edge and parchment mount make it a framed portrait rather than a
+   floating sprite. */
 .vv-portrait {
   width: 72px;
   height: 72px;
   flex: none;
-  border: 1px solid #2c3545;
-  border-radius: 0.3rem;
-  background: #1b2230;
+  border: 3px solid var(--vv-wood-dark);
+  background: var(--vv-parchment);
+  box-shadow: inset 0 0 0 2px var(--vv-gold);
   image-rendering: pixelated;
 }
 
+/* Body serif: the title is a persona name out of content/, so the pixel
+   font's missing glyphs are a real risk here (see the @font-face note). */
 .vv-encounter__title {
   margin: 0;
-  font-size: 1.05em;
+  font-size: 1.15em;
+  color: var(--vv-ink);
 }
 
 .vv-encounter__reference {
   margin: 0.1rem 0 0;
-  color: #8f9bb0;
-  font-size: 0.85em;
+  color: var(--vv-ink-soft);
+  font-size: 0.88em;
+  font-style: italic;
 }
 
+/* Shell strings only ("Passages", "Insight cards", "Curated note"), all
+   inside the display face's glyph set, so this is one of the few places the
+   artist's pixel font can be used safely. */
 .vv-encounter__subhead {
-  margin: 0.75rem 0 0.2rem;
-  color: #8f9bb0;
-  font-size: 0.78em;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  margin: 0.9rem 0 0.35rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 2px solid rgb(122 83 48 / 35%);
+  color: var(--vv-wood);
+  font-family: var(--vv-font-display);
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -351,7 +600,8 @@ body {
 }
 
 .vv-encounter__stub {
-  color: #b6a06a;
+  margin: 0.4rem 0 0;
+  color: var(--vv-ink);
   font-style: italic;
 }
 
@@ -362,13 +612,15 @@ body {
   gap: 0.5rem;
   margin-top: 0.9rem;
   padding-top: 0.7rem;
-  border-top: 1px solid #2c3545;
+  border-top: 2px solid rgb(122 83 48 / 35%);
 }
 
 .vv-encounter__state {
-  margin: 0.6rem 0 0;
-  color: #cdd6e4;
+  margin: 0.7rem 0 0;
+  color: var(--vv-ink-soft);
   font-size: 0.85em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 /* --- Scripture passage cards (read gate) -------------------------------- */
@@ -379,11 +631,13 @@ body {
   gap: 0.5rem;
 }
 
+/* The rust left rule is the manuscript cue: these two cards are the passages
+   themselves, and they are the only surface in the panel marked that way. */
 .vv-scripture-card {
   padding: 0.6rem 0.7rem;
-  border: 1px solid #2c3545;
-  border-radius: 0.4rem;
-  background: #151a24;
+  border: 2px solid var(--vv-wood);
+  border-left: 6px solid var(--vv-rust);
+  background: var(--vv-parchment);
 }
 
 .vv-scripture-card__header {
@@ -391,22 +645,24 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .vv-scripture-card__label {
   margin: 0;
-  color: #cdd6e4;
-  font-size: 0.85em;
+  color: var(--vv-ink);
+  font-size: 0.9em;
+  font-weight: 700;
 }
 
 .vv-scripture-card__read-tag {
-  padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
-  background: #24422f;
-  color: #8fd4a8;
+  padding: 0.12rem 0.45rem;
+  background: var(--vv-verdigris);
+  color: var(--vv-verdigris-light);
+  font-family: var(--vv-font-display);
   font-size: 0.72em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 /* --- insight cards -------------------------------------------------------
@@ -420,8 +676,8 @@ body {
 
 .vv-encounter__cap-notice {
   margin: 0 0 0.5rem;
-  color: #8f9bb0;
-  font-size: 0.82em;
+  color: var(--vv-ink-soft);
+  font-size: 0.86em;
 }
 
 .vv-card-grid {
@@ -440,39 +696,52 @@ body {
   width: 100%;
   box-sizing: border-box;
   padding: 0.55rem 0.65rem;
-  border: 1px solid #2c3545;
-  border-radius: 0.4rem;
-  background: #151a24;
-  color: inherit;
-  font: inherit;
+  border: 2px solid var(--vv-wood);
+  border-radius: 0;
+  background: var(--vv-parchment);
+  color: var(--vv-ink);
+  font-family: inherit;
+  font-size: inherit;
   text-align: left;
   cursor: pointer;
+  box-shadow: 0 2px 0 rgb(74 48 24 / 45%);
+  transition: transform 90ms steps(2);
+}
+
+button.vv-insight-card:hover:not(:disabled) {
+  transform: translateY(-2px);
 }
 
 button.vv-insight-card:disabled {
-  opacity: 0.55;
+  opacity: 0.6;
+  box-shadow: none;
   cursor: default;
 }
 
+/* Gold, the art's own "this one matters" colour, plus the heavier border and
+   the checkmark that carry the state without relying on hue. */
 .vv-insight-card--selected {
-  border-width: 3px;
-  border-color: #4fb783;
-  background: #16241d;
+  border-width: 4px;
+  border-color: var(--vv-gold);
+  background: var(--vv-sand);
+  box-shadow:
+    inset 0 0 0 2px rgb(240 228 196 / 70%),
+    0 2px 0 rgb(74 48 24 / 45%);
 }
 
 .vv-insight-card__marker {
   flex: none;
   width: 1.1em;
-  color: #4fb783;
+  color: var(--vv-rust);
   font-weight: 700;
 }
 
 .vv-insight-card__value {
   flex: none;
   min-width: 1.4em;
-  color: #f2c14e;
+  color: var(--vv-rust);
+  font-family: var(--vv-font-display);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
 }
 
 .vv-insight-card__text {
@@ -487,8 +756,8 @@ button.vv-insight-card:disabled {
 .vv-insight-card__aside {
   flex-basis: 100%;
   margin: 0.3rem 0 0 1.6em;
-  color: #8f9bb0;
-  font-size: 0.82em;
+  color: var(--vv-ink-soft);
+  font-size: 0.85em;
   font-style: italic;
 }
 
@@ -505,41 +774,21 @@ button.vv-insight-card:disabled {
 
 .vv-fatal__title {
   margin: 0 0 0.5rem;
+  color: var(--vv-ink);
+  font-family: var(--vv-font-display);
   font-size: 1.15em;
+  letter-spacing: 0.02em;
 }
 
 .vv-fatal__reason {
   margin: 0.5rem 0 0;
-  padding: 0.4rem 0.6rem;
-  border-radius: 0.3rem;
-  background: #161c26;
-  color: #e8a08f;
+  padding: 0.45rem 0.6rem;
+  border: 2px solid var(--vv-rust);
+  background: var(--vv-parchment-deep);
+  color: #5f1d17;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85em;
   word-break: break-word;
-}
-
-/* --- button variants (PRD-11) -------------------------------------------- */
-
-.vv-button--primary {
-  border-color: #4fb783;
-  background: #1c3126;
-  color: #d7f2e2;
-  font-weight: 600;
-}
-
-.vv-button--primary:hover:not(:disabled) {
-  background: #223d2f;
-}
-
-.vv-button--danger {
-  border-color: #d4674f;
-  background: #35211d;
-  color: #f2cdc4;
-}
-
-.vv-button--danger:hover:not(:disabled) {
-  background: #422a25;
 }
 
 /* --- home screen (PRD-11) ------------------------------------------------ */
@@ -551,7 +800,7 @@ button.vv-insight-card:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #070a0f;
+  background: #160f08;
 }
 
 /* The art *is* the menu (see HomeScreen.tsx): every hit region below is
@@ -574,50 +823,71 @@ button.vv-insight-card:disabled {
   background-size: 100% 100%;
 }
 
-/* Measured off the master: both painted scrolls sit on the same baseline,
-   8.8% of the width across and 8.5% of the height tall. */
+/* The scroll buttons are their own art, laid over the ones painted into the
+   background (see HomeScreen.tsx). Measured off the 1920x1080 master, the
+   painted scrolls are 175x92 and share a centre line at 90.2% of the height;
+   these are centred on the same points and sized 200 wide so the button art —
+   which is a slightly taller 1.75:1 — covers the painted pixels on both axes
+   with nothing peeking out from behind. Hence the translate: the percentages
+   below are centres, not corners. */
 .vv-home__scroll {
   position: absolute;
-  top: 85.7%;
-  width: 8.8%;
-  height: 8.5%;
+  top: 90.2%;
+  width: 10.42%;
+  transform: translate(-50%, -50%);
   padding: 0;
   border: 0;
-  border-radius: 0.4rem;
   background: transparent;
   cursor: pointer;
 }
 
 .vv-home__scroll--new-game {
-  left: 35.9%;
+  left: 40.5%;
 }
 
 .vv-home__scroll--continue {
-  left: 55.5%;
+  left: 60%;
 }
 
-/* Nothing about a transparent box over painted art says "clickable", so
-   hover and keyboard focus have to light the scroll itself. */
+/* aspect-ratio rather than a height, so the scroll can never be squashed out
+   of proportion with the background it has to cover. */
+.vv-home__scroll-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3281 / 1875;
+}
+
+/* Hover and keyboard focus lift the scroll and warm it, rather than drawing a
+   glow box around it: the button owns its pixels now, so it can respond as a
+   scroll instead of as a rectangle. */
 .vv-home__scroll:hover:not(:disabled),
 .vv-home__scroll:focus-visible {
   outline: none;
-  background: rgb(255 244 214 / 20%);
-  box-shadow:
-    0 0 0 2px rgb(255 236 189 / 75%),
-    0 0 18px rgb(255 210 120 / 55%);
+  transform: translate(-50%, -50%) scale(1.06);
+  filter: brightness(1.08) drop-shadow(0 0 10px rgb(255 210 120 / 65%));
 }
 
 .vv-home__scroll:active:not(:disabled) {
-  background: rgb(255 244 214 / 34%);
+  transform: translate(-50%, -50%) scale(1.01);
+  filter: brightness(0.94);
 }
 
-/* With no save, Continue is painted but dead. Veiling it is the only way to
-   say so, since the button cannot change what the art underneath shows. */
+/* With no save, Continue is a real button that has nothing to do. Dimming and
+   draining the scroll itself says so without covering it. */
 .vv-home__scroll:disabled {
   cursor: default;
-  background: rgb(7 10 15 / 62%);
+  filter: grayscale(0.7) brightness(0.5);
 }
 
+/* A parchment plaque under the Continue scroll rather than the dark chip it
+   used to be: it sits on painted sand, and ink-on-parchment belongs there in
+   a way a translucent black box did not.
+
+   pointer-events: none because it is a caption and nothing in it is clickable.
+   Without that it is a live hit target sitting directly under the Continue
+   scroll, and on a narrow viewport — where the same two or three lines of text
+   occupy a much taller share of a 16:9 art box only ~240px tall — it grows up
+   over the scroll and swallows the click meant for it. */
 .vv-home__continue-detail {
   position: absolute;
   bottom: 1.2%;
@@ -625,12 +895,14 @@ button.vv-insight-card:disabled {
   transform: translateX(-50%);
   max-width: 36%;
   margin: 0;
-  padding: 0.15rem 0.5rem;
-  border-radius: 0.3rem;
-  background: rgb(7 10 15 / 66%);
-  color: #f0e0ba;
-  font-size: 0.78em;
+  pointer-events: none;
+  padding: 0.2rem 0.55rem;
+  border: 2px solid var(--vv-wood-dark);
+  background: var(--vv-parchment);
+  color: var(--vv-ink);
+  font-size: 0.8em;
   text-align: center;
+  box-shadow: 0 2px 0 rgb(20 12 5 / 45%);
 }
 
 .vv-home__confirm {
@@ -661,7 +933,7 @@ button.vv-insight-card:disabled {
   justify-content: center;
   padding: 1.5rem;
   box-sizing: border-box;
-  background: rgb(5 7 11 / 92%);
+  background: radial-gradient(ellipse at center, rgb(46 28 12 / 94%) 0%, rgb(15 9 4 / 97%) 100%);
 }
 
 .vv-setup__panel {
@@ -672,45 +944,60 @@ button.vv-insight-card:disabled {
   gap: 0.5rem;
 }
 
+/* Shell copy, fixed at "Before you begin" — safe for the display face. */
 .vv-setup__title {
   margin: 0 0 0.25rem;
-  font-size: 1.4em;
+  font-family: var(--vv-font-display);
+  font-size: 1.45em;
+  letter-spacing: 0.02em;
+  color: var(--vv-ink);
 }
 
 .vv-setup__label {
-  color: #cdd6e4;
-  font-size: 0.85em;
+  color: var(--vv-ink);
+  font-size: 0.9em;
+  font-weight: 700;
 }
 
 .vv-setup__input {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid #3b485c;
-  border-radius: 0.35rem;
-  background: #151a24;
-  color: inherit;
-  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 3px solid var(--vv-wood-dark);
+  border-radius: 0;
+  background: var(--vv-parchment-light);
+  color: var(--vv-ink);
+  font-family: var(--vv-font-body);
+  font-size: 1em;
+  box-shadow: inset 0 2px 0 rgb(74 48 24 / 22%);
 }
 
 .vv-setup__error {
   margin: 0;
-  color: #e8a08f;
-  font-size: 0.82em;
+  color: var(--vv-rust);
+  font-size: 0.85em;
+  font-weight: 700;
 }
 
+/* Inset sub-panels: a shade off the parchment with a wood rule, which is how
+   the frames themselves separate an interior from its border. Not another
+   nine-slice — a frame inside a frame would read as two popups. */
 .vv-setup__signin {
   width: 100%;
   margin: 0.5rem 0;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid #2c3545;
-  border-radius: 0.4rem;
-  background: #151a24;
+  padding: 0.65rem 0.7rem;
+  box-sizing: border-box;
+  border: 2px solid var(--vv-wood);
+  background: var(--vv-parchment-deep);
 }
 
+/* Body serif, not the display face: this heading is the one with parentheses
+   in it ("Connect YouVersion (optional)"), which the pixel font has no glyph
+   for. */
 .vv-setup__subhead {
-  margin: 0 0 0.3rem;
-  font-size: 0.95em;
+  margin: 0 0 0.35rem;
+  color: var(--vv-ink);
+  font-size: 1em;
 }
 
 /* --- intro overlay (PRD-11) ----------------------------------------------- */
@@ -724,7 +1011,7 @@ button.vv-insight-card:disabled {
   justify-content: center;
   padding: 1.5rem;
   box-sizing: border-box;
-  background: rgb(5 7 11 / 92%);
+  background: radial-gradient(ellipse at center, rgb(46 28 12 / 94%) 0%, rgb(15 9 4 / 97%) 100%);
 }
 
 .vv-intro__panel {
@@ -732,21 +1019,29 @@ button.vv-insight-card:disabled {
 }
 
 .vv-intro__progress {
-  margin: 0 0 0.3rem;
-  color: #8f9bb0;
-  font-size: 0.78em;
+  margin: 0 0 0.35rem;
+  color: var(--vv-wood);
+  font-family: var(--vv-font-display);
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
   font-variant-numeric: tabular-nums;
 }
 
+/* The seven intro beat titles are authored in IntroOverlay.tsx and all sit
+   inside the display face's glyph set. */
 .vv-intro__title {
-  margin: 0 0 0.4rem;
-  font-size: 1.2em;
+  margin: 0 0 0.45rem;
+  font-family: var(--vv-font-display);
+  font-size: 1.3em;
+  letter-spacing: 0.02em;
+  color: var(--vv-ink);
 }
 
 .vv-intro__footer {
   display: flex;
   justify-content: space-between;
-  margin-top: 0.9rem;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 /* --- HUD menu (PRD-11) ----------------------------------------------------- */
@@ -761,12 +1056,12 @@ button.vv-insight-card:disabled {
 
 .vv-hud-menu__youversion {
   width: 100%;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid #2c3545;
-  border-radius: 0.4rem;
-  background: #151a24;
+  padding: 0.65rem 0.7rem;
+  box-sizing: border-box;
+  border: 2px solid var(--vv-wood);
+  background: var(--vv-parchment-deep);
 }
 
 .vv-hud-menu__youversion p {
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.45rem;
 }

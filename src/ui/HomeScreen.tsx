@@ -14,18 +14,26 @@ import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
  *
  * **The art is the menu.** `start-screen.png` has the title, the subtitle,
  * and both action scrolls painted into it, so this component contributes no
- * visible chrome of its own: only two transparent hit regions laid over the
- * painted scrolls, an accessible name for each, and a caption under Continue.
+ * chrome of its own: just the two scroll buttons laid over their painted
+ * counterparts, an accessible name for each, and a caption under Continue.
  * Rendering a DOM panel here as well (the first cut of this PRD) put a second
  * title and a second set of buttons on top of the painted ones, which left
  * the real controls competing with dead pixels that looked just as clickable.
+ *
+ * The buttons themselves are the standalone scroll art shipped alongside the
+ * background (`art/start_screen/Start Screen Buttons`, downscaled 5x into
+ * `public/assets/ui/`), positioned to sit exactly on the painted scrolls and
+ * sized to cover them. The cut before this one used transparent hit regions
+ * over the painted pixels instead, which meant hover, press, and disabled had
+ * nothing to act on but a glow or a veil drawn *around* art that could never
+ * itself respond. Owning the pixels is what makes those states possible.
  *
  * Two consequences worth naming, both departures from the PRD's acceptance
  * criteria as written:
  *
  * - The criteria say a *single* Enter action for a first-time player. The art
  *   paints two scrolls unconditionally, so instead of hiding one, Continue is
- *   rendered disabled and veiled with no save behind it, and New Game carries
+ *   rendered disabled and dimmed with no save behind it, and New Game carries
  *   the Enter role (going straight to setup, with no confirm to sit through
  *   since there is nothing to erase).
  * - The criteria pair the title with a tagline. The art has no room for one
@@ -65,6 +73,9 @@ export function HomeScreen() {
           data-testid="home-new-game"
           onClick={newGame}
         >
+          {/* The word is painted into the scroll, so the img is decorative and
+              the accessible name comes from the hidden span beside it. */}
+          <img className="vv-home__scroll-art" src="/assets/ui/button-new-game.png" alt="" />
           <span className="vv-visually-hidden">New game</span>
         </button>
 
@@ -75,6 +86,7 @@ export function HomeScreen() {
           disabled={!hasSave}
           onClick={() => runtime.view.getState().continueGame()}
         >
+          <img className="vv-home__scroll-art" src="/assets/ui/button-continue.png" alt="" />
           <span className="vv-visually-hidden">Continue</span>
         </button>
 

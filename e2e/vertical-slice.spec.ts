@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { continueToPlaying, enterAsNewPlayer, seedReturningPlayerSave } from "./gameEntry";
 import { clickWorldPoint, scene1GuidePositions, tapWorldPoint } from "./worldPoints";
 
 const SAVE_KEY = "verse-and-vale:save";
@@ -14,8 +15,14 @@ const sceneOneBeatCount =
   dialogueDocument.scenes.find((scene) => scene.id === 1)?.beats.length ?? 0;
 
 test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", async ({ page }) => {
+  // Deliberately not `seedReturningPlayerSave`: this test reloads the page,
+  // and `page.addInitScript` re-runs on every navigation including a
+  // reload, which would clobber the real progress made below back to a
+  // blank save. Going through the real first-time entry flow instead writes
+  // playerName the same way an actual player would, so it survives reload.
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
+  await enterAsNewPlayer(page);
 
   await expect(page.getByTestId("dialogue-box")).toBeVisible();
   await expect(page.getByTestId("dialogue-text")).toContainText(
@@ -63,6 +70,8 @@ test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", a
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("6");
 
   await page.reload();
+  await page.locator("#game-container canvas").waitFor();
+  await continueToPlaying(page);
 
   await expect(page.getByTestId("scene-complete")).toBeVisible();
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("6");
@@ -70,8 +79,10 @@ test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", a
 });
 
 test("a plain ground click walks the player without opening anything", async ({ page }) => {
+  await seedReturningPlayerSave(page);
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
+  await continueToPlaying(page);
 
   // A point well clear of either guide: no proximity prompt, no panel.
   await clickWorldPoint(page, 300, 60);
@@ -90,8 +101,10 @@ test("touch: tapping a character walks to them and opens the interaction in one 
   const context = await browser.newContext({ hasTouch: true });
   const page = await context.newPage();
 
+  await seedReturningPlayerSave(page);
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
+  await continueToPlaying(page);
 
   const [chronicler] = scene1GuidePositions();
   await tapWorldPoint(page, chronicler.x, chronicler.y);
@@ -103,8 +116,10 @@ test("touch: tapping a character walks to them and opens the interaction in one 
 });
 
 test("scene 1 can be completed with both encounters skipped", async ({ page }) => {
+  await seedReturningPlayerSave(page);
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
+  await continueToPlaying(page);
 
   for (let beat = 0; beat < sceneOneBeatCount; beat += 1) {
     await page.getByTestId("dialogue-advance").click();
@@ -128,6 +143,14 @@ test("a corrupt save boots a fresh game behind a dismissible notice", async ({ p
   await expect(notice).toBeVisible();
   await expect(notice).toContainText("fresh game");
 
+  // A recovered save has no playerName either, so PRD-11's home screen
+  // degrades to the first-time state — never a silent wipe, and never a
+  // dead end (storyboard-v2.md §1 "Failure state").
+  await expect(page.getByTestId("home-new-game")).toBeEnabled();
+  await expect(page.getByTestId("home-continue")).toBeDisabled();
+
+  await enterAsNewPlayer(page);
+
   await expect(page.getByTestId("dialogue-box")).toBeVisible();
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("0");
 
@@ -136,8 +159,10 @@ test("a corrupt save boots a fresh game behind a dismissible notice", async ({ p
 });
 
 test("the overlay does not intercept pointer events outside its own controls", async ({ page }) => {
+  await seedReturningPlayerSave(page);
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
+  await continueToPlaying(page);
 
   const topmostAtCentre = await page.evaluate(() => {
     const element = document.elementFromPoint(window.innerWidth / 2, window.innerHeight * 0.35);

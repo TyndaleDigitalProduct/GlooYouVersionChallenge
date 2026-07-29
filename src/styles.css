@@ -74,6 +74,20 @@ body {
 
 /* --- shared pieces ----------------------------------------------------- */
 
+/* Reachable by a screen reader, invisible on screen. Used where the visible
+   text is painted into background art rather than set in the DOM. */
+.vv-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .vv-panel {
   pointer-events: auto;
   width: 100%;
@@ -503,4 +517,256 @@ button.vv-insight-card:disabled {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85em;
   word-break: break-word;
+}
+
+/* --- button variants (PRD-11) -------------------------------------------- */
+
+.vv-button--primary {
+  border-color: #4fb783;
+  background: #1c3126;
+  color: #d7f2e2;
+  font-weight: 600;
+}
+
+.vv-button--primary:hover:not(:disabled) {
+  background: #223d2f;
+}
+
+.vv-button--danger {
+  border-color: #d4674f;
+  background: #35211d;
+  color: #f2cdc4;
+}
+
+.vv-button--danger:hover:not(:disabled) {
+  background: #422a25;
+}
+
+/* --- home screen (PRD-11) ------------------------------------------------ */
+
+.vv-home {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #070a0f;
+}
+
+/* The art *is* the menu (see HomeScreen.tsx): every hit region below is
+   positioned as a percentage of the 1920x1080 master, so this element has to
+   be exactly the box that image is drawn into and nothing larger. A
+   background-size: cover box on a full-viewport element would not be — the
+   painted scrolls would drift out from under the buttons as the window
+   changed shape, and on a wide, short window would be cropped away entirely.
+   min() against the two viewport axes reproduces "contain" as the element's
+   own size, which keeps the mapping exact and the whole title screen on
+   screen at every aspect ratio. .vv-home fills #app (position: absolute,
+   inset: 0, all the way up the overlay chain), so the viewport units are the
+   right measure of the space available to it. */
+.vv-home__art {
+  position: relative;
+  width: min(100dvw, calc(100dvh * 1920 / 1080));
+  height: min(100dvh, calc(100dvw * 1080 / 1920));
+  background-image: url("/assets/backgrounds/start-screen.png");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+/* Measured off the master: both painted scrolls sit on the same baseline,
+   8.8% of the width across and 8.5% of the height tall. */
+.vv-home__scroll {
+  position: absolute;
+  top: 85.7%;
+  width: 8.8%;
+  height: 8.5%;
+  padding: 0;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.vv-home__scroll--new-game {
+  left: 35.9%;
+}
+
+.vv-home__scroll--continue {
+  left: 55.5%;
+}
+
+/* Nothing about a transparent box over painted art says "clickable", so
+   hover and keyboard focus have to light the scroll itself. */
+.vv-home__scroll:hover:not(:disabled),
+.vv-home__scroll:focus-visible {
+  outline: none;
+  background: rgb(255 244 214 / 20%);
+  box-shadow:
+    0 0 0 2px rgb(255 236 189 / 75%),
+    0 0 18px rgb(255 210 120 / 55%);
+}
+
+.vv-home__scroll:active:not(:disabled) {
+  background: rgb(255 244 214 / 34%);
+}
+
+/* With no save, Continue is painted but dead. Veiling it is the only way to
+   say so, since the button cannot change what the art underneath shows. */
+.vv-home__scroll:disabled {
+  cursor: default;
+  background: rgb(7 10 15 / 62%);
+}
+
+.vv-home__continue-detail {
+  position: absolute;
+  bottom: 1.2%;
+  left: 59.9%;
+  transform: translateX(-50%);
+  max-width: 36%;
+  margin: 0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.3rem;
+  background: rgb(7 10 15 / 66%);
+  color: #f0e0ba;
+  font-size: 0.78em;
+  text-align: center;
+}
+
+.vv-home__confirm {
+  width: min(30rem, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vv-home__confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* --- setup screen (PRD-11) ------------------------------------------------ */
+
+/* Opaque, like .vv-intro. App.tsx gates every non-"playing" phase on a
+   full-screen overlay and calls it opaque; without a background of its own
+   this one only blocked clicks, and left the half-lit world showing through
+   behind the name form. */
+.vv-setup {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  background: rgb(5 7 11 / 92%);
+}
+
+.vv-setup__panel {
+  width: min(32rem, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.vv-setup__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.4em;
+}
+
+.vv-setup__label {
+  color: #cdd6e4;
+  font-size: 0.85em;
+}
+
+.vv-setup__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #3b485c;
+  border-radius: 0.35rem;
+  background: #151a24;
+  color: inherit;
+  font: inherit;
+}
+
+.vv-setup__error {
+  margin: 0;
+  color: #e8a08f;
+  font-size: 0.82em;
+}
+
+.vv-setup__signin {
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #2c3545;
+  border-radius: 0.4rem;
+  background: #151a24;
+}
+
+.vv-setup__subhead {
+  margin: 0 0 0.3rem;
+  font-size: 0.95em;
+}
+
+/* --- intro overlay (PRD-11) ----------------------------------------------- */
+
+.vv-intro {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  background: rgb(5 7 11 / 92%);
+}
+
+.vv-intro__panel {
+  width: min(32rem, 100%);
+}
+
+.vv-intro__progress {
+  margin: 0 0 0.3rem;
+  color: #8f9bb0;
+  font-size: 0.78em;
+  font-variant-numeric: tabular-nums;
+}
+
+.vv-intro__title {
+  margin: 0 0 0.4rem;
+  font-size: 1.2em;
+}
+
+.vv-intro__footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.9rem;
+}
+
+/* --- HUD menu (PRD-11) ----------------------------------------------------- */
+
+.vv-hud-menu {
+  width: min(26rem, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.vv-hud-menu__youversion {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #2c3545;
+  border-radius: 0.4rem;
+  background: #151a24;
+}
+
+.vv-hud-menu__youversion p {
+  margin: 0 0 0.4rem;
 }

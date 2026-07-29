@@ -21,6 +21,22 @@ describe("toGameState", () => {
       "version",
     ]);
   });
+
+  it("includes playerName once set, and it round-trips through save/load", () => {
+    const storage = createInMemoryStorage();
+    const store = createGameStore({ manifest: threeSceneManifest });
+    store.getState().setPlayerName("Ezra");
+
+    const persisted = toGameState(store.getState());
+    expect(persisted.playerName).toBe("Ezra");
+
+    attachPersistence(store, storage, KEY, vi.fn());
+    store.getState().setPlayerName("Miriam");
+
+    const loaded = loadGame(storage, KEY);
+    expect(loaded.status).toBe("ok");
+    expect(loaded.state.playerName).toBe("Miriam");
+  });
 });
 
 describe("attachPersistence", () => {

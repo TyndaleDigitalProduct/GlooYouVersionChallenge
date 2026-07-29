@@ -324,4 +324,89 @@ describe("game store (zustand/vanilla, subscribable without React)", () => {
     // repeat setSession and repeat clearSession are no-ops.
     expect(listener).toHaveBeenCalledTimes(1);
   });
+
+  describe("setPlayerName (PRD-11)", () => {
+    it("fills the reserved playerName field", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      expect(store.getState().playerName).toBeUndefined();
+
+      store.getState().setPlayerName("Ezra");
+
+      expect(store.getState().playerName).toBe("Ezra");
+    });
+
+    it("does not notify subscribers when the name is unchanged", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      store.getState().setPlayerName("Ezra");
+
+      const listener = vi.fn();
+      store.subscribe(listener);
+      store.getState().setPlayerName("Ezra");
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("notifies once when the name actually changes", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      const listener = vi.fn();
+      store.subscribe(listener);
+
+      store.getState().setPlayerName("Ezra");
+
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("resetProgress (PRD-11 'New game')", () => {
+    it("wipes completion, ledger, encounters, and highlights", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      store.getState().completeScene("scene-1");
+      store.getState().engageEncounter("scene-2", "FIX.2.1");
+      store.getState().addHighlight("FIX.2.1", "yellow");
+
+      store.getState().resetProgress();
+
+      expect(store.getState().completedSceneIds).toEqual([]);
+      expect(store.getState().encounters).toEqual({});
+      expect(store.getState().ledger).toEqual([]);
+      expect(store.getState().highlights).toEqual({});
+    });
+
+    it("keeps playerName and session: the confirm copy promises nothing more is lost", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      store.getState().setPlayerName("Ezra");
+      store.getState().setSession("yvp-123");
+      store.getState().completeScene("scene-1");
+
+      store.getState().resetProgress();
+
+      expect(store.getState().playerName).toBe("Ezra");
+      expect(store.getState().session).toEqual({ yvpId: "yvp-123" });
+    });
+
+    it("emits game:reset only when something actually changed", () => {
+      const bus = createEventBus();
+      const listener = vi.fn();
+      const store = createGameStore({ manifest: threeSceneManifest, bus });
+      bus.on("game:reset", listener);
+
+      // Nothing to reset yet: no-op, no event.
+      store.getState().resetProgress();
+      expect(listener).not.toHaveBeenCalled();
+
+      store.getState().completeScene("scene-1");
+      store.getState().resetProgress();
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not notify store subscribers on a no-op reset", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      const listener = vi.fn();
+      store.subscribe(listener);
+
+      store.getState().resetProgress();
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+  });
 });

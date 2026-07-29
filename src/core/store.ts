@@ -59,6 +59,16 @@ export interface GameStoreState extends GameState {
   removeHighlight(reference: string): void;
   setSession(yvpId: string): void;
   clearSession(): void;
+  /** PRD-11: fills the playerName field PRD-08 phase 1 reserved. */
+  setPlayerName(name: string): void;
+  /**
+   * PRD-11 "New game": wipes completion, ledger, encounters, and highlights
+   * back to a fresh start. Deliberately leaves playerName and session alone
+   * — the confirm copy the player sees promises exactly what is lost
+   * (progress, encounter state, local highlights) and nothing more
+   * (storyboard-v2.md §1).
+   */
+  resetProgress(): void;
 }
 
 export interface CreateGameStoreConfig {
@@ -254,6 +264,31 @@ export function createGameStore(config: CreateGameStoreConfig) {
 
     clearSession() {
       set((state) => (state.session === null ? state : { ...state, session: null }));
+    },
+
+    setPlayerName(name) {
+      set((state) => (state.playerName === name ? state : { ...state, playerName: name }));
+    },
+
+    resetProgress() {
+      const before = get();
+      const isAlreadyFresh =
+        before.completedSceneIds.length === 0 &&
+        Object.keys(before.encounters).length === 0 &&
+        before.ledger.length === 0 &&
+        Object.keys(before.highlights).length === 0;
+
+      if (isAlreadyFresh) return;
+
+      set((state) => ({
+        ...state,
+        completedSceneIds: [],
+        encounters: {},
+        ledger: [],
+        highlights: {},
+      }));
+
+      bus.emit("game:reset", {});
     },
   }));
 }

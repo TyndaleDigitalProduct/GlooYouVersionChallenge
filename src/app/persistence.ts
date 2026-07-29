@@ -7,7 +7,14 @@ import { type SaveWriteResult, saveGame } from "@/core/save";
 import type { Storage as CoreStorage } from "@/core/storage";
 import type { GameStoreApi, GameStoreState } from "@/core/store";
 
-/** Strips the store's action methods, leaving exactly the persisted shape. */
+/**
+ * Strips the store's action methods, leaving exactly the persisted shape.
+ *
+ * `playerName` is spread in conditionally rather than assigned unconditionally
+ * so its absence round-trips as a genuinely missing key (matching
+ * `createFreshState()`), not a present key holding `undefined` — the same
+ * distinction src/core/save.test.ts asserts for a fresh save.
+ */
 export function toGameState(state: GameStoreState): GameState {
   return {
     version: state.version,
@@ -16,6 +23,7 @@ export function toGameState(state: GameStoreState): GameState {
     ledger: state.ledger,
     highlights: state.highlights,
     session: state.session,
+    ...(state.playerName !== undefined ? { playerName: state.playerName } : {}),
   };
 }
 

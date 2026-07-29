@@ -8,18 +8,19 @@ import { seedReturningPlayerSave } from "./gameEntry";
 // pointer-events: auto and inset: 0, same technique as the existing
 // encounter scrim).
 
-test("first-time player: title/tagline/Enter, required name entry, then a skippable intro", async ({
+test("first-time player: painted New Game, required name entry, then a skippable intro", async ({
   page,
 }) => {
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
 
+  // Both scrolls are painted into the background art, so both are always
+  // present; with no save, Continue is the one that is dead.
   await expect(page.getByTestId("home-screen")).toBeVisible();
-  await expect(page.getByTestId("home-enter")).toBeVisible();
-  await expect(page.getByTestId("home-continue")).toHaveCount(0);
-  await expect(page.getByTestId("home-new-game")).toHaveCount(0);
+  await expect(page.getByTestId("home-new-game")).toBeEnabled();
+  await expect(page.getByTestId("home-continue")).toBeDisabled();
 
-  await page.getByTestId("home-enter").click();
+  await page.getByTestId("home-new-game").click();
   await expect(page.getByTestId("setup-screen")).toBeVisible();
 
   // Required: Continue is disabled with no name, and whitespace does not count.

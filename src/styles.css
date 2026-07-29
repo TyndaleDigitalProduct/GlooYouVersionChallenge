@@ -74,6 +74,20 @@ body {
 
 /* --- shared pieces ----------------------------------------------------- */
 
+/* Reachable by a screen reader, invisible on screen. Used where the visible
+   text is painted into background art rather than set in the DOM. */
+.vv-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .vv-panel {
   pointer-events: auto;
   width: 100%;
@@ -537,49 +551,86 @@ button.vv-insight-card:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
-  box-sizing: border-box;
-  background-size: cover;
-  background-position: center;
+  background: #070a0f;
 }
 
-.vv-home__panel {
-  width: min(34rem, 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1.5rem 1.75rem;
-  border: 1px solid #2c3545;
-  border-radius: 0.6rem;
-  background: rgb(11 14 20 / 82%);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 55%);
+/* The art *is* the menu (see HomeScreen.tsx): every hit region below is
+   positioned as a percentage of the 1920x1080 master, so this element has to
+   be exactly the box that image is drawn into and nothing larger. A
+   background-size: cover box on a full-viewport element would not be — the
+   painted scrolls would drift out from under the buttons as the window
+   changed shape, and on a wide, short window would be cropped away entirely.
+   min() against the two viewport axes reproduces "contain" as the element's
+   own size, which keeps the mapping exact and the whole title screen on
+   screen at every aspect ratio. .vv-home fills #app (position: absolute,
+   inset: 0, all the way up the overlay chain), so the viewport units are the
+   right measure of the space available to it. */
+.vv-home__art {
+  position: relative;
+  width: min(100dvw, calc(100dvh * 1920 / 1080));
+  height: min(100dvh, calc(100dvw * 1080 / 1920));
+  background-image: url("/assets/backgrounds/start-screen.png");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
-.vv-home__title {
-  margin: 0;
-  font-size: 1.9em;
+/* Measured off the master: both painted scrolls sit on the same baseline,
+   8.8% of the width across and 8.5% of the height tall. */
+.vv-home__scroll {
+  position: absolute;
+  top: 85.7%;
+  width: 8.8%;
+  height: 8.5%;
+  padding: 0;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  cursor: pointer;
 }
 
-.vv-home__tagline {
-  margin: 0;
-  color: #cdd6e4;
+.vv-home__scroll--new-game {
+  left: 35.9%;
 }
 
-.vv-home__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
-  width: 100%;
+.vv-home__scroll--continue {
+  left: 55.5%;
+}
+
+/* Nothing about a transparent box over painted art says "clickable", so
+   hover and keyboard focus have to light the scroll itself. */
+.vv-home__scroll:hover:not(:disabled),
+.vv-home__scroll:focus-visible {
+  outline: none;
+  background: rgb(255 244 214 / 20%);
+  box-shadow:
+    0 0 0 2px rgb(255 236 189 / 75%),
+    0 0 18px rgb(255 210 120 / 55%);
+}
+
+.vv-home__scroll:active:not(:disabled) {
+  background: rgb(255 244 214 / 34%);
+}
+
+/* With no save, Continue is painted but dead. Veiling it is the only way to
+   say so, since the button cannot change what the art underneath shows. */
+.vv-home__scroll:disabled {
+  cursor: default;
+  background: rgb(7 10 15 / 62%);
 }
 
 .vv-home__continue-detail {
-  display: block;
-  margin-top: 0.15rem;
-  color: #8fd4a8;
+  position: absolute;
+  bottom: 1.2%;
+  left: 59.9%;
+  transform: translateX(-50%);
+  max-width: 36%;
+  margin: 0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.3rem;
+  background: rgb(7 10 15 / 66%);
+  color: #f0e0ba;
   font-size: 0.78em;
-  font-weight: 400;
+  text-align: center;
 }
 
 .vv-home__confirm {
@@ -597,6 +648,10 @@ button.vv-insight-card:disabled {
 
 /* --- setup screen (PRD-11) ------------------------------------------------ */
 
+/* Opaque, like .vv-intro. App.tsx gates every non-"playing" phase on a
+   full-screen overlay and calls it opaque; without a background of its own
+   this one only blocked clicks, and left the half-lit world showing through
+   behind the name form. */
 .vv-setup {
   pointer-events: auto;
   position: absolute;
@@ -606,6 +661,7 @@ button.vv-insight-card:disabled {
   justify-content: center;
   padding: 1.5rem;
   box-sizing: border-box;
+  background: rgb(5 7 11 / 92%);
 }
 
 .vv-setup__panel {

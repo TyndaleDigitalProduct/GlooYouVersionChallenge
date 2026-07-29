@@ -28,7 +28,7 @@ describe("App phase gating (PRD-11)", () => {
     const runtime = boot();
     render(<App runtime={runtime} />);
 
-    await user.click(screen.getByTestId("home-enter"));
+    await user.click(screen.getByTestId("home-new-game"));
     expect(screen.getByTestId("setup-screen")).toBeInTheDocument();
 
     await user.type(screen.getByTestId("player-name-input"), "Ezra");

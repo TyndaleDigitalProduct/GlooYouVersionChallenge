@@ -42,12 +42,14 @@ export async function continueToPlaying(page: Page): Promise<void> {
 }
 
 /**
- * The first-time path: home's *Enter*, required name entry, then skipping
- * the intro. Used when a test needs to start from no save at all (e.g. the
- * corrupt-save recovery test, which must reach a *first-time* home screen).
+ * The first-time path: home's painted *New Game* scroll (which with no save
+ * goes straight to setup rather than through the destructive confirm),
+ * required name entry, then skipping the intro. Used when a test needs to
+ * start from no save at all (e.g. the corrupt-save recovery test, which must
+ * reach a *first-time* home screen).
  */
 export async function enterAsNewPlayer(page: Page, name = "E2E Player"): Promise<void> {
-  await page.getByTestId("home-enter").click();
+  await page.getByTestId("home-new-game").click();
   await page.getByTestId("player-name-input").fill(name);
   await page.getByTestId("setup-continue").click();
   await page.getByTestId("intro-skip").click();

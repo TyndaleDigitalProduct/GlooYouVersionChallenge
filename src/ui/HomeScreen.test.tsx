@@ -14,7 +14,10 @@ function boot(storage = createInMemoryStorage()) {
 }
 
 describe("HomeScreen (PRD-11, storyboard-v2.md §1)", () => {
-  it("shows title, tagline, and a single Enter action when no save exists", () => {
+  // Both actions are painted into the background art, so both are always in
+  // the DOM. The two entry states are told apart by whether Continue is
+  // enabled, not by whether it exists.
+  it("names the painted title accessibly and disables Continue when no save exists", () => {
     const runtime = boot();
     render(
       <RuntimeProvider runtime={runtime}>
@@ -22,13 +25,13 @@ describe("HomeScreen (PRD-11, storyboard-v2.md §1)", () => {
       </RuntimeProvider>,
     );
 
-    expect(screen.getByText("Verse & Vale")).toBeInTheDocument();
-    expect(screen.getByTestId("home-enter")).toBeInTheDocument();
-    expect(screen.queryByTestId("home-continue")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("home-new-game")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Verse & Vale" })).toBeInTheDocument();
+    expect(screen.getByTestId("home-new-game")).toBeEnabled();
+    expect(screen.getByTestId("home-continue")).toBeDisabled();
+    expect(screen.getByTestId("home-continue-detail")).toHaveTextContent(/no saved game/i);
   });
 
-  it("Enter moves the view to setup", async () => {
+  it("New game with no save enters setup directly, with no confirm to sit through", async () => {
     const user = userEvent.setup();
     const runtime = boot();
     render(
@@ -37,8 +40,9 @@ describe("HomeScreen (PRD-11, storyboard-v2.md §1)", () => {
       </RuntimeProvider>,
     );
 
-    await user.click(screen.getByTestId("home-enter"));
+    await user.click(screen.getByTestId("home-new-game"));
 
+    expect(screen.queryByTestId("new-game-confirm")).not.toBeInTheDocument();
     expect(runtime.view.getState().phase).toBe("setup");
   });
 
@@ -52,8 +56,7 @@ describe("HomeScreen (PRD-11, storyboard-v2.md §1)", () => {
       </RuntimeProvider>,
     );
 
-    expect(screen.queryByTestId("home-enter")).not.toBeInTheDocument();
-    expect(screen.getByTestId("home-continue")).toBeInTheDocument();
+    expect(screen.getByTestId("home-continue")).toBeEnabled();
     expect(screen.getByTestId("home-continue-detail")).toHaveTextContent("Scene 1 of 9");
     expect(screen.getByTestId("home-continue-detail")).toHaveTextContent("0 Vale Stones");
     expect(screen.getByTestId("home-new-game")).toBeInTheDocument();
@@ -148,7 +151,7 @@ describe("HomeScreen (PRD-11, storyboard-v2.md §1)", () => {
       </RuntimeProvider>,
     );
 
-    expect(screen.getByTestId("home-enter")).toBeInTheDocument();
+    expect(screen.getByTestId("home-continue")).toBeDisabled();
     expect(runtime.view.getState().notices).toEqual([
       expect.objectContaining({ id: "save-recovered" }),
     ]);

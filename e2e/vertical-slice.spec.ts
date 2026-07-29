@@ -144,8 +144,8 @@ test("a corrupt save boots a fresh game behind a dismissible notice", async ({ p
   // A recovered save has no playerName either, so PRD-11's home screen
   // degrades to the first-time state — never a silent wipe, and never a
   // dead end (storyboard-v2.md §1 "Failure state").
-  await expect(page.getByTestId("home-enter")).toBeVisible();
-  await expect(page.getByTestId("home-continue")).toHaveCount(0);
+  await expect(page.getByTestId("home-new-game")).toBeEnabled();
+  await expect(page.getByTestId("home-continue")).toBeDisabled();
 
   await enterAsNewPlayer(page);
 

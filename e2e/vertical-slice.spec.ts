@@ -7,12 +7,26 @@ const SAVE_KEY = "verse-and-vale:save";
 
 // Read the authored beats rather than hard-coding a count, so adding a beat
 // does not silently leave the walkthrough clicking the wrong number of times.
+// PRD-12 split each scene's beats by speaker (lamplighterOpening/characters/
+// lamplighterExit) instead of one flat array; this re-flattens them the same
+// way src/content/loadContent.ts's `flattenBeats` does, purely to count them.
 const dialogueDocument = JSON.parse(
   readFileSync(new URL("../content/daniel-1.dialogue.json", import.meta.url), "utf-8"),
-) as { scenes: Array<{ id: number; beats: unknown[] }> };
+) as {
+  scenes: Array<{
+    id: number;
+    lamplighterOpening: unknown[];
+    characters: Array<{ beats: unknown[] }>;
+    lamplighterExit?: { all: string; some: string; none: string };
+  }>;
+};
 
-const sceneOneBeatCount =
-  dialogueDocument.scenes.find((scene) => scene.id === 1)?.beats.length ?? 0;
+const sceneOne = dialogueDocument.scenes.find((scene) => scene.id === 1);
+const sceneOneBeatCount = sceneOne
+  ? sceneOne.lamplighterOpening.length +
+    sceneOne.characters.reduce((total, character) => total + character.beats.length, 0) +
+    (sceneOne.lamplighterExit ? 3 : 0)
+  : 0;
 
 test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", async ({ page }) => {
   // Deliberately not `seedReturningPlayerSave`: this test reloads the page,

@@ -10,7 +10,11 @@ import { createAppRuntime } from "../app/runtime";
 import { DialogueBox } from "./DialogueBox";
 import { RuntimeProvider } from "./RuntimeContext";
 
-/** A dialogue document overriding only scene 1's beats with a {name} line. */
+/**
+ * A dialogue document overriding only scene 1's beats with a {name} line.
+ * Uses the default (real) cast document, so the speaker here ("Daniel") has
+ * to be one it already maps art for.
+ */
 function dialogueDocumentWithName() {
   return {
     status: "placeholder",
@@ -21,9 +25,19 @@ function dialogueDocumentWithName() {
         ? {
             id,
             playable: true,
-            beats: [{ speaker: "Guide", text: "Hello, {name}! Welcome, {name}." }],
+            lamplighterOpening: [],
+            characters: [
+              { speaker: "Daniel", beats: [{ text: "Hello, {name}! Welcome, {name}." }] },
+            ],
+            lamplighterExit: undefined,
           }
-        : { id, playable: false, beats: [] };
+        : {
+            id,
+            playable: false,
+            lamplighterOpening: [],
+            characters: [],
+            lamplighterExit: undefined,
+          };
     }),
   };
 }

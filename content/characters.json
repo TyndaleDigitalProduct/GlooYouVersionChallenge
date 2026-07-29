@@ -1,39 +1,79 @@
 {
-  "status": "provisional",
-  "note": "Art direction for the cast, kept in content rather than in code because which character stands in for which biblical section is a product decision. PROVISIONAL: ADR-0002 calls for six designed guide personas with names and voices, and none of them are designed yet. These are stand-in archetypes assigned to a section so the slice has characters instead of coloured squares, and the operator can overrule any row here without touching code. Sheet and portrait geometry, and the row-to-direction order, are recorded in src/game/spriteDirections.ts.",
+  "status": "final",
+  "note": "Art direction for the cast, kept in content rather than in code because which character stands in for which biblical section is a product decision. Named, designed art for the Lamplighter, all six guide personas (content/personas.json), and every story character/NPC landed 2026-07-29 and is wired here. Six of the six persona folders under art/Characters/ are named after the folder's own archetype, not the final persona name (see the OT Poetry/Wisdom row below) -- do not assume folder name == persona name. Dialogue-portrait busts (24x24 head-and-shoulders art) exist only for the generic ex_* stand-ins; none exist yet for the Lamplighter or any of the six personas, so every guide's `portrait` field below still points at its old ex_* stand-in on purpose, unchanged from before this file's rewrite. Story characters and NPCs carry no portrait at all: DialogueBox never renders one. Sheet and portrait geometry, and the row-to-direction order, are recorded in src/game/spriteDirections.ts. Skin-tone picks (tone1/2/3) are an art-direction call with no authority in this repo; see PRD-12's DECISIONS for the full list, freely overridable per row without touching code.",
   "player": {
-    "sprite": "daniel_judean-tone2"
+    "sprite": "player_male-tone2"
+  },
+  "lamplighter": {
+    "sprite": "lamplighter-tone2"
   },
   "guidesBySection": {
     "Torah (Gen-Deut)": {
       "sprite": "ex_elder-tone2",
       "portrait": "ex_elder-tone2",
-      "markerColor": "0xc98b3f"
+      "markerColor": "0xc98b3f",
+      "artNote": "No dedicated 'elder' art folder exists under art/Characters/ (only the generic ex_elder/ex_belder stand-ins) -- unlike the other five personas, this one has no named sprite to wire yet. Flagged under PRD-12 DECISIONS for the operator; sprite stays on the pre-existing ex_elder-tone2 stand-in until dedicated 'the Elder' art is commissioned."
     },
     "OT History": {
-      "sprite": "ex_scribe-tone1",
+      "sprite": "chronicler-tone1",
       "portrait": "ex_scribe-tone1",
       "markerColor": "0x4f8fd4"
     },
     "OT Poetry/Wisdom": {
-      "sprite": "ex_woman-tone3",
+      "sprite": "songkeeper-tone2",
       "portrait": "ex_woman-tone3",
-      "markerColor": "0x9a6fd4"
+      "markerColor": "0x9a6fd4",
+      "artNote": "Naming trap (PRD-12): the art folder is art/Characters/songkeeper/, but the reviewed, final persona name in content/personas.json is 'Lady Wisdom'. The folder is not renamed; this row is the mapping."
     },
     "Prophets": {
-      "sprite": "ex_priest-tone2",
+      "sprite": "watchman-tone3",
       "portrait": "ex_priest-tone2",
       "markerColor": "0xd4674f"
     },
     "Gospels/Acts": {
-      "sprite": "ex_shepherd-tone1",
+      "sprite": "witness-tone1",
       "portrait": "ex_shepherd-tone1",
       "markerColor": "0x4fb783"
     },
     "NT Letters": {
-      "sprite": "ex_merchant-tone3",
+      "sprite": "courier-tone2",
       "portrait": "ex_merchant-tone3",
       "markerColor": "0xd4b24f"
     }
+  },
+  "storyCharactersBySpeaker": {
+    "Daniel": { "sprite": "daniel_judean-tone2" },
+    "Hananiah": { "sprite": "hananiah-tone1" },
+    "Mishael": { "sprite": "mishael-tone3" },
+    "Azariah": { "sprite": "azariah-tone1" },
+    "Nebuchadnezzar": { "sprite": "neb_royal-tone2" },
+    "Gatekeeper": { "sprite": "ex_guard-tone1" },
+    "A mother": { "sprite": "ex_woman-tone3" },
+    "Soldier on the wall": { "sprite": "ex_soldier-tone1" },
+    "Market vendor": { "sprite": "ex_merchant-tone3" },
+    "A Levite": { "sprite": "ex_jpriest-tone2" },
+    "Babylonian officer": { "sprite": "ex_noble-tone1" },
+    "Babylonian soldier": { "sprite": "ex_bsoldier-tone2" },
+    "Onlooker in the crowd": { "sprite": "ex_woman-tone1" },
+    "Ashpenaz": { "sprite": "ashpenaz-tone2" },
+    "Palace scribe": { "sprite": "ex_scribe-tone1" },
+    "Court attendant": { "sprite": "ex_servant-tone2" },
+    "A fellow trainee": { "sprite": "youth_a-tone2" },
+    "Registry scribe": { "sprite": "ex_scribe-tone1" },
+    "Trainee in line": { "sprite": "youth_b-tone3" },
+    "Kitchen servant": { "sprite": "ex_cook-tone1" },
+    "Trainee at the table": { "sprite": "youth_a-tone2" },
+    "The attendant": { "sprite": "melzar-tone1" },
+    "Cook": { "sprite": "ex_cook-tone1" },
+    "Trainee at the rich table": { "sprite": "youth_b-tone3" },
+    "Chaldean tutor": { "sprite": "mag_a-tone2" },
+    "Library attendant": { "sprite": "ex_servant-tone2" },
+    "Student from another province": { "sprite": "youth_a-tone2" },
+    "Herald": { "sprite": "ex_noble-tone1" },
+    "Palace guard": { "sprite": "ex_bsoldier-tone2" },
+    "Courtier": { "sprite": "ex_noble-tone1" },
+    "Court magician": { "sprite": "mag_b-tone1" },
+    "Palace messenger": { "sprite": "ex_servant-tone2" },
+    "Junior scribe": { "sprite": "ex_scribe-tone1" }
   }
 }

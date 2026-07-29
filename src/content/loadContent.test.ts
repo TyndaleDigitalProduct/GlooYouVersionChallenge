@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import realDialogueDocument from "../../content/daniel-1.dialogue.json";
 import realRefsDocument from "../../content/daniel-1.refs.json";
-import { buildGameContent, findCrossReferenceContent, findSceneContent } from "./loadContent";
+import {
+  buildGameContent,
+  characterIdFor,
+  findCharacterDialogue,
+  findCrossReferenceContent,
+  findSceneContent,
+} from "./loadContent";
 
 function minimalRefs(overrides: Record<string, unknown> = {}) {
   return {
@@ -28,8 +34,20 @@ function minimalDialogue(overrides: Record<string, unknown> = {}) {
     status: "placeholder",
     note: "Placeholder copy.",
     scenes: [
-      { id: 1, playable: true, beats: [{ speaker: "Narrator", text: "[PLACEHOLDER] One." }] },
-      { id: 2, playable: false, beats: [] },
+      {
+        id: 1,
+        playable: true,
+        lamplighterOpening: [{ text: "[PLACEHOLDER] One." }],
+        characters: [],
+        lamplighterExit: undefined,
+      },
+      {
+        id: 2,
+        playable: false,
+        lamplighterOpening: [],
+        characters: [],
+        lamplighterExit: undefined,
+      },
     ],
     ...overrides,
   };
@@ -38,6 +56,12 @@ function minimalDialogue(overrides: Record<string, unknown> = {}) {
 function unwrap<T>(result: { ok: true; value: T } | { ok: false; reason: string }): T {
   if (!result.ok) throw new Error(`expected ok, got: ${result.reason}`);
   return result.value;
+}
+
+function requireScene(content: Parameters<typeof findSceneContent>[0], sceneId: string) {
+  const scene = findSceneContent(content, sceneId);
+  if (!scene) throw new Error(`expected to find ${sceneId}`);
+  return scene;
 }
 
 describe("buildGameContent", () => {
@@ -66,6 +90,105 @@ describe("buildGameContent", () => {
     expect(sceneOne?.beats).toHaveLength(1);
     expect(sceneOne?.setting).toBe("Jerusalem under siege");
     expect(findSceneContent(content, "scene-2")?.playable).toBe(false);
+  });
+
+  it("flattens Lamplighter opening, then characters in file order, then the three branch exits", () => {
+    const dialogue = minimalDialogue({
+      scenes: [
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [{ text: "Opening one." }, { text: "Opening two." }],
+          characters: [
+            { speaker: "Daniel", beats: [{ text: "Daniel one." }, { text: "Daniel two." }] },
+            { speaker: "A mother", beats: [{ text: "One line." }] },
+          ],
+          lamplighterExit: { all: "Exit all.", some: "Exit some.", none: "Exit none." },
+        },
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+      ],
+    });
+    const content = unwrap(buildGameContent(minimalRefs(), dialogue));
+    const sceneOne = findSceneContent(content, "scene-1");
+
+    expect(sceneOne?.beats).toEqual([
+      { speaker: "The Lamplighter", text: "Opening one." },
+      { speaker: "The Lamplighter", text: "Opening two." },
+      { speaker: "Daniel", text: "Daniel one." },
+      { speaker: "Daniel", text: "Daniel two." },
+      { speaker: "A mother", text: "One line." },
+      { speaker: "The Lamplighter", text: "Exit all.", branch: "all" },
+      { speaker: "The Lamplighter", text: "Exit some.", branch: "some" },
+      { speaker: "The Lamplighter", text: "Exit none.", branch: "none" },
+    ]);
+  });
+
+  it("exposes the Lamplighter opening, characters, and exit separately for per-character lookup", () => {
+    const dialogue = minimalDialogue({
+      scenes: [
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [{ text: "Opening one." }],
+          characters: [{ speaker: "A mother", beats: [{ text: "One line." }] }],
+          lamplighterExit: { all: "Exit all.", some: "Exit some.", none: "Exit none." },
+        },
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+      ],
+    });
+    const content = unwrap(buildGameContent(minimalRefs(), dialogue));
+    const sceneOne = findSceneContent(content, "scene-1");
+
+    expect(sceneOne?.lamplighterOpening).toEqual([
+      { speaker: "The Lamplighter", text: "Opening one." },
+    ]);
+    expect(sceneOne?.characters).toEqual([
+      { speaker: "A mother", characterId: "a-mother", beats: [{ text: "One line." }] },
+    ]);
+    expect(sceneOne?.lamplighterExit).toEqual({
+      all: "Exit all.",
+      some: "Exit some.",
+      none: "Exit none.",
+    });
+  });
+
+  it("looks a character up by speaker string or by its derived id", () => {
+    const dialogue = minimalDialogue({
+      scenes: [
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [{ text: "Opening one." }],
+          characters: [{ speaker: "A mother", beats: [{ text: "One line." }] }],
+          lamplighterExit: undefined,
+        },
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+      ],
+    });
+    const content = unwrap(buildGameContent(minimalRefs(), dialogue));
+    const sceneOne = requireScene(content, "scene-1");
+
+    expect(findCharacterDialogue(sceneOne, "A mother")?.beats).toEqual([{ text: "One line." }]);
+    expect(findCharacterDialogue(sceneOne, "a-mother")?.speaker).toBe("A mother");
+    expect(findCharacterDialogue(sceneOne, "nobody")).toBeUndefined();
   });
 
   it("keeps the curated section and note on each cross-reference", () => {
@@ -104,8 +227,43 @@ describe("buildGameContent", () => {
   it("rejects a dialogue beat with empty text", () => {
     const dialogue = minimalDialogue({
       scenes: [
-        { id: 1, playable: true, beats: [{ speaker: "Narrator", text: "" }] },
-        { id: 2, playable: false, beats: [] },
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [{ text: "" }],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+      ],
+    });
+
+    expect(buildGameContent(minimalRefs(), dialogue)).toMatchObject({ ok: false });
+  });
+
+  it("rejects a character beat group with no beats", () => {
+    const dialogue = minimalDialogue({
+      scenes: [
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [{ text: "Opening." }],
+          characters: [{ speaker: "Narrator", beats: [] }],
+          lamplighterExit: undefined,
+        },
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
       ],
     });
 
@@ -114,7 +272,15 @@ describe("buildGameContent", () => {
 
   it("rejects a curated scene that has no dialogue entry", () => {
     const dialogue = minimalDialogue({
-      scenes: [{ id: 1, playable: true, beats: [{ speaker: "Narrator", text: "One." }] }],
+      scenes: [
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [{ text: "One." }],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+      ],
     });
     const result = buildGameContent(minimalRefs(), dialogue);
 
@@ -124,9 +290,27 @@ describe("buildGameContent", () => {
   it("rejects a dialogue entry for a scene the curated document does not have", () => {
     const dialogue = minimalDialogue({
       scenes: [
-        { id: 1, playable: true, beats: [{ speaker: "Narrator", text: "One." }] },
-        { id: 2, playable: false, beats: [] },
-        { id: 3, playable: false, beats: [] },
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [{ text: "One." }],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+        {
+          id: 3,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
       ],
     });
     const result = buildGameContent(minimalRefs(), dialogue);
@@ -134,11 +318,23 @@ describe("buildGameContent", () => {
     expect(result.ok ? "" : result.reason).toContain("dialogue-unknown-scene (3)");
   });
 
-  it("rejects a playable scene that carries no beats", () => {
+  it("rejects a playable scene that carries no dialogue at all", () => {
     const dialogue = minimalDialogue({
       scenes: [
-        { id: 1, playable: true, beats: [] },
-        { id: 2, playable: false, beats: [] },
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
       ],
     });
     const result = buildGameContent(minimalRefs(), dialogue);
@@ -157,7 +353,17 @@ describe("buildGameContent", () => {
         },
       ],
     });
-    const dialogue = minimalDialogue({ scenes: [{ id: 2, playable: false, beats: [] }] });
+    const dialogue = minimalDialogue({
+      scenes: [
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+      ],
+    });
     const result = buildGameContent(refs, dialogue);
 
     expect(result.ok ? "" : result.reason).toContain("refs-scenes-not-sequential");
@@ -187,6 +393,14 @@ describe("buildGameContent", () => {
     const result = buildGameContent(refs, minimalDialogue());
 
     expect(result.ok ? "" : result.reason).toContain("duplicate-cross-reference");
+  });
+});
+
+describe("characterIdFor", () => {
+  it("lowercases and hyphenates a speaker name", () => {
+    expect(characterIdFor("Daniel")).toBe("daniel");
+    expect(characterIdFor("A mother")).toBe("a-mother");
+    expect(characterIdFor("Soldier on the wall")).toBe("soldier-on-the-wall");
   });
 });
 
@@ -232,6 +446,73 @@ describe("the real content files", () => {
       const exitBeats = scene.beats.filter((beat) => beat.branch !== undefined);
       const branches = exitBeats.map((beat) => beat.branch);
       expect(branches).toEqual(["all", "some", "none"]);
+    }
+  });
+
+  it("give every scene a lamplighterExit with all three branches as non-empty text", () => {
+    for (const scene of content.scenes) {
+      expect(scene.lamplighterExit?.all.length, `scene ${scene.id}`).toBeGreaterThan(0);
+      expect(scene.lamplighterExit?.some.length, `scene ${scene.id}`).toBeGreaterThan(0);
+      expect(scene.lamplighterExit?.none.length, `scene ${scene.id}`).toBeGreaterThan(0);
+    }
+  });
+
+  it("give scene 1 a per-character lookup for every story character and NPC", () => {
+    const sceneOne = requireScene(content, "scene-1");
+    const speakers = sceneOne.characters.map((character) => character.speaker);
+
+    expect(speakers).toEqual([
+      "Daniel",
+      "Hananiah",
+      "Mishael",
+      "Azariah",
+      "Nebuchadnezzar",
+      "Gatekeeper",
+      "A mother",
+      "Soldier on the wall",
+      "Market vendor",
+    ]);
+    expect(findCharacterDialogue(sceneOne, "Daniel")?.beats).toHaveLength(2);
+    expect(findCharacterDialogue(sceneOne, "market-vendor")?.beats).toHaveLength(1);
+  });
+
+  it("keeps the derived beats array in exact agreement with the per-speaker fields it was built from", () => {
+    for (const scene of content.scenes) {
+      const expected = [
+        ...scene.lamplighterOpening,
+        ...scene.characters.flatMap((character) =>
+          character.beats.map((beat) => ({ speaker: character.speaker, text: beat.text })),
+        ),
+        ...(scene.lamplighterExit
+          ? [
+              {
+                speaker: "The Lamplighter",
+                text: scene.lamplighterExit.all,
+                branch: "all" as const,
+              },
+              {
+                speaker: "The Lamplighter",
+                text: scene.lamplighterExit.some,
+                branch: "some" as const,
+              },
+              {
+                speaker: "The Lamplighter",
+                text: scene.lamplighterExit.none,
+                branch: "none" as const,
+              },
+            ]
+          : []),
+      ];
+
+      expect(scene.beats, `scene ${scene.id}`).toEqual(expected);
+    }
+  });
+
+  it("gives every story character and NPC a stable, non-empty characterId", () => {
+    for (const scene of content.scenes) {
+      for (const character of scene.characters) {
+        expect(character.characterId.length, `${scene.id}/${character.speaker}`).toBeGreaterThan(0);
+      }
     }
   });
 });

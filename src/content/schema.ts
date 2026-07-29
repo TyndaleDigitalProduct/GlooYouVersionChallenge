@@ -10,9 +10,18 @@
 // Both documents are validated, but they are not the same kind of thing.
 // content/daniel-1.refs.json is real curated content (see
 // data/DanielCREFs/curation/daniel-1-curation-notes.md).
-// content/daniel-1.dialogue.json is placeholder filler, and the schema below
-// enforces that it says so: `status` accepts only "placeholder", so a file
-// claiming to be final copy is rejected rather than silently trusted.
+// content/daniel-1.dialogue.json is authored dialogue: `status` accepts
+// "placeholder" (unauthored filler, tagged as such on screen) or "final"
+// (reviewed copy — the real file has carried "final" since 2026-07-29).
+//
+// PRD-12 split each scene's dialogue by speaker instead of one flat `beats`
+// array, so a per-character lookup does not have to scan a flat list:
+// `lamplighterOpening` (the beats that present the passage), `characters`
+// (every story-character/NPC's lines, grouped by speaker), and
+// `lamplighterExit` (the three branch-tagged closing lines, addressable by
+// branch instead of by position). src/content/loadContent.ts re-flattens
+// these into the `beats` array DialogueBox.tsx reads, so that consumer did
+// not have to change.
 import { z } from "zod";
 
 const usfmReference = z.string().min(1);
@@ -46,11 +55,40 @@ export const dialogueBeatSchema = z.object({
   branch: z.enum(["all", "some", "none"]).optional(),
 });
 
+/** One of the Lamplighter's opening lines, presenting the scene's passage. */
+export const lamplighterOpeningBeatSchema = z.object({
+  text: z.string().min(1),
+});
+
+/** One story character or NPC's lines for a scene, grouped by speaker. */
+export const characterDialogueSchema = z.object({
+  speaker: z.string().min(1),
+  beats: z.array(z.object({ text: z.string().min(1) })).min(1),
+});
+
+/**
+ * The Lamplighter's three closing lines, keyed by how many of the scene's
+ * cross-reference encounters the player engaged. Optional at the schema
+ * level, not because a finished scene may omit it, but so a synthetic
+ * "no dialogue authored yet" scene (used in tests, and legal for a
+ * non-playable scene per `dialogueSceneSchema` below) does not have to invent
+ * placeholder exit copy just to satisfy the shape.
+ */
+export const lamplighterExitSchema = z.object({
+  all: z.string().min(1),
+  some: z.string().min(1),
+  none: z.string().min(1),
+});
+
 export const dialogueSceneSchema = z.object({
   id: z.number().int().positive(),
   playable: z.boolean(),
-  beats: z.array(dialogueBeatSchema),
+  lamplighterOpening: z.array(lamplighterOpeningBeatSchema),
+  characters: z.array(characterDialogueSchema),
+  lamplighterExit: lamplighterExitSchema.optional(),
 });
+
+export type DialogueScene = z.infer<typeof dialogueSceneSchema>;
 
 export const dialogueDocumentSchema = z.object({
   status: z.enum(["placeholder", "final"]),

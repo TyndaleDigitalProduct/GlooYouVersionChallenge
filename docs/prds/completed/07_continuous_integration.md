@@ -63,6 +63,18 @@ technically possible despite `AGENTS.md` §7 forbidding them.
 
 ### Branch protection
 
+**Deferred 2026-07-29.** Setting these requires repo **admin**; the operator
+only has `maintain` on this repo, and getting admin granted was not going to
+happen inside this project's time limit. Rather than block PR #7 (and every
+PR after it) on an access request, the operator is merging #7 with these
+criteria unmet and will configure protection later if/when admin access comes
+through. Until then, `main` has no technical enforcement of any of the three
+items below — the workflow runs and reports on every push/PR, but nothing
+stops a merge on red, a force-push, or a deletion. `AGENTS.md` §7's rule
+against force-pushing or rewriting history is a standing instruction to
+agents working in this repo, not a GitHub-enforced control, and remains the
+only thing covering that gap in the meantime.
+
 - [ ] `main` requires the workflow to pass before merge.
 - [ ] `main` blocks force-pushes and deletion, matching what `AGENTS.md` §7
       already says agents must never do.

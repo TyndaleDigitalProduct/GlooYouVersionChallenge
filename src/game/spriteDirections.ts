@@ -54,7 +54,8 @@ export const IDLE_COLUMN = 0;
 /**
  * Screen-space octant to sheet row. `+y` is down, which is the front-facing
  * row. Accepts any vector, not just unit steps, so the same function serves
- * both keyboard movement and "turn to look at the player".
+ * both click-to-move (PRD-08 phase 4: the vector toward the walk target) and
+ * "turn to look at the player".
  *
  * Returns null for a zero vector: there is no direction to face, so callers
  * keep whatever facing they already had.

@@ -20,6 +20,15 @@ export const PLAYER_SPEED = 260;
 export const INTERACT_RADIUS = 68;
 /** How close before a guide turns to look at the player. */
 export const NOTICE_RADIUS = 120;
+/**
+ * How close a click/tap needs to land to a guide's marker point to count as
+ * "clicked the character" rather than a plain ground click. Generous on
+ * purpose: this is the touch hit target (PRD-08 phase 4), and a character's
+ * drawn sprite is a good deal larger than its single feet-anchored point.
+ */
+export const CHARACTER_CLICK_RADIUS = 40;
+/** How close a ground-click walk target counts as "arrived". */
+export const ARRIVAL_EPSILON = 6;
 
 // --- character sprites ----------------------------------------------------
 // The art is 24x32 (see spriteDirections.ts). Drawn at an integer scale, because
@@ -35,6 +44,19 @@ export const WALK_FRAME_RATE = 8;
 export const FOOT_MARKER_WIDTH = 44;
 export const FOOT_MARKER_HEIGHT = 14;
 export const FOOT_MARKER_OFFSET_Y = 7;
+
+// The lantern affordance (PRD-08 phase 4, storyboard-v2.md item 9 and §4 step
+// 2): personas carry a lantern, and a lit lantern is the *only* signal
+// telling a touch player a character is interactable, since there is no
+// hover and movement is click-driven. Positioned above and beside the head,
+// clear of the foot marker.
+export const LANTERN_OFFSET_X = 16;
+export const LANTERN_OFFSET_Y = -46;
+export const LANTERN_RADIUS = 5;
+export const LANTERN_LIT_COLOR = 0xf2c14e;
+export const LANTERN_UNLIT_COLOR = 0x4a5164;
+export const LANTERN_LIT_ALPHA = 1;
+export const LANTERN_UNLIT_ALPHA = 0.35;
 
 /** Left edge of region 1, on the same line as its guides, so "walk right" works. */
 export const PLAYER_SPAWN = { x: 72, y: REGION_HEIGHT / 2 };
@@ -117,6 +139,54 @@ export function nearestMarker(
   }
 
   return nearest;
+}
+
+export interface ClickResolution {
+  /**
+   * Where the player should walk, clamped to the world; null when the click
+   * lands on a character the player is already close enough to talk to, so
+   * nothing should move at all.
+   */
+  moveTo: { x: number; y: number } | null;
+  /** Reference of the character this click targets, or null for a plain ground click. */
+  reference: string | null;
+}
+
+/**
+ * Resolves a click or tap (PRD-08 phase 4, replacing arrows/WASD) into a
+ * move target and, when it landed on a character, whether the interaction
+ * should open immediately rather than after arriving.
+ *
+ * Both halves of storyboard-v2.md §4 step 2 live here: clicking a character
+ * walks the player to them (so talking is one gesture), and a click that
+ * lands inside the interaction radius does not move the player at all —
+ * the case a straight "always walk to the click point" implementation would
+ * silently miss.
+ */
+export function resolveClick(
+  playerX: number,
+  playerY: number,
+  clickX: number,
+  clickY: number,
+  markers: readonly MarkerPlacement[],
+): ClickResolution {
+  const hitReference = nearestMarker(clickX, clickY, markers, CHARACTER_CLICK_RADIUS);
+  const hitMarker = hitReference
+    ? markers.find((marker) => marker.reference === hitReference)
+    : undefined;
+
+  if (hitMarker) {
+    const distanceToPlayer = Math.hypot(hitMarker.x - playerX, hitMarker.y - playerY);
+    if (distanceToPlayer <= INTERACT_RADIUS) {
+      return { moveTo: null, reference: hitMarker.reference };
+    }
+    return {
+      moveTo: clampToWorld(hitMarker.x, hitMarker.y, PLAYER_SIZE),
+      reference: hitMarker.reference,
+    };
+  }
+
+  return { moveTo: clampToWorld(clickX, clickY, PLAYER_SIZE), reference: null };
 }
 
 // Guide colour by biblical section used to live here. It moved to

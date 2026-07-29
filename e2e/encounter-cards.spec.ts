@@ -1,27 +1,13 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { clickWorldPoint, scene1GuidePositions } from "./worldPoints";
 
 // PRD-08 phase 3's last criterion: an e2e test driving a full encounter —
 // walk up, read both passages, pick three, lock, see the reveal, see the
-// balance move. Written against the keyboard input that exists at this
-// checkpoint (arrows/WASD); PRD-08 phase 4 replaces movement with click-to-
-// move and this file's walking is rewritten there to drive by clicks instead.
-
-/**
- * Walks right in short bursts until the guide is in range, checking between
- * each burst. Bursts rather than a held key so the player is stationary when
- * the prompt appears, which keeps the subsequent click from racing the
- * proximity check.
- */
-async function walkToFirstGuide(page: Page): Promise<void> {
-  const prompt = page.getByTestId("proximity-prompt");
-
-  for (let step = 0; step < 12; step += 1) {
-    if (await prompt.isVisible()) return;
-    await page.keyboard.press("ArrowRight", { delay: 120 });
-  }
-
-  await expect(prompt).toBeVisible();
-}
+// balance move. Originally written against the keyboard input that existed
+// at that checkpoint (arrows/WASD); PRD-08 phase 4 replaced movement with
+// click-to-move, and this file's walking was rewritten here to drive by
+// clicks instead, per that phase's requirement that the e2e suite move with
+// it.
 
 test("full encounter: read both passages, pick three, lock, see the reveal and the balance move", async ({
   page,
@@ -29,8 +15,11 @@ test("full encounter: read both passages, pick three, lock, see the reveal and t
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
 
-  await walkToFirstGuide(page);
-  await page.getByTestId("proximity-prompt").click();
+  // Clicking directly on the character walks the player to them and opens
+  // the interaction in one gesture (PRD-08 phase 4): no separate
+  // proximity-prompt click is needed.
+  const [chronicler] = scene1GuidePositions();
+  await clickWorldPoint(page, chronicler.x, chronicler.y);
   await expect(page.getByTestId("encounter-panel")).toBeVisible();
 
   // The card grid is present but locked until both passages are read.

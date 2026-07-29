@@ -1,40 +1,751 @@
 {
-  "status": "placeholder",
-  "note": "Placeholder narrative copy for the PRD-04 vertical slice. None of these lines are authored game dialogue. No line quotes, paraphrases, or reconstructs Scripture: each beat names the narrative job it is holding open so that authored copy can replace it later. Scene settings and cross-references come from content/daniel-1.refs.json, which is real curated content.",
+  "status": "final",
+  "note": "Authored game dialogue for all nine scenes of Daniel 1. Reviewed and approved by Keith, 2026-07-29. Scene settings and cross-references come from content/daniel-1.refs.json. Lamplighter exits branch on all/some/none encounters engaged; PRD-12 wires the branch selection at runtime.",
   "scenes": [
     {
       "id": 1,
       "playable": true,
       "beats": [
         {
-          "speaker": "Narrator (placeholder)",
-          "text": "[PLACEHOLDER COPY] Opening beat. Authored narrative copy for DAN.1.1 has not been written yet."
+          "speaker": "The Lamplighter",
+          "text": "There you are. Stay close to the lamp; the city is dark tonight, and something darker than night is on its way."
         },
         {
-          "speaker": "Narrator (placeholder)",
-          "text": "[PLACEHOLDER COPY] Setting beat. This scene's setting, \"Jerusalem under siege\", is curated content; the prose that establishes it is not written yet."
+          "speaker": "The Lamplighter",
+          "text": "This is where it all begins. See for yourself. I'll hold the light."
         },
         {
-          "speaker": "Narrator (placeholder)",
-          "text": "[PLACEHOLDER COPY] Orientation beat. Two cross-reference guides are standing in this region. Speaking with them is optional and never blocks the main story."
+          "speaker": "The Lamplighter",
+          "text": "Walk around, talk to people. A few of them carry lanterns; they've been reading this story longer than anyone in the city, and what they know is worth hearing."
         },
         {
-          "speaker": "Narrator (placeholder)",
-          "text": "[PLACEHOLDER COPY] Transition beat. Authored copy carrying the scene toward its close goes here."
+          "speaker": "Daniel",
+          "text": "The watchmen say the army stretches past the horizon. Whatever happens next, God isn't finished with us."
         },
         {
-          "speaker": "Narrator (placeholder)",
-          "text": "[PLACEHOLDER COPY] Closing beat. Finishing this line completes scene 1 and reveals the next region on the map."
+          "speaker": "Daniel",
+          "text": "My father named me \"God is my judge.\" Not Babylon. I'm holding on to that tonight."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "My mother says we should pray. So I'm praying."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "Do you hear how quiet the streets are? A whole city holding its breath."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "I counted the watch-fires from the wall until I lost count."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "The elders keep arguing about what Egypt will do. Egypt feels very far away tonight."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "If the city falls, do you think God falls with it? Because I don't."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "I keep thinking about the prophets. Everyone said they were too gloomy."
+        },
+        {
+          "speaker": "Nebuchadnezzar",
+          "text": "Egypt is not coming to save this city. No one is coming to save this city."
+        },
+        {
+          "speaker": "Nebuchadnezzar",
+          "text": "When the gates open, bring me the best of it: the treasures and the sons. Babylon wastes nothing."
+        },
+        {
+          "speaker": "Gatekeeper",
+          "text": "Forty years I've kept this gate. Never barred it against anything like this."
+        },
+        {
+          "speaker": "A mother",
+          "text": "Inside, both of you, right now. The street is no place for children tonight."
+        },
+        {
+          "speaker": "Soldier on the wall",
+          "text": "Stay off the wall. The watch changes at dusk."
+        },
+        {
+          "speaker": "Market vendor",
+          "text": "No bread today. Maybe none tomorrow, either."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You listened to them all, the record and the warning both. So you already know the strangest thing about this siege: it didn't catch God by surprise. Come on. Let's see what this night brings.",
+          "branch": "all"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You heard some of what this city has to say. There's always more, but no lamp burns forever. Come on. Let's see what this night brings.",
+          "branch": "some"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "In a hurry? I understand; sieges do that to people. The lantern-carriers will keep their stories for another time. Come on. Let's see what this night brings.",
+          "branch": "none"
         }
       ]
     },
-    { "id": 2, "playable": false, "beats": [] },
-    { "id": 3, "playable": false, "beats": [] },
-    { "id": 4, "playable": false, "beats": [] },
-    { "id": 5, "playable": false, "beats": [] },
-    { "id": 6, "playable": false, "beats": [] },
-    { "id": 7, "playable": false, "beats": [] },
-    { "id": 8, "playable": false, "beats": [] },
-    { "id": 9, "playable": false, "beats": [] }
+    {
+      "id": 2,
+      "playable": false,
+      "beats": [
+        {
+          "speaker": "The Lamplighter",
+          "text": "So the siege ended the way sieges usually do. Last night the gates opened."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "What happened next... well. See for yourself."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "The lantern-carriers in this courtyard have been reading too. If you find yourself asking how this could happen, they've been asking the same question a lot longer."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "They can carry the cups to Babylon. They can't carry God there; he's already everywhere they're going."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "Watch the soldiers' faces. Even they handle those vessels carefully."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "I keep waiting for the sky to break open. It just stays quiet."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "We're on the list. All four of us. They're taking us with the treasure."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "My uncle served in that Temple his whole life. I can't even look at him today."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "\"The Lord gave.\" That's what the scroll says. I'm still learning how to hear that."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Jeremiah said seventy years. That means there's an *end*, you know? I'm holding on to the end."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Pack light, they told us. As if anything we own is the heavy part."
+        },
+        {
+          "speaker": "A Levite",
+          "text": "I polished those cups every festival since I was a boy."
+        },
+        {
+          "speaker": "Babylonian officer",
+          "text": "Count every piece twice. The king wants an inventory, not a pile."
+        },
+        {
+          "speaker": "Babylonian soldier",
+          "text": "Keep the line moving. These crates don't carry themselves."
+        },
+        {
+          "speaker": "Onlooker in the crowd",
+          "text": "First the gold. What do they take next?"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "The song and the prophet agree, and now you've heard them both: this loss is discipline, not defeat. God gave, which means God is still in charge. Come on, the caravan is forming.",
+          "branch": "all"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You've heard part of the answer, and it will keep. The rest is waiting in the songs and the scrolls. Come on, the caravan is forming.",
+          "branch": "some"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Hard to look away, isn't it? Some things you just have to stand and watch. When you're ready to ask what it all means, the lanterns will still be lit. Come on, the caravan is forming.",
+          "branch": "none"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "playable": false,
+      "beats": [
+        {
+          "speaker": "The Lamplighter",
+          "text": "Welcome to Babylon. A long road from Jerusalem, and the four of them walked every mile of it, same as you."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Marble where Jerusalem had stone, and a lamp in every hallway (though none of them, I notice, lights very far)."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "So what does an empire want with a crowd of young captives? See for yourself."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Quite a program, isn't it? The lantern-carriers have been here watching it take shape. If you're wondering what to make of it all, they're the ones to ask."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "They chose us for their program. God chose us first. I intend to remember the order."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "Three years to learn everything Babylon knows. Fine. Let's see what they make of what we already know."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "We can learn their words without swallowing their gods. I think. I hope."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "Did you see the size of this place? Our whole street would fit in this courtyard."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "The library has ten thousand tablets, someone said. Ten thousand!"
+        },
+        {
+          "speaker": "Mishael",
+          "text": "They keep calling us \"the ones without defect.\" I feel plenty defective this morning."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "The food smells incredible. Honestly, that worries me more than the books do."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Three years. That's a long time to remember who you are, every single day."
+        },
+        {
+          "speaker": "Ashpenaz",
+          "text": "Stand up straight. The king asked for young men with no flaws, quick in every kind of learning, and I intend to give him exactly that."
+        },
+        {
+          "speaker": "Ashpenaz",
+          "text": "Three years, all paid for, eating from the king's own kitchen. There are princes in this city who'd envy what you're being handed."
+        },
+        {
+          "speaker": "Palace scribe",
+          "text": "Name, age, city. Next."
+        },
+        {
+          "speaker": "Court attendant",
+          "text": "The king's table serves forty dishes. You'll learn to like all of them."
+        },
+        {
+          "speaker": "A fellow trainee",
+          "text": "Yesterday I was a captive. Today they're measuring me for palace clothes."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "A prophecy come true, a pattern to follow, and a warning about the king's table: you found all three. Hold on to them. Come on. The training is starting.",
+          "branch": "all"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You've got part of the pattern now. The rest will keep; Babylon isn't going anywhere. Come on, the training is starting.",
+          "branch": "some"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Dazzling, isn't it? Babylon means it to be. When the shine wears off, the lantern-carriers will still be here. Come on, the training is starting.",
+          "branch": "none"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "playable": false,
+      "beats": [
+        {
+          "speaker": "The Lamplighter",
+          "text": "They made the cut, all four of them. Three years in the king's program, starting today."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "First, though, there's a line at the registry hall. See what Babylon wants from them before the training even starts."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Watch the four of them at the front of the line. If you find yourself wondering what's really changing hands with those names, the lantern-carriers have been wondering longer."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "Belteshazzar. That's what they'll call me now. They can write whatever they want on the tablet. God knows my name."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "A name is what someone calls you. It isn't who you are."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "Shadrach. I keep saying it and it still doesn't sound like me."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "My name meant \"the LORD is gracious.\" I'm going to keep believing that, whatever they call me."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "Meshach now, apparently. My real name asks a question: \"Who is like God?\" No clay tablet changes the answer."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "They stamped it while I was still saying my old one."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Abednego. They can hand me a new name. They can't hand me a new God."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Say our real names when it's just us, all right? I don't want to forget the sound."
+        },
+        {
+          "speaker": "Ashpenaz",
+          "text": "The scribe will read your new names. Learn to answer to them quickly; the king doesn't repeat himself."
+        },
+        {
+          "speaker": "Ashpenaz",
+          "text": "A Babylonian name is a door, boys. Every door in this palace opens faster for one."
+        },
+        {
+          "speaker": "Registry scribe",
+          "text": "New name, old name, city of birth. Press hard, the clay's drying."
+        },
+        {
+          "speaker": "Trainee in line",
+          "text": "Took the scribe three tries to spell Belteshazzar."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "So now you know what a renaming tries to do, and why it doesn't get the final say. Joseph kept who he was. So can these four. Come on. The training is waiting.",
+          "branch": "all"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You've heard part of what a name means here. The rest of the story will keep; names last a long time. Come on. The training is waiting.",
+          "branch": "some"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Four names walked in, and four different names walked out. The lantern-carriers have thoughts about that, whenever you want to hear them. Come on. The training is waiting.",
+          "branch": "none"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "playable": false,
+      "beats": [
+        {
+          "speaker": "The Lamplighter",
+          "text": "New names, new clothes, new books. Babylon has been remaking those four from the outside in."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Tonight it's dinner. Smell that? The king's kitchen doesn't do anything halfway. See how the evening goes."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Keep an eye on Daniel and the official over there. The lantern-carriers are watching the same conversation; ask them what they see in it."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "The food itself isn't the point. The point is remembering whose I am, and some lines you have to draw while they're still small."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "I asked him kindly. You'd be surprised how far kindness goes, even in a palace."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "He asked the official politely. No speeches, no fists. Just steady."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "I was sure we'd be punished by now. Instead the man just looks... worried for us. Strange, isn't it?"
+        },
+        {
+          "speaker": "Mishael",
+          "text": "We're with him. All four of us, or none."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "Everyone else thinks he's mad to risk the king's anger over dinner. I think he's the only one seeing clearly."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Vegetables and water. My mother would laugh, and then she'd be proud."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "It would be so easy to just eat. That's exactly why it matters that we don't."
+        },
+        {
+          "speaker": "Ashpenaz",
+          "text": "I like you, Daniel, that's the trouble. If you four start looking pale and thin, it's my head the king takes. Do you understand that?"
+        },
+        {
+          "speaker": "Ashpenaz",
+          "text": "The king decided your menu himself. Nobody says no to the king's menu."
+        },
+        {
+          "speaker": "Kitchen servant",
+          "text": "Roast, bread, wine, same as the king eats. Take a tray and move along."
+        },
+        {
+          "speaker": "Trainee at the table",
+          "text": "The Judeans asked for vegetables. On purpose."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Favor from God, and a man freed from fear standing next to a man trapped by it. You saw both. Now let's see where Daniel's quiet line in the sand leads. Come on.",
+          "branch": "all"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You've seen part of what's underneath this quiet little standoff. The rest will keep. Come on. Let's see where this goes.",
+          "branch": "some"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Just a young man turning down a meal, or so it seems tonight. The lanterns will still be lit if you ever want to come back to it. Come on. Let's see where this goes.",
+          "branch": "none"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "playable": false,
+      "beats": [
+        {
+          "speaker": "The Lamplighter",
+          "text": "Daniel asked his quiet question about the menu, and the official turned pale. That's where we left it."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "See what Daniel does next."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "The lantern-carriers can take you to other tables like this one: a desert, a palace, and a hungry evening. All three are worth the trip."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "Ten days. Then look at us and judge for yourself. That's all we're asking."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "I didn't pick a fight. I proposed a test. There's a difference, and the attendant knew it."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "Day six. Honestly? I don't even miss it."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "The others keep waiting for us to break. It's become a kind of dinner theater."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "It's not about the food. It never was. It's about who we trust to keep us standing."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "Water tastes better when you know why you're drinking it."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "The attendant keeps checking our faces like we might faint mid-bite. We won't."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Ten days is nothing. Our people ate manna for forty years."
+        },
+        {
+          "speaker": "The attendant",
+          "text": "Ten days. If this goes wrong, remember, it was your idea, not mine."
+        },
+        {
+          "speaker": "The attendant",
+          "text": "I don't understand it. The ones eating roast and wine look tired, and the vegetable table is thriving. Explain that to me."
+        },
+        {
+          "speaker": "Cook",
+          "text": "Four plates of vegetables again? You people are ruining my reputation."
+        },
+        {
+          "speaker": "Trainee at the rich table",
+          "text": "More for the rest of us, I say."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "A desert, a palace, and a hungry evening: you visited all three. They all say the same thing, don't they? Real life doesn't come from the fancy plate. Come on. Three years of training go by fast.",
+          "branch": "all"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You caught part of the lesson behind the vegetables. The rest keeps; that kind of lesson always does. Come on. Three years of training go by fast.",
+          "branch": "some"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Ten days of vegetables, and the four of them are the healthiest young men in the palace. Make of that what you will, or ask a lantern-carrier what they make of it. Come on. Three years of training go by fast.",
+          "branch": "none"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "playable": false,
+      "beats": [
+        {
+          "speaker": "The Lamplighter",
+          "text": "The vegetables won. Ten days, and the king's own attendant couldn't argue with what he saw."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "That was dinner. The training itself is another story. See how the three years go."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Four star students, one question: why these four? Everyone in this library has a theory. The lantern-carriers have theirs; go hear it."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "I understood a dream last night. Really understood it, the way you understand a friend's voice. That doesn't come from tablets. God gave it."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "The more they teach us, the more I pray. Those two things are connected."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "Funny thing about Babylon's books: the more of them I read, the bigger God looks standing next to them."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "I answered a question today that our tutor couldn't. He just stared at me."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "The tutors come to us with questions now. It's the strangest thing."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "I actually like the astronomy. The stars belong to God anyway; Babylon just catalogued them."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Study hard, pray harder. That's the whole curriculum, if you ask me."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Three years ago I couldn't read a word of this language. Tell me that's not a gift."
+        },
+        {
+          "speaker": "Chaldean tutor",
+          "text": "Twenty years teaching the king's trainees. I've never had to prepare this hard for my own students' questions."
+        },
+        {
+          "speaker": "Library attendant",
+          "text": "Tablets back on the right shelf, please. The catalog took a lifetime."
+        },
+        {
+          "speaker": "Student from another province",
+          "text": "I study all night and still place behind the Judeans. All four of them."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "A letter, a proverb, and an old story from Egypt, and all three put the credit in the same place. Wisdom is given, not manufactured. Come on. The training is nearly over.",
+          "branch": "all"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You've heard some of where this wisdom comes from. The source isn't going anywhere. Come on. The training is nearly over.",
+          "branch": "some"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Top of the class, all four of them. And the interesting question is why. The lantern-carriers love that question. Come on. The training is nearly over.",
+          "branch": "none"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "playable": false,
+      "beats": [
+        {
+          "speaker": "The Lamplighter",
+          "text": "Three years, gone like a watch in the night. The training is over, and today every trainee stands in front of the king himself."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "I'd be nervous too. See how it goes for them."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Quite a turn: exiles standing at the top of the empire that dragged them here. The lantern-carriers watched the whole audience. Ask them what they saw."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "Three years of training for one conversation. God was preparing us the whole time; the king only scheduled the meeting."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "Whatever he asks, we answer honestly. Honest has worked so far."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "The king asked me about law and literature, and the answers were just... there. Given."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "I bowed to the king. My heart stayed standing; it belongs somewhere else."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "All that gold, and the guards, and the throne, and my knees held. God held them."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "Did you hear? None of the others came close. He kept all four of us."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "We walked in as captives. We walked out as the king's own advisors. Try explaining that without God."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Somewhere in Jerusalem there's a burned gate with my family's name near it. And now I stand here. What a strange road."
+        },
+        {
+          "speaker": "Nebuchadnezzar",
+          "text": "I have interviewed every scholar this program produced. Where have these four been?"
+        },
+        {
+          "speaker": "Nebuchadnezzar",
+          "text": "Judah's God interests me. Judah's young men interest me more. They stay."
+        },
+        {
+          "speaker": "Herald",
+          "text": "Next: the four from Judah. Belteshazzar, Shadrach, Meshach, Abednego."
+        },
+        {
+          "speaker": "Palace guard",
+          "text": "Eyes forward. The king sees everything from up there."
+        },
+        {
+          "speaker": "Courtier",
+          "text": "The king kept the Judeans past their hour. He never runs past the hour."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Skill honored, the lowly lifted, and wisdom no one could argue down: you found all three in one throne room. Come on. One scene left, and it's a good one.",
+          "branch": "all"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You caught part of why this moment is bigger than a graduation. The rest will keep. Come on. One scene left.",
+          "branch": "some"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Four exiles walk into the throne room and walk out as the king's advisors. The lantern-carriers saw the whole thing; they'd be glad to talk it over. Come on. One scene left.",
+          "branch": "none"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "playable": false,
+      "beats": [
+        {
+          "speaker": "The Lamplighter",
+          "text": "The four of them entered the king's service, and some time has passed. Life at court settled into, well, life at court."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "There's one more thing to see in this chapter, and it's worth seeing. Go ahead."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Ten times. Not a little better. Not competitive. Ten times, against the most celebrated experts the empire has."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "And that quiet last line: Daniel remained until the first year of King Cyrus. Sit with that one a moment. The lantern-carriers have been sitting with it for years."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "Kings come and go. I've decided to stop being surprised by that."
+        },
+        {
+          "speaker": "Daniel",
+          "text": "Ten times better, they say. I keep telling them the arithmetic isn't mine; wisdom belongs to God, and he's generous with it."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "They put our names in the court records today. Babylon writes us down; God wrote us down first."
+        },
+        {
+          "speaker": "Hananiah",
+          "text": "Remember the night the city fell? I was sure the story was over. It was barely the first page."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "The magicians finally asked Daniel his secret. He told them. They didn't believe it could be that simple."
+        },
+        {
+          "speaker": "Mishael",
+          "text": "We answer to the king now, and the king answers to God, whether he knows it yet or not."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Seventy years, Jeremiah said. We'll still be here, planted. Watch."
+        },
+        {
+          "speaker": "Azariah",
+          "text": "Vegetables and water, and now this table. I laugh about it sometimes."
+        },
+        {
+          "speaker": "Court magician",
+          "text": "We chart the stars all night. He asks his God and sleeps fine. I can't argue with the results."
+        },
+        {
+          "speaker": "Palace messenger",
+          "text": "Message for Belteshazzar: the king's asking for him. Again."
+        },
+        {
+          "speaker": "Junior scribe",
+          "text": "They say he'll outlast us all. The way things are going, I believe it."
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Hollow experts, a wisdom that outgrows every teacher, and a believer who outlasts the empire itself: you've seen the whole picture now. That's chapter one. The story is just getting started.",
+          "branch": "all"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "You've seen part of what \"ten times better\" really means. The rest will be here when you come back. That's chapter one. The story is just getting started.",
+          "branch": "some"
+        },
+        {
+          "speaker": "The Lamplighter",
+          "text": "Ten times better, and still standing when Cyrus takes the throne. The lantern-carriers can walk you through those lines whenever you like. That's chapter one. The story is just getting started.",
+          "branch": "none"
+        }
+      ]
+    }
   ]
 }

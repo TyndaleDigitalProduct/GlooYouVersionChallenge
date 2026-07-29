@@ -17,6 +17,7 @@ import { describeIssue, dialogueDocumentSchema, refsDocumentSchema } from "./sch
 export interface DialogueBeat {
   speaker: string;
   text: string;
+  branch?: "all" | "some" | "none";
 }
 
 export interface CrossReferenceContent {
@@ -51,7 +52,9 @@ export interface SceneContent {
 export interface GameContent {
   manifest: GameManifest;
   scenes: SceneContent[];
-  /** Provenance line for the placeholder dialogue, surfaced in the UI. */
+  /** "placeholder" until dialogue is authored; "final" once reviewed copy lands. */
+  dialogueStatus: "placeholder" | "final";
+  /** Provenance line for the dialogue document, surfaced in the UI. */
   placeholderNote: string;
 }
 
@@ -150,5 +153,10 @@ export function buildGameContent(rawRefs: unknown, rawDialogue: unknown): Result
     })),
   };
 
-  return ok({ manifest, scenes, placeholderNote: dialogue.data.note });
+  return ok({
+    manifest,
+    scenes,
+    dialogueStatus: dialogue.data.status,
+    placeholderNote: dialogue.data.note,
+  });
 }

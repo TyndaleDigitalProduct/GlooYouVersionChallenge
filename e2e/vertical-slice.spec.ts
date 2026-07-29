@@ -18,7 +18,9 @@ test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", a
   await page.locator("#game-container canvas").waitFor();
 
   await expect(page.getByTestId("dialogue-box")).toBeVisible();
-  await expect(page.getByTestId("dialogue-text")).toContainText("[PLACEHOLDER COPY]");
+  await expect(page.getByTestId("dialogue-text")).toContainText(
+    "Stay close to the lamp; the city is dark tonight",
+  );
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("0");
   await expect(page.getByTestId("regions-revealed")).toHaveText("1");
 

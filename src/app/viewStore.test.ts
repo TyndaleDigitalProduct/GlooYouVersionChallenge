@@ -45,23 +45,26 @@ describe("view store", () => {
     expect(store.getState().dialogueIndex).toBe(2);
   });
 
-  it("clears a verdict belonging to a different encounter when a panel opens", () => {
+  it("opens and closes the encounter panel by reference", () => {
     const store = createViewStore();
-    store.getState().setVerdict({ reference: "2KI.24.1-4", message: "Stub." });
 
-    store.getState().openEncounter("JER.25.2-11");
-
-    expect(store.getState().verdict).toBeNull();
-  });
-
-  it("keeps a verdict when the same encounter is re-opened", () => {
-    const store = createViewStore();
-    store.getState().setVerdict({ reference: "2KI.24.1-4", message: "Stub." });
+    store.getState().openEncounter("2KI.24.1-4");
+    expect(store.getState().openEncounterReference).toBe("2KI.24.1-4");
 
     store.getState().closeEncounter();
+    expect(store.getState().openEncounterReference).toBeNull();
+  });
+
+  it("does not notify subscribers when opening the encounter already open", () => {
+    const store = createViewStore();
     store.getState().openEncounter("2KI.24.1-4");
 
-    expect(store.getState().verdict).toEqual({ reference: "2KI.24.1-4", message: "Stub." });
+    const listener = vi.fn();
+    store.subscribe(listener);
+
+    store.getState().openEncounter("2KI.24.1-4");
+
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it("ignores a duplicate notice id so a repeated failure cannot stack", () => {

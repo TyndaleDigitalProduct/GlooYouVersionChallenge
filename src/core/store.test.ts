@@ -2,7 +2,21 @@
 import { describe, expect, it, vi } from "vitest";
 import { createEventBus } from "./eventBus";
 import { threeSceneManifest } from "./fixtures";
+import {
+  ALL_REFERENCES_STONE_AWARD,
+  ENGAGEMENT_STONE_AWARD,
+  SCENE_COMPLETE_STONE_AWARD,
+} from "./ledger";
 import { createGameStore } from "./store";
+
+const VALID_CARDS = [
+  { id: "c1", text: "Card one", value: 5 },
+  { id: "c2", text: "Card two", value: 4 },
+  { id: "c3", text: "Card three", value: 3 },
+  { id: "c4", text: "Card four", value: 0 },
+  { id: "c5", text: "Card five", value: 2 },
+  { id: "c6", text: "Card six", value: 1 },
+];
 
 describe("game store (zustand/vanilla, subscribable without React)", () => {
   it("is readable via getState without any React involved", () => {
@@ -83,6 +97,27 @@ describe("game store (zustand/vanilla, subscribable without React)", () => {
     expect(listener).toHaveBeenCalledExactlyOnceWith({ regionId: "region-2" });
   });
 
+  it("awards the scene-complete stones on the incomplete -> complete transition and emits stones:awarded", () => {
+    const bus = createEventBus();
+    const stonesListener = vi.fn();
+    bus.on("stones:awarded", stonesListener);
+    const store = createGameStore({ manifest: threeSceneManifest, bus });
+
+    store.getState().completeScene("scene-1");
+
+    expect(store.getState().balance()).toBe(SCENE_COMPLETE_STONE_AWARD);
+    expect(stonesListener).toHaveBeenCalledExactlyOnceWith({
+      sceneId: "scene-1",
+      cause: "scene-complete",
+      amount: SCENE_COMPLETE_STONE_AWARD,
+      balance: SCENE_COMPLETE_STONE_AWARD,
+    });
+
+    // Never re-awards.
+    store.getState().completeScene("scene-1");
+    expect(store.getState().balance()).toBe(SCENE_COMPLETE_STONE_AWARD);
+  });
+
   it("emits encounter:stateChanged and stones:awarded on engagement, data only", () => {
     const bus = createEventBus();
     const encounterListener = vi.fn();
@@ -103,8 +138,8 @@ describe("game store (zustand/vanilla, subscribable without React)", () => {
       sceneId: "scene-1",
       reference: "FIX.1.1",
       cause: "engagement",
-      amount: 1,
-      balance: 1,
+      amount: ENGAGEMENT_STONE_AWARD,
+      balance: ENGAGEMENT_STONE_AWARD,
     });
 
     // Events carry plain data only: no sprite/DOM/pixel references anywhere
@@ -115,22 +150,117 @@ describe("game store (zustand/vanilla, subscribable without React)", () => {
     }
   });
 
-  it("awards the base stone once per encounter, additive with the bonus, idempotent on repeat", () => {
+  it("awards the engagement stone once per encounter, idempotent on repeat", () => {
     const store = createGameStore({ manifest: threeSceneManifest });
 
     store.getState().engageEncounter("scene-1", "FIX.1.1");
-    expect(store.getState().balance()).toBe(1);
+    expect(store.getState().balance()).toBe(ENGAGEMENT_STONE_AWARD);
 
     // Re-engaging does not re-award.
     store.getState().engageEncounter("scene-1", "FIX.1.1");
-    expect(store.getState().balance()).toBe(1);
+    expect(store.getState().balance()).toBe(ENGAGEMENT_STONE_AWARD);
+  });
 
-    store.getState().recogniseInsight("scene-1", "FIX.1.1");
-    expect(store.getState().balance()).toBe(3); // base (1) + bonus (2)
+  describe("card generation and locked selections", () => {
+    it("generates a card set for an encounter", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
 
-    // Re-recognising does not re-award.
-    store.getState().recogniseInsight("scene-1", "FIX.1.1");
-    expect(store.getState().balance()).toBe(3);
+      const result = store.getState().generateEncounterCards("scene-1", "FIX.1.1", VALID_CARDS);
+      expect(result).toEqual({ ok: true, value: { changed: true } });
+      expect(store.getState().encounters["scene-1::FIX.1.1"].cards).toEqual(VALID_CARDS);
+    });
+
+    it("rejects a second generation for the same encounter", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      store.getState().generateEncounterCards("scene-1", "FIX.1.1", VALID_CARDS);
+
+      const second = store.getState().generateEncounterCards("scene-1", "FIX.1.1", VALID_CARDS);
+      expect(second).toEqual({ ok: false, reason: "cards-already-generated" });
+    });
+
+    it("locks selections, awards the insight amount, and moves the encounter to resolved", () => {
+      const bus = createEventBus();
+      const encounterListener = vi.fn();
+      const stonesListener = vi.fn();
+      bus.on("encounter:stateChanged", encounterListener);
+      bus.on("stones:awarded", stonesListener);
+      const store = createGameStore({ manifest: threeSceneManifest, bus });
+
+      store.getState().engageEncounter("scene-1", "FIX.1.1");
+      store.getState().generateEncounterCards("scene-1", "FIX.1.1", VALID_CARDS);
+      stonesListener.mockClear();
+      encounterListener.mockClear();
+
+      const result = store.getState().lockEncounterSelections("scene-1", "FIX.1.1", ["c1", "c2"]);
+      expect(result).toEqual({ ok: true, value: { changed: true, amountAwarded: 9 } }); // 5 + 4
+
+      expect(store.getState().balance()).toBe(ENGAGEMENT_STONE_AWARD + 9);
+      expect(encounterListener).toHaveBeenCalledExactlyOnceWith({
+        sceneId: "scene-1",
+        reference: "FIX.1.1",
+        previousState: "engaged",
+        newState: "resolved",
+        selections: ["c1", "c2"],
+        amountAwarded: 9,
+      });
+      expect(stonesListener).toHaveBeenCalledExactlyOnceWith({
+        sceneId: "scene-1",
+        reference: "FIX.1.1",
+        cause: "insight",
+        amount: 9,
+        balance: ENGAGEMENT_STONE_AWARD + 9,
+      });
+    });
+
+    it("still appends a ledger entry for a zero-amount insight award", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      store.getState().generateEncounterCards("scene-1", "FIX.1.1", VALID_CARDS);
+
+      // Locking with no selections at all earns nothing, but the encounter
+      // still resolves and the ledger still records the encounter.
+      const result = store.getState().lockEncounterSelections("scene-1", "FIX.1.1", []);
+      expect(result).toEqual({ ok: true, value: { changed: true, amountAwarded: 0 } });
+      expect(store.getState().ledger.some((entry) => entry.cause === "insight")).toBe(true);
+    });
+
+    it("does not re-award or re-emit on a repeated lock", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      store.getState().generateEncounterCards("scene-1", "FIX.1.1", VALID_CARDS);
+      store.getState().lockEncounterSelections("scene-1", "FIX.1.1", ["c1"]);
+      const balanceAfterFirst = store.getState().balance();
+
+      const bus = createEventBus();
+      const listener = vi.fn();
+      bus.on("stones:awarded", listener);
+      const second = store.getState().lockEncounterSelections("scene-1", "FIX.1.1", ["c2", "c3"]);
+
+      expect(second).toEqual({ ok: true, value: { changed: false, amountAwarded: 5 } });
+      expect(store.getState().balance()).toBe(balanceAfterFirst);
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("awards the all-references bonus once every reference in a scene is resolved", () => {
+      const bus = createEventBus();
+      const stonesListener = vi.fn();
+      bus.on("stones:awarded", stonesListener);
+      const store = createGameStore({ manifest: threeSceneManifest, bus });
+
+      store.getState().generateEncounterCards("scene-1", "FIX.1.1", VALID_CARDS);
+      store.getState().generateEncounterCards("scene-1", "FIX.1.2", VALID_CARDS);
+      store.getState().lockEncounterSelections("scene-1", "FIX.1.1", ["c1"]);
+
+      expect(store.getState().ledger.some((entry) => entry.cause === "all-references")).toBe(false);
+
+      store.getState().lockEncounterSelections("scene-1", "FIX.1.2", ["c1"]);
+
+      expect(store.getState().ledger.some((entry) => entry.cause === "all-references")).toBe(true);
+      expect(stonesListener).toHaveBeenCalledWith({
+        sceneId: "scene-1",
+        cause: "all-references",
+        amount: ALL_REFERENCES_STONE_AWARD,
+        balance: expect.any(Number),
+      });
+    });
   });
 
   it("completing every scene with zero encounters still yields a complete game", () => {
@@ -139,7 +269,12 @@ describe("game store (zustand/vanilla, subscribable without React)", () => {
       store.getState().completeScene(scene.id);
     }
     expect(store.getState().isGameComplete()).toBe(true);
-    expect(store.getState().balance()).toBe(0);
+    // Encounter state never affects isUnlocked/isComplete/isGameComplete
+    // (PRD-03); the balance reflects only the scene-complete award, since
+    // zero encounters were ever engaged.
+    expect(store.getState().balance()).toBe(
+      SCENE_COMPLETE_STONE_AWARD * threeSceneManifest.scenes.length,
+    );
   });
 
   it("highlights survive going through the store's addHighlight/removeHighlight actions", () => {

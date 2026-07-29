@@ -72,3 +72,31 @@ describe("src/core architectural boundary", () => {
     expect(forbiddenHits).toEqual([]);
   });
 });
+
+describe("encounters.ts and progression.ts do not import each other (ADR-0003)", () => {
+  // ADR-0003 "Consequences": the all-references bonus needs encounter state
+  // and progression together, but that must not be satisfied by either
+  // module reaching into the other. It belongs in the orchestrator above
+  // both (src/core/rewards.ts). The lazy alternative — importing progression
+  // from encounters.ts, or vice versa, to compute the bonus inline — is
+  // exactly what this test exists to catch.
+  const encountersContents = readFileSync(path.join(CORE_DIR, "encounters.ts"), "utf-8");
+  const progressionContents = readFileSync(path.join(CORE_DIR, "progression.ts"), "utf-8");
+
+  it("encounters.ts does not import progression.ts", () => {
+    const specifiers = importedSpecifiers(encountersContents);
+    expect(specifiers.some((specifier) => specifier.includes("progression"))).toBe(false);
+  });
+
+  it("progression.ts does not import encounters.ts", () => {
+    const specifiers = importedSpecifiers(progressionContents);
+    expect(specifiers.some((specifier) => specifier.includes("encounters"))).toBe(false);
+  });
+
+  it("rewards.ts is the module allowed to import both, sitting above them", () => {
+    const rewardsContents = readFileSync(path.join(CORE_DIR, "rewards.ts"), "utf-8");
+    const specifiers = importedSpecifiers(rewardsContents);
+    expect(specifiers.some((specifier) => specifier.includes("encounters"))).toBe(true);
+    expect(specifiers.some((specifier) => specifier.includes("progression"))).toBe(true);
+  });
+});

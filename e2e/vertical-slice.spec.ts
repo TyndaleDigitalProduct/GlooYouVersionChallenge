@@ -48,18 +48,15 @@ test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", a
   await expect(page.getByTestId("passage-slot")).toContainText("later PRD");
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("1");
 
-  await page.getByTestId("recognise-button").click();
-  await expect(page.getByTestId("verdict-message")).toContainText("Stub verdict");
-  await expect(page.getByTestId("vale-stones-balance")).toHaveText("3");
-  await expect(page.getByTestId("recognise-button")).toBeDisabled();
-
   await page.getByTestId("encounter-close").click();
   await expect(page.getByTestId("encounter-panel")).toHaveCount(0);
 
-  // Re-opening the same encounter awards nothing further.
+  // Re-opening the same encounter awards nothing further: the engagement
+  // stone is earned once. The six-card reveal that resolves an encounter is
+  // a later phase of this PRD, so the state stays "engaged" here.
   await page.getByTestId("proximity-prompt").click();
-  await expect(page.getByTestId("encounter-state")).toContainText("Insight recognised");
-  await expect(page.getByTestId("vale-stones-balance")).toHaveText("3");
+  await expect(page.getByTestId("encounter-state")).toContainText("Engaged");
+  await expect(page.getByTestId("vale-stones-balance")).toHaveText("1");
   await page.getByTestId("encounter-close").click();
 
   for (let beat = 0; beat < sceneOneBeatCount; beat += 1) {
@@ -68,11 +65,13 @@ test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", a
 
   await expect(page.getByTestId("scene-complete")).toBeVisible();
   await expect(page.getByTestId("regions-revealed")).toHaveText("2");
+  // 1 (engagement) + 5 (scene-complete).
+  await expect(page.getByTestId("vale-stones-balance")).toHaveText("6");
 
   await page.reload();
 
   await expect(page.getByTestId("scene-complete")).toBeVisible();
-  await expect(page.getByTestId("vale-stones-balance")).toHaveText("3");
+  await expect(page.getByTestId("vale-stones-balance")).toHaveText("6");
   await expect(page.getByTestId("regions-revealed")).toHaveText("2");
 });
 
@@ -98,7 +97,8 @@ test("scene 1 can be completed with both encounters skipped", async ({ page }) =
   }
 
   await expect(page.getByTestId("scene-complete")).toBeVisible();
-  await expect(page.getByTestId("vale-stones-balance")).toHaveText("0");
+  // The scene-complete award fires regardless of encounters engaged.
+  await expect(page.getByTestId("vale-stones-balance")).toHaveText("5");
   await expect(page.getByTestId("regions-revealed")).toHaveText("2");
 });
 

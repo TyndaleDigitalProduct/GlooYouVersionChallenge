@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { requestVerdict } from "@/app/encounterController";
 import type { PassageResult } from "@/app/providers";
 import { guideArtFor } from "@/content/cast";
 import { findCrossReferenceContent } from "@/content/loadContent";
@@ -9,7 +8,7 @@ import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
 const STATE_LABELS: Record<string, string> = {
   unvisited: "Not yet engaged",
   engaged: "Engaged · base stone awarded",
-  "insight-recognised": "Insight recognised · bonus stone awarded",
+  resolved: "Resolved · insight stones awarded",
 };
 
 export function EncounterPanel() {
@@ -21,11 +20,10 @@ export function EncounterPanel() {
 /**
  * One cross-reference encounter.
  *
- * The curated note is real content. Everything else that would carry meaning
- * is stubbed and labelled: there is no passage text, and the verdict comes
- * from a deterministic stub rather than a guide. The panel says so in both
- * places, because an AI guide that looks real but is not would be a worse
- * failure in this product than a visibly absent one.
+ * The curated note is real content. The passage text is still stubbed and
+ * labelled as such; the six-card selection reveal that resolves an encounter
+ * is a later phase of this PRD, so this panel only shows the engaged state
+ * once the player has walked up.
  */
 function EncounterPanelBody({ reference }: { reference: string }) {
   const runtime = useRuntime();
@@ -33,10 +31,6 @@ function EncounterPanelBody({ reference }: { reference: string }) {
   const sceneId = crossRef?.sceneId ?? "";
 
   const state = useGameState((store) => encounterState(store.encounters, sceneId, reference));
-  const verdictPending = useViewState((view) => view.verdictPending);
-  const verdictMessage = useViewState((view) =>
-    view.verdict?.reference === reference ? view.verdict.message : null,
-  );
 
   const [passage, setPassage] = useState<PassageResult | null>(null);
   // A missing portrait degrades to a panel without one, never to a broken
@@ -55,7 +49,6 @@ function EncounterPanelBody({ reference }: { reference: string }) {
 
   if (!crossRef) return null;
 
-  const alreadyRecognised = state === "insight-recognised";
   const art = guideArtFor(runtime.cast, crossRef.section);
   const showPortrait = art !== undefined && !portraitBroken;
 
@@ -117,26 +110,9 @@ function EncounterPanelBody({ reference }: { reference: string }) {
           <p className="vv-encounter__state" data-testid="encounter-state">
             {STATE_LABELS[state] ?? state}
           </p>
-
-          <button
-            type="button"
-            className="vv-button"
-            data-testid="recognise-button"
-            disabled={verdictPending || alreadyRecognised}
-            onClick={() => void requestVerdict(runtime, reference)}
-          >
-            {alreadyRecognised
-              ? "Connection already recognised"
-              : verdictPending
-                ? "Checking…"
-                : "Recognise the connection (stubbed)"}
-          </button>
-
-          {verdictMessage ? (
-            <p className="vv-encounter__stub" data-testid="verdict-message">
-              {verdictMessage}
-            </p>
-          ) : null}
+          <p className="vv-placeholder-tag">
+            The six-card selection that resolves this encounter arrives in a later phase.
+          </p>
         </footer>
       </section>
     </div>

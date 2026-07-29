@@ -1,6 +1,14 @@
-// The two encounter actions, kept out of the components so they are testable
-// without a DOM and so no React component ever decides what a stone is worth.
-// Both are thin: every rule they rely on lives in src/core.
+// The encounter action, kept out of the components so it is testable without
+// a DOM and so no React component ever decides what a stone is worth. It is
+// thin: every rule it relies on lives in src/core.
+//
+// ADR-0003 replaced the free-text/verdict mechanic (engaged -> a recognised
+// verdict) with card-selection encounters (engaged -> resolved by generating
+// six cards and locking up to three selections). This module used to also
+// export `requestVerdict` for the old mechanic; the card-generation and
+// selection-locking flow that replaces it is the store's
+// `generateEncounterCards` / `lockEncounterSelections` actions, wired up by
+// the card UI in a later phase of this PRD.
 import { findCrossReferenceContent } from "@/content/loadContent";
 import type { AppRuntime } from "./runtime";
 
@@ -31,40 +39,4 @@ export function openEncounter(runtime: AppRuntime, reference: string): void {
   }
 
   runtime.view.getState().openEncounter(reference);
-}
-
-/**
- * Asks the verdict provider whether the player recognised the connection, and
- * awards the bonus stone if it says yes. In this slice the provider is a
- * deterministic stub that always says yes and says so in its message.
- */
-export async function requestVerdict(runtime: AppRuntime, reference: string): Promise<void> {
-  const crossRef = findCrossReferenceContent(runtime.content, reference);
-  if (!crossRef) return;
-
-  runtime.view.getState().setVerdictPending(true);
-
-  try {
-    const verdict = await runtime.verdicts.evaluate({
-      sceneId: crossRef.sceneId,
-      reference,
-      section: crossRef.section,
-      note: crossRef.note,
-    });
-
-    if (verdict.recognised) {
-      const result = runtime.store.getState().recogniseInsight(crossRef.sceneId, reference);
-      if (!result.ok) {
-        runtime.view.getState().pushNotice({
-          id: `insight-rejected-${reference}`,
-          tone: "error",
-          message: `The bonus stone could not be awarded (${result.reason}).`,
-        });
-      }
-    }
-
-    runtime.view.getState().setVerdict({ reference, message: verdict.message });
-  } finally {
-    runtime.view.getState().setVerdictPending(false);
-  }
 }

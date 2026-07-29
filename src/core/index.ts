@@ -10,6 +10,7 @@ export * from "./ledger";
 export * from "./manifest";
 export * from "./progression";
 export * from "./result";
+export * from "./rewards";
 export * from "./save";
 export * from "./storage";
 export * from "./store";

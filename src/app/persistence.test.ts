@@ -35,8 +35,9 @@ describe("attachPersistence", () => {
     const loaded = loadGame(storage, KEY);
     expect(loaded.status).toBe("ok");
     expect(loaded.state.completedSceneIds).toEqual(["scene-1"]);
-    expect(loaded.state.encounters).toEqual({ "scene-1::FIX.1.1": "engaged" });
-    expect(loaded.state.ledger).toHaveLength(1);
+    expect(loaded.state.encounters).toEqual({ "scene-1::FIX.1.1": { state: "engaged" } });
+    // One entry for the scene-complete award, one for the engagement award.
+    expect(loaded.state.ledger).toHaveLength(2);
   });
 
   it("does not write when an action was a no-op", () => {

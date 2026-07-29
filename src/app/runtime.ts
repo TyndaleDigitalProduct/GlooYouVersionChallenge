@@ -27,10 +27,8 @@ import { attachPersistence } from "./persistence";
 import {
   createStubScriptureProvider,
   createStubSessionProvider,
-  createStubVerdictProvider,
   type ScriptureProvider,
   type SessionProvider,
-  type VerdictProvider,
 } from "./providers";
 import { createViewStore, type ViewStoreApi } from "./viewStore";
 
@@ -41,7 +39,6 @@ export interface AppRuntime {
   content: GameContent;
   cast: Cast;
   scripture: ScriptureProvider;
-  verdicts: VerdictProvider;
   session: SessionProvider;
 }
 
@@ -53,7 +50,6 @@ export interface CreateAppRuntimeOptions {
   bus?: EventBus;
   saveKey?: string;
   scripture?: ScriptureProvider;
-  verdicts?: VerdictProvider;
   session?: SessionProvider;
 }
 
@@ -68,7 +64,6 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     bus = eventBus,
     saveKey = SAVE_KEY,
     scripture = createStubScriptureProvider(),
-    verdicts = createStubVerdictProvider(),
     session = createStubSessionProvider(),
   } = options;
 
@@ -112,7 +107,6 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     content: content.value,
     cast: cast.value,
     scripture,
-    verdicts,
     session,
   });
 }

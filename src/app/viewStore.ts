@@ -23,11 +23,6 @@ export interface Notice {
   message: string;
 }
 
-export interface VerdictDisplay {
-  reference: string;
-  message: string;
-}
-
 export interface ViewState {
   /** Index into the current playable scene's beats. */
   dialogueIndex: number;
@@ -35,16 +30,12 @@ export interface ViewState {
   nearbyReference: string | null;
   /** Reference of the open encounter panel, or null when nothing is open. */
   openEncounterReference: string | null;
-  verdictPending: boolean;
-  verdict: VerdictDisplay | null;
   notices: Notice[];
 
   advanceDialogue(): void;
   setNearbyReference(reference: string | null): void;
   openEncounter(reference: string): void;
   closeEncounter(): void;
-  setVerdictPending(pending: boolean): void;
-  setVerdict(verdict: VerdictDisplay | null): void;
   pushNotice(notice: Notice): void;
   dismissNotice(id: string): void;
 }
@@ -54,8 +45,6 @@ export function createViewStore() {
     dialogueIndex: 0,
     nearbyReference: null,
     openEncounterReference: null,
-    verdictPending: false,
-    verdict: null,
     notices: [],
 
     advanceDialogue() {
@@ -75,32 +64,14 @@ export function createViewStore() {
       set((state) =>
         state.openEncounterReference === reference
           ? state
-          : {
-              ...state,
-              openEncounterReference: reference,
-              // A verdict belongs to the encounter it came from.
-              verdict: state.verdict?.reference === reference ? state.verdict : null,
-              verdictPending: false,
-            },
+          : { ...state, openEncounterReference: reference },
       );
     },
 
     closeEncounter() {
       set((state) =>
-        state.openEncounterReference === null
-          ? state
-          : { ...state, openEncounterReference: null, verdictPending: false },
+        state.openEncounterReference === null ? state : { ...state, openEncounterReference: null },
       );
-    },
-
-    setVerdictPending(pending) {
-      set((state) =>
-        state.verdictPending === pending ? state : { ...state, verdictPending: pending },
-      );
-    },
-
-    setVerdict(verdict) {
-      set((state) => ({ ...state, verdict }));
     },
 
     pushNotice(notice) {

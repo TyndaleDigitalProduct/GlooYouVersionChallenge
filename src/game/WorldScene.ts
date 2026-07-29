@@ -261,7 +261,7 @@ export class WorldScene extends Phaser.Scene {
     for (const guide of this.guides) {
       const state = encounterState(encounters, guide.sceneId, guide.reference);
 
-      if (state === "insight-recognised") {
+      if (state === "resolved") {
         guide.footMarker.setAlpha(0.95).setStrokeStyle(2, PALETTE.player, 1);
       } else if (state === "engaged") {
         guide.footMarker.setAlpha(0.45).setStrokeStyle(1, 0xffffff, 0.3);

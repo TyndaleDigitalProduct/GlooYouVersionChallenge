@@ -1,8 +1,16 @@
-// The three seams PRD-04 stubs, each a named interface with a deterministic
+// The seams this slice stubs, each a named interface with a deterministic
 // stub implementation. Everything the slice fakes is faked here and nowhere
-// else, and all three are constructed at exactly one composition point
+// else, and every stub is constructed at exactly one composition point
 // (runtime.ts). Replacing a stub with a real implementation in a later PRD
 // touches that composition point and the new implementation only.
+//
+// PRD-04 also stubbed a third seam here, insight verdicts, for the free-text
+// conversational mechanic ADR-0002 originally specified. ADR-0003 rejected
+// that mechanic outright ("removed from the design, not deferred") in favour
+// of card-selection encounters, so that stub is gone: there is no verdict
+// left to fake. The card-generation seam it is replaced by belongs to
+// PRD-09 (Gloo) and PRD-08 phase 3 (the card UI); phase 1 only lays down the
+// persisted state those land on top of.
 //
 // Every stub carries `isStub: true` so the UI can label itself honestly. That
 // flag is not decoration: an AI guide that looks real but is not would be a
@@ -37,41 +45,6 @@ export function createStubScriptureProvider(): ScriptureProvider {
         reference,
         reason: PASSAGE_UNAVAILABLE_REASON,
       });
-    },
-  };
-}
-
-// --- Insight verdicts -----------------------------------------------------
-// ADR-0002 puts the real verdict behind a grounded, streamed model call. The
-// stub is deterministic and always recognises the connection, so the reward
-// path is exercisable without a model, and it never pretends to have read
-// anything the player wrote.
-
-export interface VerdictRequest {
-  sceneId: string;
-  reference: string;
-  section: string;
-  note: string;
-}
-
-export interface Verdict {
-  recognised: boolean;
-  message: string;
-}
-
-export interface VerdictProvider {
-  readonly isStub: boolean;
-  evaluate(request: VerdictRequest): Promise<Verdict>;
-}
-
-export const STUB_VERDICT_MESSAGE =
-  "Stub verdict: no AI guide is running in this build. Nothing was read or judged, and the bonus stone was awarded automatically so the reward path can be exercised.";
-
-export function createStubVerdictProvider(): VerdictProvider {
-  return {
-    isStub: true,
-    evaluate() {
-      return Promise.resolve({ recognised: true, message: STUB_VERDICT_MESSAGE });
     },
   };
 }

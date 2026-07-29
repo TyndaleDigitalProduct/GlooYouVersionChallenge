@@ -1,0 +1,89 @@
+name: CI
+
+# PRD-07: run the five mandatory gates (AGENTS.md §4) on every push to main and
+# every PR targeting main. Deliberately no `paths`/`paths-ignore` filters — see
+# the "Why no path filters" note in docs/prds/07_continuous_integration.md: a
+# paths-ignore'd commit means this required check never reports, and GitHub
+# holds it pending forever rather than passing.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gates:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Reads the `packageManager` field in package.json (currently
+      # pnpm@10.28.0) rather than a hardcoded version here, so the pin lives in
+      # one place.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      # node-version is pinned explicitly (not `latest`) so a new Node release
+      # cannot turn a green branch red on its own. Must satisfy the
+      # `engines.node` field in package.json (currently >=20.19.0).
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "20.19.0"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Playwright browser binaries are the slow part of `playwright install`;
+      # cache them keyed on the lockfile so an unchanged lockfile skips the
+      # download. The pnpm store itself is cached above via setup-node's
+      # built-in `cache: pnpm` (also keyed on pnpm-lock.yaml).
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      # Only chromium is configured in playwright.config.ts.
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Unit tests
+        run: pnpm test
+
+      # Coverage pass/fail is whatever this command's exit code says. The 90%
+      # src/core/** threshold lives in vitest.config.ts and is not duplicated
+      # here, so there is one place for that number to drift out of sync.
+      - name: Coverage
+        run: pnpm test:coverage
+
+      - name: Build
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      # Playwright starts its own server per webServer in playwright.config.ts
+      # (vite --port=4173 --strictPort); nothing here starts a second one.
+      - name: E2E tests
+        run: pnpm e2e
+
+      # Uploads whatever exists even when an earlier gate failed before e2e
+      # ran; upload-artifact warns (does not fail the job) when nothing
+      # matches.
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

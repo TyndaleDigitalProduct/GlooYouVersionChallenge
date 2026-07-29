@@ -43,6 +43,7 @@ export type RefsDocument = z.infer<typeof refsDocumentSchema>;
 export const dialogueBeatSchema = z.object({
   speaker: z.string().min(1),
   text: z.string().min(1),
+  branch: z.enum(["all", "some", "none"]).optional(),
 });
 
 export const dialogueSceneSchema = z.object({
@@ -52,13 +53,28 @@ export const dialogueSceneSchema = z.object({
 });
 
 export const dialogueDocumentSchema = z.object({
-  /** Only placeholder copy exists at this PRD. A file claiming to be final is rejected. */
-  status: z.literal("placeholder"),
+  status: z.enum(["placeholder", "final"]),
   note: z.string().min(1),
   scenes: z.array(dialogueSceneSchema).min(1),
 });
 
 export type DialogueDocument = z.infer<typeof dialogueDocumentSchema>;
+
+export const personaSchema = z.object({
+  name: z.string().min(1),
+  section: z.string(),
+  voice_notes: z.string().min(1),
+  // Empty for the Lamplighter, whose intro/closing copy lives in the scene files.
+  intro: z.string(),
+  closing: z.string(),
+});
+
+export const personasDocumentSchema = z.object({
+  note: z.string().min(1),
+  personas: z.array(personaSchema).min(1),
+});
+
+export type Persona = z.infer<typeof personaSchema>;
 
 /** Renders the first zod issue as a short, log-safe string for a Result reason. */
 export function describeIssue(error: z.ZodError): string {

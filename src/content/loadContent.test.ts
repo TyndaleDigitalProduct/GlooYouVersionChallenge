@@ -94,8 +94,8 @@ describe("buildGameContent", () => {
     expect(result.ok ? "" : result.reason).toContain("chapter");
   });
 
-  it("rejects a dialogue document that claims to be final copy", () => {
-    const result = buildGameContent(minimalRefs(), minimalDialogue({ status: "final" }));
+  it("rejects a dialogue document with an unrecognised status", () => {
+    const result = buildGameContent(minimalRefs(), minimalDialogue({ status: "invalid-status" }));
 
     expect(result).toMatchObject({ ok: false });
     expect(result.ok ? "" : result.reason).toContain("dialogue-document-invalid");
@@ -212,7 +212,7 @@ describe("the real content files", () => {
     expect(content.manifest.crossReferences).toHaveLength(24);
   });
 
-  it("make scene 1 the only playable scene in this slice", () => {
+  it("make scene 1 the only playable scene until PRD-12 wires runtime support for the rest", () => {
     const playable = content.scenes.filter((scene) => scene.playable);
 
     expect(playable.map((scene) => scene.id)).toEqual(["scene-1"]);
@@ -227,12 +227,11 @@ describe("the real content files", () => {
     ]);
   });
 
-  it("mark every scene-1 beat as placeholder copy in the text itself", () => {
-    const sceneOne = findSceneContent(content, "scene-1");
-
-    expect(sceneOne?.beats.length).toBeGreaterThan(0);
-    for (const beat of sceneOne?.beats ?? []) {
-      expect(beat.text).toContain("[PLACEHOLDER COPY]");
+  it("give every scene Lamplighter exit beats with a branch field", () => {
+    for (const scene of content.scenes) {
+      const exitBeats = scene.beats.filter((beat) => beat.branch !== undefined);
+      const branches = exitBeats.map((beat) => beat.branch);
+      expect(branches).toEqual(["all", "some", "none"]);
     }
   });
 });

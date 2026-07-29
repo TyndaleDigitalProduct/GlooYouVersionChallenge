@@ -5,9 +5,11 @@ import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
 /**
  * The narrative beats for the current playable scene.
  *
- * Every line in here is placeholder filler and is marked as such on screen,
- * not only in the content file: a screenshot of this build must not be
- * mistakable for authored copy. No line quotes or paraphrases Scripture.
+ * While the dialogue document's status is "placeholder", every line is
+ * filler and is marked as such on screen, not only in the content file: a
+ * screenshot of this build must not be mistakable for authored copy. Once the
+ * document is "final", the tag drops and the beats are reviewed, authored
+ * copy.
  *
  * Reaching the last beat completes the scene through `store.completeScene`
  * and does nothing else. Revealing the next region is src/core's job, and the
@@ -57,7 +59,9 @@ export function DialogueBox() {
         </p>
       </header>
 
-      <p className="vv-placeholder-tag">Placeholder copy, not authored dialogue</p>
+      {runtime.content.dialogueStatus === "placeholder" && (
+        <p className="vv-placeholder-tag">Placeholder copy, not authored dialogue</p>
+      )}
       <p className="vv-dialogue__text" data-testid="dialogue-text">
         {substituteName(beat.text, playerName)}
       </p>

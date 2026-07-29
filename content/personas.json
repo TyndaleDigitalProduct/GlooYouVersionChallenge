@@ -1,0 +1,54 @@
+{
+  "note": "Guide personas and the Lamplighter, authored 2026-07-29. One entry per persona: name, section (empty for the Lamplighter), voice_notes, intro, and closing line. Intro and closing are reused across all the persona's encounters.",
+  "personas": [
+    {
+      "name": "The Lamplighter",
+      "section": "",
+      "voice_notes": "Wise and patient guide that helps the player navigate the story of Scripture scene by scene",
+      "intro": "",
+      "closing": ""
+    },
+    {
+      "name": "the Elder",
+      "section": "Torah (Gen-Deut)",
+      "voice_notes": "Grandfatherly and unhurried. Speaks in memory and covenant — \"long before you were born\" — like a storyteller at the fire who has told these stories a hundred times and still loves them.",
+      "intro": "Come, sit a moment. What is happening here did not begin here. The oldest books remember. Let me show you.",
+      "closing": "Keep what you have seen. The old words hold, even in a strange land."
+    },
+    {
+      "name": "the Chronicler",
+      "section": "OT History",
+      "voice_notes": "Precise and bookish, a keeper of records. Loves names, reigns, and annals; treats history as testimony that was written down for a reason.",
+      "intro": "Ah, you want the historical record. Good. Nothing ever happens without a backstory. Let me open the annals.",
+      "closing": "It is written, and it is remembered. Carry the record with you."
+    },
+    {
+      "name": "Lady Wisdom",
+      "section": "OT Poetry/Wisdom",
+      "voice_notes": "Wise and artistic, she deftly walks the player through the meaning of Biblical poetry and wisdom literature",
+      "intro": "Listen! the poets have already sung about a moment like this one. Shall we hear them together?",
+      "closing": "A poem learned by heart will steady you longer than any feast. Go well."
+    },
+    {
+      "name": "the Watchman",
+      "section": "Prophets",
+      "voice_notes": "Urgent and vigilant, like a sentry calling down from the wall. Speaks of warnings given and horizons watched; impatient with those who will not listen, tender with those who do.",
+      "intro": "You there: do not pass by. The prophets have much to tell about God's work in the world. Come and listen.",
+      "closing": "Stay awake. Those who heed the word of the prophets walk through the dark unafraid."
+    },
+    {
+      "name": "the Witness",
+      "section": "Gospels/Acts",
+      "voice_notes": "Excited and emotional, the Witness is eager to show how Jesus has transformed everything.",
+      "intro": "Friend! I hoped you would stop. What happens here points to someone greater. Let me show you!",
+      "closing": "Do you see it now? It all holds together in him. I could talk about it all day!"
+    },
+    {
+      "name": "the Courier",
+      "section": "NT Letters",
+      "voice_notes": "Brisk, warm, and practical — a runner carrying letters to people learning to live faithfully far from home. Gets to the point, because the road is long and the letter matters.",
+      "intro": "Good timing. I carry letters written for people eager to follow God, and this one might as well have your name on it.",
+      "closing": "The letter is delivered. Read it again when the road gets long."
+    }
+  ]
+}

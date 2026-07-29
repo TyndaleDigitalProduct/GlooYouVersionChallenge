@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createViewStore } from "./viewStore";
+import { createViewStore, hasReadBothPassages, hasReadPassage } from "./viewStore";
 
 describe("view store", () => {
   it("starts with nothing open and no notices", () => {
@@ -45,23 +45,26 @@ describe("view store", () => {
     expect(store.getState().dialogueIndex).toBe(2);
   });
 
-  it("clears a verdict belonging to a different encounter when a panel opens", () => {
+  it("opens and closes the encounter panel by reference", () => {
     const store = createViewStore();
-    store.getState().setVerdict({ reference: "2KI.24.1-4", message: "Stub." });
 
-    store.getState().openEncounter("JER.25.2-11");
-
-    expect(store.getState().verdict).toBeNull();
-  });
-
-  it("keeps a verdict when the same encounter is re-opened", () => {
-    const store = createViewStore();
-    store.getState().setVerdict({ reference: "2KI.24.1-4", message: "Stub." });
+    store.getState().openEncounter("2KI.24.1-4");
+    expect(store.getState().openEncounterReference).toBe("2KI.24.1-4");
 
     store.getState().closeEncounter();
+    expect(store.getState().openEncounterReference).toBeNull();
+  });
+
+  it("does not notify subscribers when opening the encounter already open", () => {
+    const store = createViewStore();
     store.getState().openEncounter("2KI.24.1-4");
 
-    expect(store.getState().verdict).toEqual({ reference: "2KI.24.1-4", message: "Stub." });
+    const listener = vi.fn();
+    store.subscribe(listener);
+
+    store.getState().openEncounter("2KI.24.1-4");
+
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it("ignores a duplicate notice id so a repeated failure cannot stack", () => {
@@ -82,6 +85,45 @@ describe("view store", () => {
     store.getState().dismissNotice("a");
 
     expect(store.getState().notices.map((notice) => notice.id)).toEqual(["b"]);
+  });
+
+  it("starts with no passages read", () => {
+    const view = createViewStore().getState();
+    expect(view.readPassages).toEqual({});
+  });
+
+  it("marks a passage read for an encounter, scoped by encounter reference", () => {
+    const store = createViewStore();
+
+    store.getState().markPassageRead("2KI.24.1-4", "DAN.1.1");
+
+    expect(hasReadPassage(store.getState(), "2KI.24.1-4", "DAN.1.1")).toBe(true);
+    expect(hasReadPassage(store.getState(), "2KI.24.1-4", "2KI.24.1-4")).toBe(false);
+    // A different encounter's read state is unaffected.
+    expect(hasReadPassage(store.getState(), "JER.25.2-11", "DAN.1.1")).toBe(false);
+  });
+
+  it("the read gate opens only once both an encounter's passages are read", () => {
+    const store = createViewStore();
+
+    expect(hasReadBothPassages(store.getState(), "2KI.24.1-4", "DAN.1.1")).toBe(false);
+
+    store.getState().markPassageRead("2KI.24.1-4", "DAN.1.1");
+    expect(hasReadBothPassages(store.getState(), "2KI.24.1-4", "DAN.1.1")).toBe(false);
+
+    store.getState().markPassageRead("2KI.24.1-4", "2KI.24.1-4");
+    expect(hasReadBothPassages(store.getState(), "2KI.24.1-4", "DAN.1.1")).toBe(true);
+  });
+
+  it("does not notify subscribers when a passage already marked read is marked again", () => {
+    const store = createViewStore();
+    store.getState().markPassageRead("2KI.24.1-4", "DAN.1.1");
+
+    const listener = vi.fn();
+    store.subscribe(listener);
+    store.getState().markPassageRead("2KI.24.1-4", "DAN.1.1");
+
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it("keeps the same notices array identity when dismissing an unknown id", () => {

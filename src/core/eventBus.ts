@@ -22,21 +22,33 @@ export interface GameEvents {
   /** A fog-of-war region became revealed for the first time. */
   "region:revealed": { regionId: string };
 
-  /** A Vale Stone award was appended to the ledger. */
+  /**
+   * A Vale Stone award was appended to the ledger. `reference` is present for
+   * the two encounter-scoped causes (engagement, insight) and absent for the
+   * two scene-scoped ones (scene-complete, all-references), matching
+   * `LedgerEntry.reference`.
+   */
   "stones:awarded": {
     sceneId: string;
-    reference: string;
-    cause: "engagement" | "insight";
+    reference?: string;
+    cause: "engagement" | "insight" | "scene-complete" | "all-references";
     amount: number;
     balance: number;
   };
 
-  /** A cross-reference encounter moved forward to a new state. */
+  /**
+   * A cross-reference encounter moved forward to a new state. Resolving an
+   * encounter (newState "resolved") also carries the selections that earned
+   * it and the insight amount awarded; every other transition leaves both
+   * undefined.
+   */
   "encounter:stateChanged": {
     sceneId: string;
     reference: string;
-    previousState: "unvisited" | "engaged" | "insight-recognised";
-    newState: "unvisited" | "engaged" | "insight-recognised";
+    previousState: "unvisited" | "engaged" | "resolved";
+    newState: "unvisited" | "engaged" | "resolved";
+    selections?: readonly string[];
+    amountAwarded?: number;
   };
 }
 

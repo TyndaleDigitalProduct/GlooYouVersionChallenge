@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
-import { requestVerdict } from "@/app/encounterController";
 import type { PassageResult } from "@/app/providers";
+import type { AppRuntime } from "@/app/runtime";
+import { hasReadBothPassages, hasReadPassage } from "@/app/viewStore";
+import { fallbackCardSetFor } from "@/content/cardSets";
 import { guideArtFor } from "@/content/cast";
 import { findCrossReferenceContent } from "@/content/loadContent";
-import { encounterState } from "@/core/encounters";
+import { type EncounterCard, type EncounterRecord, encounterRecord } from "@/core/encounters";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
-
-const STATE_LABELS: Record<string, string> = {
-  unvisited: "Not yet engaged",
-  engaged: "Engaged · base stone awarded",
-  "insight-recognised": "Insight recognised · bonus stone awarded",
-};
 
 export function EncounterPanel() {
   const openReference = useViewState((state) => state.openEncounterReference);
@@ -19,45 +15,51 @@ export function EncounterPanel() {
 }
 
 /**
- * One cross-reference encounter.
- *
- * The curated note is real content. Everything else that would carry meaning
- * is stubbed and labelled: there is no passage text, and the verdict comes
- * from a deterministic stub rather than a guide. The panel says so in both
- * places, because an AI guide that looks real but is not would be a worse
- * failure in this product than a visibly absent one.
+ * One cross-reference encounter (ADR-0003, PRD-08 phase 3): both Scripture
+ * passages must be read before the six insight cards unlock; locking up to
+ * three selections reveals all six values plus the curated note. Built
+ * entirely against the fallback card sets in content/daniel-1.cards.json —
+ * there is no Gloo call anywhere in this path (that is PRD-09).
  */
 function EncounterPanelBody({ reference }: { reference: string }) {
   const runtime = useRuntime();
   const crossRef = findCrossReferenceContent(runtime.content, reference);
   const sceneId = crossRef?.sceneId ?? "";
+  const anchor = crossRef?.anchor ?? reference;
 
-  const state = useGameState((store) => encounterState(store.encounters, sceneId, reference));
-  const verdictPending = useViewState((view) => view.verdictPending);
-  const verdictMessage = useViewState((view) =>
-    view.verdict?.reference === reference ? view.verdict.message : null,
-  );
+  const record = useGameState((store) => encounterRecord(store.encounters, sceneId, reference));
+  const bothRead = useViewState((state) => hasReadBothPassages(state, reference, anchor));
 
-  const [passage, setPassage] = useState<PassageResult | null>(null);
+  const [selections, setSelections] = useState<string[]>([]);
   // A missing portrait degrades to a panel without one, never to a broken
   // image icon.
   const [portraitBroken, setPortraitBroken] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    runtime.scripture.getPassage(reference).then((result) => {
-      if (!cancelled) setPassage(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [runtime, reference]);
-
   if (!crossRef) return null;
 
-  const alreadyRecognised = state === "insight-recognised";
+  // The operator's settled call (PRD-08 phase 3 specifics): render the real
+  // persona name when content supplies one (currently "the Chronicler" and
+  // "the Watchman" only) and fall back to the generic section title for the
+  // other four, rather than inventing names characters.json does not have.
+  const persona = fallbackCardSetFor(runtime.cardSets, reference)?.persona;
+  const title = persona ?? `${crossRef.section} guide`;
+
   const art = guideArtFor(runtime.cast, crossRef.section);
   const showPortrait = art !== undefined && !portraitBroken;
+
+  const isResolved = record.state === "resolved";
+
+  const toggleSelection = (cardId: string) => {
+    setSelections((previous) => {
+      if (previous.includes(cardId)) return previous.filter((id) => id !== cardId);
+      if (previous.length >= 3) return previous;
+      return [...previous, cardId];
+    });
+  };
+
+  const lockIn = () => {
+    runtime.store.getState().lockEncounterSelections(sceneId, reference, selections);
+  };
 
   return (
     <div className="vv-scrim">
@@ -79,7 +81,7 @@ function EncounterPanelBody({ reference }: { reference: string }) {
               />
             ) : null}
             <div>
-              <h2 className="vv-encounter__title">{crossRef.section} guide</h2>
+              <h2 className="vv-encounter__title">{title}</h2>
               <p className="vv-encounter__reference" data-testid="encounter-reference">
                 {crossRef.reference} · illuminating {crossRef.anchor}
               </p>
@@ -95,50 +97,249 @@ function EncounterPanelBody({ reference }: { reference: string }) {
           </button>
         </header>
 
-        <p className="vv-placeholder-tag">
-          Placeholder character. The six guide personas are not written yet.
-        </p>
+        {isResolved ? (
+          <EncounterSummary record={record} note={crossRef.note} />
+        ) : (
+          <>
+            <div className="vv-encounter__passages">
+              <h3 className="vv-encounter__subhead">Passages</h3>
+              <ScripturePassageCard
+                runtime={runtime}
+                label="Daniel"
+                reference={anchor}
+                encounterReference={reference}
+                testId="passage-card-anchor"
+              />
+              <ScripturePassageCard
+                runtime={runtime}
+                label="Cross-reference"
+                reference={crossRef.reference}
+                encounterReference={reference}
+                testId="passage-card-reference"
+              />
+            </div>
 
-        <div className="vv-encounter__passage">
-          <h3 className="vv-encounter__subhead">Passage</h3>
-          <p className="vv-encounter__stub" data-testid="passage-slot">
-            {passage?.status === "available"
-              ? passage.text
-              : (passage?.reason ?? "Loading passage…")}
-          </p>
-        </div>
+            {record.cards ? (
+              <InsightCardGrid
+                cards={record.cards}
+                unlocked={bothRead}
+                selections={selections}
+                onToggle={toggleSelection}
+                onLock={lockIn}
+              />
+            ) : null}
 
-        <div className="vv-encounter__note">
-          <h3 className="vv-encounter__subhead">Curated note</h3>
-          <p data-testid="encounter-note">{crossRef.note}</p>
-        </div>
-
-        <footer className="vv-encounter__footer">
-          <p className="vv-encounter__state" data-testid="encounter-state">
-            {STATE_LABELS[state] ?? state}
-          </p>
-
-          <button
-            type="button"
-            className="vv-button"
-            data-testid="recognise-button"
-            disabled={verdictPending || alreadyRecognised}
-            onClick={() => void requestVerdict(runtime, reference)}
-          >
-            {alreadyRecognised
-              ? "Connection already recognised"
-              : verdictPending
-                ? "Checking…"
-                : "Recognise the connection (stubbed)"}
-          </button>
-
-          {verdictMessage ? (
-            <p className="vv-encounter__stub" data-testid="verdict-message">
-              {verdictMessage}
+            <p className="vv-encounter__state" data-testid="encounter-state">
+              Engaged
             </p>
-          ) : null}
-        </footer>
+          </>
+        )}
       </section>
+    </div>
+  );
+}
+
+/**
+ * One Scripture passage, collapsed behind an explicit "Read" action. The
+ * read gate (storyboard-v2.md line 21) is keyed on a deliberate open, not on
+ * the fetch resolving: the bundled text resolves near-instantly, so marking
+ * it read on load would make the gate a no-op instead of the thing that
+ * stops a player from selecting cards without having looked at the text.
+ */
+function ScripturePassageCard({
+  runtime,
+  label,
+  reference,
+  encounterReference,
+  testId,
+}: {
+  runtime: AppRuntime;
+  label: string;
+  reference: string;
+  encounterReference: string;
+  testId: string;
+}) {
+  const isRead = useViewState((state) => hasReadPassage(state, encounterReference, reference));
+  const [isOpen, setIsOpen] = useState(false);
+  const [passage, setPassage] = useState<PassageResult | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    runtime.scripture.getPassage(reference).then((result) => {
+      if (!cancelled) setPassage(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [runtime, reference]);
+
+  const open = () => {
+    setIsOpen(true);
+    runtime.view.getState().markPassageRead(encounterReference, reference);
+  };
+
+  return (
+    <div className="vv-scripture-card" data-testid={testId}>
+      <div className="vv-scripture-card__header">
+        <p className="vv-scripture-card__label">
+          {label} · {reference}
+        </p>
+        {isRead ? (
+          <span className="vv-scripture-card__read-tag" aria-hidden="true">
+            Read
+          </span>
+        ) : null}
+      </div>
+      {isOpen ? (
+        <p className="vv-encounter__stub" data-testid={`${testId}-text`}>
+          {passage?.status === "available" ? passage.text : (passage?.reason ?? "Loading passage…")}
+        </p>
+      ) : (
+        <button type="button" className="vv-button" data-testid={`${testId}-open`} onClick={open}>
+          Read {label}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Six insight cards, locked to text-only until both passages are read
+ * (storyboard-v2.md line 21) and to a selection toggle once they are. No
+ * value is ever shown here — that is the reveal's job, after locking. The
+ * cap is stated up front ("N of 3") and enforced by disabling further cards
+ * once it is reached, so the player never discovers it via a failed click.
+ */
+function InsightCardGrid({
+  cards,
+  unlocked,
+  selections,
+  onToggle,
+  onLock,
+}: {
+  cards: readonly EncounterCard[];
+  unlocked: boolean;
+  selections: readonly string[];
+  onToggle: (cardId: string) => void;
+  onLock: () => void;
+}) {
+  const atCap = selections.length >= 3;
+
+  return (
+    <div className="vv-encounter__cards">
+      <h3 className="vv-encounter__subhead">Insight cards</h3>
+
+      {!unlocked ? (
+        <p className="vv-placeholder-tag" data-testid="cards-locked-notice">
+          Read both Scripture cards above to unlock these.
+        </p>
+      ) : (
+        <p className="vv-encounter__cap-notice" data-testid="selection-cap-notice">
+          Pick the most important things you learn — up to three.{" "}
+          {atCap ? "That's your three." : `Chosen so far: ${selections.length}.`}
+        </p>
+      )}
+
+      <ul className="vv-card-grid" data-testid="insight-card-grid">
+        {cards.map((card, index) => {
+          const selected = selections.includes(card.id);
+          const disabled = !unlocked || (!selected && atCap);
+          return (
+            <li key={card.id}>
+              <button
+                type="button"
+                className={`vv-insight-card${selected ? " vv-insight-card--selected" : ""}`}
+                data-testid={`insight-card-${index}`}
+                data-selected={selected}
+                disabled={disabled}
+                aria-pressed={selected}
+                onClick={() => onToggle(card.id)}
+              >
+                <span className="vv-insight-card__marker" aria-hidden="true">
+                  {selected ? "✓" : ""}
+                </span>
+                <span className="vv-insight-card__text">{card.text}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <button
+        type="button"
+        className="vv-button"
+        data-testid="lock-selections"
+        disabled={!unlocked}
+        onClick={onLock}
+      >
+        Lock in your picks
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The reveal, and what a revisited (or migrated v2) encounter renders
+ * instead of the card grid. Reads only the persisted record — no
+ * regeneration, ever (phase 1 already rejects a second `generateEncounterCards`
+ * call, so this component does not need to guard against it itself).
+ *
+ * A v2 encounter resolved under the old free-text mechanic has no card set
+ * at all (`record.cards` absent); that is a legal state (PRD-08 phase 1) and
+ * renders as resolved with the curated note only, never a crash.
+ */
+function EncounterSummary({ record, note }: { record: EncounterRecord; note: string }) {
+  return (
+    <div className="vv-encounter__summary" data-testid="encounter-summary">
+      <p className="vv-encounter__state" data-testid="encounter-state">
+        Resolved
+      </p>
+
+      {record.cards ? (
+        <ul className="vv-card-grid" data-testid="insight-card-grid">
+          {record.cards.map((card, index) => {
+            const selected = (record.selections ?? []).includes(card.id);
+            // A high-value card the player did not choose is framed as what
+            // else was worth seeing, never as a miss (ADR-0003 "never
+            // punitive").
+            const showAside = !selected && card.value >= 3;
+            return (
+              <li key={card.id}>
+                <div
+                  className={`vv-insight-card vv-insight-card--revealed${
+                    selected ? " vv-insight-card--selected" : ""
+                  }`}
+                  data-testid={`insight-card-${index}`}
+                  data-selected={selected}
+                >
+                  <span className="vv-insight-card__marker" aria-hidden="true">
+                    {selected ? "✓" : ""}
+                  </span>
+                  <span
+                    className="vv-insight-card__value"
+                    data-testid={`insight-card-value-${index}`}
+                  >
+                    {card.value}
+                  </span>
+                  <span className="vv-insight-card__text">{card.text}</span>
+                  {showAside ? (
+                    <span className="vv-insight-card__aside">Also worth seeing.</span>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="vv-encounter__stub" data-testid="encounter-no-cards">
+          This connection was explored before the card set existed. The record below still holds.
+        </p>
+      )}
+
+      <div className="vv-encounter__note">
+        <h3 className="vv-encounter__subhead">Curated note</h3>
+        <p data-testid="encounter-note">{note}</p>
+      </div>
     </div>
   );
 }

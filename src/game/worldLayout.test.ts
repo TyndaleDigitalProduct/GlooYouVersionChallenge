@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CHARACTER_CLICK_RADIUS,
   clampToWorld,
   INTERACT_RADIUS,
   markerPlacements,
@@ -9,6 +10,7 @@ import {
   REGION_HEIGHT,
   REGION_WIDTH,
   regionRects,
+  resolveClick,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./worldLayout";
@@ -97,5 +99,65 @@ describe("nearestMarker", () => {
   it("picks the nearer of two overlapping ranges", () => {
     expect(nearestMarker(151, 100, markers, INTERACT_RADIUS)).toBe("B");
     expect(nearestMarker(149, 100, markers, INTERACT_RADIUS)).toBe("A");
+  });
+});
+
+describe("resolveClick (PRD-08 phase 4: click/tap replaces arrows and WASD)", () => {
+  const markers = [
+    { reference: "A", x: 500, y: 500 },
+    { reference: "B", x: 900, y: 500 },
+  ];
+
+  it("a plain ground click walks the player to the clicked point", () => {
+    const result = resolveClick(0, 0, 300, 300, markers);
+    expect(result).toEqual({ moveTo: { x: 300, y: 300 }, reference: null });
+  });
+
+  it("clamps a ground click to the world bounds", () => {
+    const result = resolveClick(0, 0, -500, 99999, markers);
+    expect(result.reference).toBeNull();
+    expect(result.moveTo).toEqual(clampToWorld(-500, 99999, PLAYER_SIZE));
+  });
+
+  it("a click far from a character, landing on them, walks the player there and names the reference", () => {
+    const result = resolveClick(0, 0, 500, 500, markers);
+    expect(result).toEqual({ moveTo: { x: 500, y: 500 }, reference: "A" });
+  });
+
+  it("a click on a character the player already stands within the interaction radius of opens immediately: no move", () => {
+    const playerNearA = { x: markers[0].x + INTERACT_RADIUS - 1, y: markers[0].y };
+    const result = resolveClick(playerNearA.x, playerNearA.y, markers[0].x, markers[0].y, markers);
+
+    expect(result).toEqual({ moveTo: null, reference: "A" });
+  });
+
+  it("a click on a character just outside the interaction radius still walks the player there", () => {
+    const playerJustOutsideA = { x: markers[0].x + INTERACT_RADIUS + 1, y: markers[0].y };
+    const result = resolveClick(
+      playerJustOutsideA.x,
+      playerJustOutsideA.y,
+      markers[0].x,
+      markers[0].y,
+      markers,
+    );
+
+    expect(result.moveTo).not.toBeNull();
+    expect(result.reference).toBe("A");
+  });
+
+  it("a click just outside the character click radius is a plain ground click, not a character hit", () => {
+    const clickX = markers[0].x + CHARACTER_CLICK_RADIUS + 1;
+    const result = resolveClick(0, 0, clickX, markers[0].y, markers);
+
+    expect(result.reference).toBeNull();
+  });
+
+  it("picks the nearer of two characters whose click radii overlap", () => {
+    const close = [
+      { reference: "A", x: 500, y: 500 },
+      { reference: "B", x: 530, y: 500 },
+    ];
+    expect(resolveClick(0, 0, 510, 500, close).reference).toBe("A");
+    expect(resolveClick(0, 0, 520, 500, close).reference).toBe("B");
   });
 });

@@ -352,9 +352,134 @@ body {
 }
 
 .vv-encounter__state {
+  margin: 0.6rem 0 0;
+  color: #cdd6e4;
+  font-size: 0.85em;
+}
+
+/* --- Scripture passage cards (read gate) -------------------------------- */
+
+.vv-encounter__passages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.vv-scripture-card {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #2c3545;
+  border-radius: 0.4rem;
+  background: #151a24;
+}
+
+.vv-scripture-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.vv-scripture-card__label {
   margin: 0;
   color: #cdd6e4;
   font-size: 0.85em;
+}
+
+.vv-scripture-card__read-tag {
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  background: #24422f;
+  color: #8fd4a8;
+  font-size: 0.72em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* --- insight cards -------------------------------------------------------
+   Selected vs unselected is signalled by colour AND a non-colour cue (the
+   checkmark glyph, plus a heavier border on selected cards), so the
+   distinction survives colour blindness (ADR-0003). */
+
+.vv-encounter__cards {
+  margin-top: 0.75rem;
+}
+
+.vv-encounter__cap-notice {
+  margin: 0 0 0.5rem;
+  color: #8f9bb0;
+  font-size: 0.82em;
+}
+
+.vv-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.vv-insight-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #2c3545;
+  border-radius: 0.4rem;
+  background: #151a24;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.vv-insight-card:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.vv-insight-card--selected {
+  border-width: 3px;
+  border-color: #4fb783;
+  background: #16241d;
+}
+
+.vv-insight-card__marker {
+  flex: none;
+  width: 1.1em;
+  color: #4fb783;
+  font-weight: 700;
+}
+
+.vv-insight-card__value {
+  flex: none;
+  min-width: 1.4em;
+  color: #f2c14e;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.vv-insight-card__text {
+  flex: 1;
+}
+
+.vv-insight-card--revealed {
+  flex-wrap: wrap;
+  cursor: default;
+}
+
+.vv-insight-card__aside {
+  flex-basis: 100%;
+  margin: 0.3rem 0 0 1.6em;
+  color: #8f9bb0;
+  font-size: 0.82em;
+  font-style: italic;
+}
+
+.vv-encounter__summary {
+  margin-top: 0.5rem;
 }
 
 /* --- fatal error -------------------------------------------------------- */

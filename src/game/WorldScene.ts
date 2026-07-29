@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { openEncounter } from "@/app/encounterController";
 import type { AppRuntime } from "@/app/runtime";
 import { guideArtFor, spriteKeysToPreload } from "@/content/cast";
 import { encounterState } from "@/core/encounters";
@@ -11,12 +12,18 @@ import {
   walkFrames,
 } from "./spriteDirections";
 import {
+  ARRIVAL_EPSILON,
   clampToWorld,
   FOG_ALPHA,
   FOOT_MARKER_HEIGHT,
   FOOT_MARKER_OFFSET_Y,
   FOOT_MARKER_WIDTH,
   INTERACT_RADIUS,
+  LANTERN_LIT_ALPHA,
+  LANTERN_LIT_COLOR,
+  LANTERN_OFFSET_X,
+  LANTERN_OFFSET_Y,
+  LANTERN_RADIUS,
   type MarkerPlacement,
   markerPlacements,
   NOTICE_RADIUS,
@@ -27,6 +34,7 @@ import {
   PLAYER_SPEED,
   type RegionRect,
   regionRects,
+  resolveClick,
   SPRITE_ORIGIN_Y,
   SPRITE_SCALE,
   WALK_FRAME_RATE,
@@ -41,6 +49,16 @@ interface GuideMarker extends MarkerPlacement {
   sprite: Phaser.GameObjects.Sprite;
   /** Section-coloured disc at the guide's feet; carries encounter state. */
   footMarker: Phaser.GameObjects.Ellipse;
+  /** The lantern affordance: lit means interactable (PRD-08 phase 4). */
+  lantern: Phaser.GameObjects.Ellipse;
+}
+
+/** Where the player is walking to, and whether arriving there should open an interaction. */
+interface MoveTarget {
+  x: number;
+  y: number;
+  /** Reference of the character this target walks toward, or null for a plain ground click. */
+  reference: string | null;
 }
 
 /**
@@ -49,11 +67,19 @@ interface GuideMarker extends MarkerPlacement {
  * Everything readable is in the React overlay, so this scene renders no text
  * at all (ADR-0002). It holds no rules either: what is revealed comes from
  * `store.revealedRegionIds()`, and how a guide's marker looks comes from the
- * encounter state in the store. The scene's only write to the rest of the app
- * is telling the view store which guide the player is standing next to.
+ * encounter state in the store. The scene's only writes to the rest of the
+ * app are telling the view store which guide the player is standing next to,
+ * and opening an encounter when a character click resolves to one — the
+ * same app-layer action `ProximityPrompt` calls, just triggered by pointer
+ * input on the canvas instead of a DOM click (PRD-08 phase 4).
  *
  * The ground is still rectangles, not a tilemap, so ADR-0002's Tiled versus
  * LDtk decision stays open. Only the characters are real art.
+ *
+ * Movement is click/tap-to-move (PRD-08 phase 4), replacing PRD-04's arrows
+ * and WASD. There is no keyboard path through the game any more: this also
+ * supersedes `ProximityPrompt`'s "e" key, which is an accepted tradeoff
+ * recorded in this PRD's handoff, not an oversight.
  */
 export class WorldScene extends Phaser.Scene {
   private readonly runtime: AppRuntime;
@@ -63,8 +89,7 @@ export class WorldScene extends Phaser.Scene {
 
   private player!: Phaser.GameObjects.Sprite;
   private playerFacingRow = 0;
-  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasd?: Record<string, Phaser.Input.Keyboard.Key>;
+  private moveTarget: MoveTarget | null = null;
 
   constructor(runtime: AppRuntime) {
     super(WORLD_SCENE_KEY);
@@ -91,7 +116,7 @@ export class WorldScene extends Phaser.Scene {
     this.drawRegions(regions);
     this.drawGuides(regions);
     this.drawPlayer();
-    this.bindInput();
+    this.bindPointerInput();
     this.subscribe();
 
     this.syncFog();
@@ -209,7 +234,32 @@ export class WorldScene extends Phaser.Scene {
           .setScale(SPRITE_SCALE)
           .setDepth(2);
 
-        this.guides.push({ ...placement, sceneId: scene.id, sprite, footMarker });
+        // The lantern affordance: every character drawn here is a
+        // cross-reference guide, and every one is interactable (including a
+        // resolved one, which is still tappable to revisit its summary
+        // card), so the lantern is always lit in this slice. It carries its
+        // own gentle glow so it reads as *lit* rather than just present.
+        const lantern = this.add
+          .ellipse(
+            placement.x + LANTERN_OFFSET_X,
+            placement.y + LANTERN_OFFSET_Y,
+            LANTERN_RADIUS * 2,
+            LANTERN_RADIUS * 2,
+            LANTERN_LIT_COLOR,
+            LANTERN_LIT_ALPHA,
+          )
+          .setStrokeStyle(1, 0xffffff, 0.85)
+          .setDepth(4);
+
+        this.tweens.add({
+          targets: lantern,
+          alpha: { from: LANTERN_LIT_ALPHA, to: 0.55 },
+          duration: 850,
+          yoyo: true,
+          repeat: -1,
+        });
+
+        this.guides.push({ ...placement, sceneId: scene.id, sprite, footMarker, lantern });
       }
     }
   }
@@ -230,12 +280,38 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
   }
 
-  private bindInput(): void {
-    const keyboard = this.input.keyboard;
-    if (!keyboard) return;
+  /**
+   * Click-to-move (PRD-08 phase 4). Phaser's pointer events cover mouse and
+   * touch alike, which is what makes this the same code path for both.
+   *
+   * Guarded against a click reaching the world while an encounter panel is
+   * open: the scrim already swallows pointer events at the DOM layer (it
+   * sits on top of the canvas and is `pointer-events: auto`), but this is
+   * cheap insurance against relying on that alone.
+   */
+  private bindPointerInput(): void {
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (this.runtime.view.getState().openEncounterReference !== null) return;
 
-    this.cursors = keyboard.createCursorKeys();
-    this.wasd = keyboard.addKeys("W,A,S,D") as Record<string, Phaser.Input.Keyboard.Key>;
+      const resolution = resolveClick(
+        this.player.x,
+        this.player.y,
+        pointer.worldX,
+        pointer.worldY,
+        this.guides,
+      );
+
+      if (resolution.reference && !resolution.moveTo) {
+        // Already within the interaction radius: open without moving.
+        this.moveTarget = null;
+        openEncounter(this.runtime, resolution.reference);
+        return;
+      }
+
+      this.moveTarget = resolution.moveTo
+        ? { x: resolution.moveTo.x, y: resolution.moveTo.y, reference: resolution.reference }
+        : null;
+    });
   }
 
   private subscribe(): void {
@@ -261,7 +337,7 @@ export class WorldScene extends Phaser.Scene {
     for (const guide of this.guides) {
       const state = encounterState(encounters, guide.sceneId, guide.reference);
 
-      if (state === "insight-recognised") {
+      if (state === "resolved") {
         guide.footMarker.setAlpha(0.95).setStrokeStyle(2, PALETTE.player, 1);
       } else if (state === "engaged") {
         guide.footMarker.setAlpha(0.45).setStrokeStyle(1, 0xffffff, 0.3);
@@ -273,31 +349,50 @@ export class WorldScene extends Phaser.Scene {
 
   // --- per-frame ----------------------------------------------------------
 
+  /**
+   * Walks toward `this.moveTarget`, if any. Pathing only needs the world
+   * bounds (`clampToWorld`), since the ground is open rectangles with no
+   * obstacles to route around (PRD-08 phase 4).
+   *
+   * A character target's arrival radius is the interaction radius itself,
+   * not the target's exact point: the player stops once close enough to
+   * talk, which is what "walks to them and opens the interaction" means,
+   * and is also what stops the walk from continuing past a boundary that
+   * would otherwise never resolve to "arrived". A plain ground click uses a
+   * tight epsilon instead, so the player comes to rest at the clicked spot.
+   */
   private movePlayer(deltaSeconds: number): void {
-    const left = this.cursors?.left.isDown || this.wasd?.A.isDown;
-    const right = this.cursors?.right.isDown || this.wasd?.D.isDown;
-    const up = this.cursors?.up.isDown || this.wasd?.W.isDown;
-    const down = this.cursors?.down.isDown || this.wasd?.S.isDown;
-
-    const dx = (right ? 1 : 0) - (left ? 1 : 0);
-    const dy = (down ? 1 : 0) - (up ? 1 : 0);
-
-    const row = directionRowFor(dx, dy);
-    if (row === null) {
+    if (!this.moveTarget) {
       // Standing still keeps the last facing rather than snapping to front.
       this.player.anims.stop();
       this.player.setFrame(idleFrame(this.playerFacingRow));
       return;
     }
 
-    this.playerFacingRow = row;
-    this.player.anims.play(walkAnimKey(this.runtime.cast.playerSpriteKey, row), true);
+    const dx = this.moveTarget.x - this.player.x;
+    const dy = this.moveTarget.y - this.player.y;
+    const distance = Math.hypot(dx, dy);
+    const arrivalRadius = this.moveTarget.reference ? INTERACT_RADIUS : ARRIVAL_EPSILON;
 
-    const length = Math.hypot(dx, dy);
-    const step = PLAYER_SPEED * deltaSeconds;
+    if (distance <= arrivalRadius) {
+      const { reference } = this.moveTarget;
+      this.moveTarget = null;
+      this.player.anims.stop();
+      this.player.setFrame(idleFrame(this.playerFacingRow));
+      if (reference) openEncounter(this.runtime, reference);
+      return;
+    }
+
+    const row = directionRowFor(dx, dy);
+    if (row !== null) {
+      this.playerFacingRow = row;
+      this.player.anims.play(walkAnimKey(this.runtime.cast.playerSpriteKey, row), true);
+    }
+
+    const step = Math.min(PLAYER_SPEED * deltaSeconds, distance);
     const next = clampToWorld(
-      this.player.x + (dx / length) * step,
-      this.player.y + (dy / length) * step,
+      this.player.x + (dx / distance) * step,
+      this.player.y + (dy / distance) * step,
       PLAYER_SIZE,
     );
 

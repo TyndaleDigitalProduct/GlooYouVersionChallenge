@@ -90,3 +90,14 @@ Passage text is fetched from the YouVersion Platform API at runtime and is not
 redistributed in this repository. A bundled public-domain fallback (WEB) covers
 development and API outages. Neither is licence-encumbered for this use. If the
 fallback text is ever committed, its edition and source belong in this section.
+
+**Committed 2026-07-29 (PRD-08 phase 2).** The fallback text is now committed,
+at `content/daniel-1.scripture.json`: 112 verses across the 9 Daniel 1 scene
+anchors and the 24 curated cross-references in `content/daniel-1.refs.json`.
+
+| | |
+|---|---|
+| **Edition** | World English Bible (WEB) |
+| **Licence** | Public Domain |
+| **Source** | [bible-api.com](https://bible-api.com), `translation_id: web` |
+| **Retrieved** | 2026-07-29 |

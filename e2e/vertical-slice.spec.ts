@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { clickWorldPoint, scene1GuidePositions, tapWorldPoint } from "./worldPoints";
 
 const SAVE_KEY = "verse-and-vale:save";
 
@@ -12,23 +13,6 @@ const dialogueDocument = JSON.parse(
 const sceneOneBeatCount =
   dialogueDocument.scenes.find((scene) => scene.id === 1)?.beats.length ?? 0;
 
-/**
- * Walks right in short bursts until the guide is in range, checking between
- * each burst. Bursts rather than a held key so the player is stationary when
- * the prompt appears, which keeps the subsequent click from racing the
- * proximity check.
- */
-async function walkToFirstGuide(page: Page): Promise<void> {
-  const prompt = page.getByTestId("proximity-prompt");
-
-  for (let step = 0; step < 12; step += 1) {
-    if (await prompt.isVisible()) return;
-    await page.keyboard.press("ArrowRight", { delay: 120 });
-  }
-
-  await expect(prompt).toBeVisible();
-}
-
 test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", async ({ page }) => {
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
@@ -38,28 +22,33 @@ test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", a
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("0");
   await expect(page.getByTestId("regions-revealed")).toHaveText("1");
 
-  await walkToFirstGuide(page);
-  await page.getByTestId("proximity-prompt").click();
+  // PRD-08 phase 4: click-to-move, replacing arrows/WASD. Clicking directly
+  // on a character walks the player to them and opens the interaction in one
+  // gesture, so no separate proximity-prompt click is needed to get in.
+  const [chronicler] = scene1GuidePositions();
+  await clickWorldPoint(page, chronicler.x, chronicler.y);
 
   await expect(page.getByTestId("encounter-panel")).toBeVisible();
   await expect(page.getByTestId("encounter-reference")).toContainText("2KI.24.1-4");
   // The guide's portrait loaded: onError would have unmounted a broken image.
   await expect(page.getByTestId("encounter-portrait")).toBeVisible();
-  await expect(page.getByTestId("passage-slot")).toContainText("later PRD");
+  // PRD-08 phase 3: the passage is gated behind an explicit "Read" action —
+  // the read gate — rather than shown automatically.
+  await page.getByTestId("passage-card-reference-open").click();
+  await expect(page.getByTestId("passage-card-reference-text")).toContainText("Nebuchadnezzar");
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("1");
-
-  await page.getByTestId("recognise-button").click();
-  await expect(page.getByTestId("verdict-message")).toContainText("Stub verdict");
-  await expect(page.getByTestId("vale-stones-balance")).toHaveText("3");
-  await expect(page.getByTestId("recognise-button")).toBeDisabled();
 
   await page.getByTestId("encounter-close").click();
   await expect(page.getByTestId("encounter-panel")).toHaveCount(0);
 
-  // Re-opening the same encounter awards nothing further.
+  // Re-opening the same encounter awards nothing further: the engagement
+  // stone is earned once. The six insight cards resolve the encounter only
+  // once selections are locked, so the state stays "engaged" here. The
+  // player never left the interaction radius, so the proximity prompt is
+  // still the available click.
   await page.getByTestId("proximity-prompt").click();
-  await expect(page.getByTestId("encounter-state")).toContainText("Insight recognised");
-  await expect(page.getByTestId("vale-stones-balance")).toHaveText("3");
+  await expect(page.getByTestId("encounter-state")).toContainText("Engaged");
+  await expect(page.getByTestId("vale-stones-balance")).toHaveText("1");
   await page.getByTestId("encounter-close").click();
 
   for (let beat = 0; beat < sceneOneBeatCount; beat += 1) {
@@ -68,25 +57,47 @@ test("walkthrough: engage a guide, earn stones, complete scene 1, and reload", a
 
   await expect(page.getByTestId("scene-complete")).toBeVisible();
   await expect(page.getByTestId("regions-revealed")).toHaveText("2");
+  // 1 (engagement) + 5 (scene-complete).
+  await expect(page.getByTestId("vale-stones-balance")).toHaveText("6");
 
   await page.reload();
 
   await expect(page.getByTestId("scene-complete")).toBeVisible();
-  await expect(page.getByTestId("vale-stones-balance")).toHaveText("3");
+  await expect(page.getByTestId("vale-stones-balance")).toHaveText("6");
   await expect(page.getByTestId("regions-revealed")).toHaveText("2");
 });
 
-test("the player can also walk with WASD", async ({ page }) => {
+test("a plain ground click walks the player without opening anything", async ({ page }) => {
   await page.goto("/");
   await page.locator("#game-container canvas").waitFor();
 
-  const prompt = page.getByTestId("proximity-prompt");
-  for (let step = 0; step < 12; step += 1) {
-    if (await prompt.isVisible()) break;
-    await page.keyboard.press("d", { delay: 120 });
-  }
+  // A point well clear of either guide: no proximity prompt, no panel.
+  await clickWorldPoint(page, 300, 60);
 
-  await expect(prompt).toBeVisible();
+  await expect(page.getByTestId("proximity-prompt")).toHaveCount(0);
+  await expect(page.getByTestId("encounter-panel")).toHaveCount(0);
+});
+
+test("touch: tapping a character walks to them and opens the interaction in one gesture", async ({
+  browser,
+}) => {
+  // PRD-08 phase 4's entire reason for existing: touch has no hover, so a tap
+  // is the only signal a touch player has. A dedicated touch-capable context
+  // is used here since the project's default chromium project is not
+  // configured for touch.
+  const context = await browser.newContext({ hasTouch: true });
+  const page = await context.newPage();
+
+  await page.goto("/");
+  await page.locator("#game-container canvas").waitFor();
+
+  const [chronicler] = scene1GuidePositions();
+  await tapWorldPoint(page, chronicler.x, chronicler.y);
+
+  await expect(page.getByTestId("encounter-panel")).toBeVisible();
+  await expect(page.getByTestId("encounter-reference")).toContainText(chronicler.reference);
+
+  await context.close();
 });
 
 test("scene 1 can be completed with both encounters skipped", async ({ page }) => {
@@ -98,7 +109,8 @@ test("scene 1 can be completed with both encounters skipped", async ({ page }) =
   }
 
   await expect(page.getByTestId("scene-complete")).toBeVisible();
-  await expect(page.getByTestId("vale-stones-balance")).toHaveText("0");
+  // The scene-complete award fires regardless of encounters engaged.
+  await expect(page.getByTestId("vale-stones-balance")).toHaveText("5");
   await expect(page.getByTestId("regions-revealed")).toHaveText("2");
 });
 

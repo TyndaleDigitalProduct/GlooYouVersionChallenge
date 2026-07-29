@@ -23,11 +23,6 @@ export interface Notice {
   message: string;
 }
 
-export interface VerdictDisplay {
-  reference: string;
-  message: string;
-}
-
 export interface ViewState {
   /** Index into the current playable scene's beats. */
   dialogueIndex: number;
@@ -35,16 +30,27 @@ export interface ViewState {
   nearbyReference: string | null;
   /** Reference of the open encounter panel, or null when nothing is open. */
   openEncounterReference: string | null;
-  verdictPending: boolean;
-  verdict: VerdictDisplay | null;
+  /**
+   * The read gate (PRD-08 phase 3, storyboard-v2.md line 21): which Scripture
+   * passages have been opened, per encounter. Keyed by the encounter's own
+   * reference; the value is every passage reference opened for it (its
+   * anchor and its own reference — the two passages an encounter shows).
+   *
+   * This is view state, not save state, by deliberate choice (PRD-08 "Notes"
+   * item 3): nothing in ADR-0003 requires the gate to survive a reload, and
+   * re-reading after one is an acceptable cost. Keeping it here, rather than
+   * in the persisted EncounterRecord, is what lets a reload never re-lock a
+   * grid the player had already opened in the same session while still
+   * costing nothing if it resets.
+   */
+  readPassages: Record<string, readonly string[]>;
   notices: Notice[];
 
   advanceDialogue(): void;
   setNearbyReference(reference: string | null): void;
   openEncounter(reference: string): void;
   closeEncounter(): void;
-  setVerdictPending(pending: boolean): void;
-  setVerdict(verdict: VerdictDisplay | null): void;
+  markPassageRead(encounterReference: string, passageReference: string): void;
   pushNotice(notice: Notice): void;
   dismissNotice(id: string): void;
 }
@@ -54,8 +60,7 @@ export function createViewStore() {
     dialogueIndex: 0,
     nearbyReference: null,
     openEncounterReference: null,
-    verdictPending: false,
-    verdict: null,
+    readPassages: {},
     notices: [],
 
     advanceDialogue() {
@@ -75,32 +80,28 @@ export function createViewStore() {
       set((state) =>
         state.openEncounterReference === reference
           ? state
-          : {
-              ...state,
-              openEncounterReference: reference,
-              // A verdict belongs to the encounter it came from.
-              verdict: state.verdict?.reference === reference ? state.verdict : null,
-              verdictPending: false,
-            },
+          : { ...state, openEncounterReference: reference },
       );
     },
 
     closeEncounter() {
       set((state) =>
-        state.openEncounterReference === null
-          ? state
-          : { ...state, openEncounterReference: null, verdictPending: false },
+        state.openEncounterReference === null ? state : { ...state, openEncounterReference: null },
       );
     },
 
-    setVerdictPending(pending) {
-      set((state) =>
-        state.verdictPending === pending ? state : { ...state, verdictPending: pending },
-      );
-    },
-
-    setVerdict(verdict) {
-      set((state) => ({ ...state, verdict }));
+    markPassageRead(encounterReference, passageReference) {
+      set((state) => {
+        const already = state.readPassages[encounterReference] ?? [];
+        if (already.includes(passageReference)) return state;
+        return {
+          ...state,
+          readPassages: {
+            ...state.readPassages,
+            [encounterReference]: [...already, passageReference],
+          },
+        };
+      });
     },
 
     pushNotice(notice) {
@@ -122,3 +123,27 @@ export function createViewStore() {
 }
 
 export type ViewStoreApi = ReturnType<typeof createViewStore>;
+
+/** True once a given passage has been opened for a given encounter. */
+export function hasReadPassage(
+  state: Pick<ViewState, "readPassages">,
+  encounterReference: string,
+  passageReference: string,
+): boolean {
+  return (state.readPassages[encounterReference] ?? []).includes(passageReference);
+}
+
+/**
+ * The read gate itself: true once both of an encounter's Scripture passages
+ * (its Daniel anchor and its own cross-reference) have been opened.
+ */
+export function hasReadBothPassages(
+  state: Pick<ViewState, "readPassages">,
+  encounterReference: string,
+  anchorReference: string,
+): boolean {
+  return (
+    hasReadPassage(state, encounterReference, anchorReference) &&
+    hasReadPassage(state, encounterReference, encounterReference)
+  );
+}

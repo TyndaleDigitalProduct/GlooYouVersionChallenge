@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { openEncounter } from "@/app/encounterController";
 import { findCrossReferenceContent } from "@/content/loadContent";
 import { useRuntime, useViewState } from "./RuntimeContext";
@@ -8,27 +7,23 @@ import { useRuntime, useViewState } from "./RuntimeContext";
  *
  * Phaser reports proximity into the view store and stops there; opening a
  * panel is a DOM concern, so it happens here. That keeps the readable
- * invitation in real DOM (ADR-0002) and gives the walkthrough test something
- * to click rather than a canvas coordinate to guess at.
+ * invitation in real DOM (ADR-0002) and gives a test something to click
+ * rather than a canvas coordinate to guess at.
+ *
+ * PRD-08 phase 4 also opens the interaction directly from a click on the
+ * character in the world (one gesture: walk-then-open), via the same
+ * `openEncounter` action. This prompt is not made redundant by that: it is
+ * what still offers the interaction to a player who arrives in range some
+ * other way (a ground click that happens to land nearby), and — since
+ * keyboard movement is removed entirely in this phase, with no keyboard path
+ * left anywhere in the game — its click is now the only input this prompt
+ * accepts.
  */
 export function ProximityPrompt() {
   const runtime = useRuntime();
   const nearbyReference = useViewState((state) => state.nearbyReference);
   const isPanelOpen = useViewState((state) => state.openEncounterReference !== null);
   const available = nearbyReference !== null && !isPanelOpen;
-
-  useEffect(() => {
-    if (!available || nearbyReference === null) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "e" || event.repeat) return;
-      event.preventDefault();
-      openEncounter(runtime, nearbyReference);
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [runtime, available, nearbyReference]);
 
   if (!available || nearbyReference === null) return null;
 
@@ -43,9 +38,6 @@ export function ProximityPrompt() {
       onClick={() => openEncounter(runtime, nearbyReference)}
     >
       Speak with the {crossRef.section} guide about {crossRef.reference}
-      <span className="vv-prompt__key" aria-hidden="true">
-        E
-      </span>
     </button>
   );
 }

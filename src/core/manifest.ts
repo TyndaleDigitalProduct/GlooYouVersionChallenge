@@ -39,3 +39,10 @@ export function findCrossReference(
 ): CrossReferenceDefinition | undefined {
   return manifest.crossReferences.find((crossRef) => crossRef.reference === reference);
 }
+
+/** Every reference the manifest assigns to one scene, in manifest order. */
+export function crossReferencesForScene(manifest: GameManifest, sceneId: string): string[] {
+  return manifest.crossReferences
+    .filter((crossRef) => crossRef.sceneId === sceneId)
+    .map((crossRef) => crossRef.reference);
+}

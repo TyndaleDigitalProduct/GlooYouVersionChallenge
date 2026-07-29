@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createEventBus } from "@/core/eventBus";
 import { createInMemoryStorage } from "@/core/fixtures";
+import { ENGAGEMENT_STONE_AWARD } from "@/core/ledger";
 import type { Storage as CoreStorage } from "@/core/storage";
-import { openEncounter, requestVerdict } from "./encounterController";
-import { STUB_VERDICT_MESSAGE } from "./providers";
+import { openEncounter } from "./encounterController";
 import { createAppRuntime } from "./runtime";
 
 const KEY = "test:runtime-save";
@@ -64,25 +64,34 @@ describe("createAppRuntime", () => {
     const second = boot(storage);
 
     expect(second.store.getState().isSceneComplete("scene-1")).toBe(true);
-    expect(second.store.getState().balance()).toBe(1);
+    expect(second.store.getState().balance()).toBe(first.store.getState().balance());
     expect(second.store.getState().revealedRegionIds()).toEqual(["region-1", "region-2"]);
   });
 
-  it("wires all three stubs and labels them as stubs", () => {
+  it("wires the remaining stub and labels it as one", () => {
     const runtime = boot();
 
-    expect(runtime.scripture.isStub).toBe(true);
-    expect(runtime.verdicts.isStub).toBe(true);
     expect(runtime.session.isStub).toBe(true);
     expect(runtime.session.current()).toBeNull();
   });
 
-  it("has no Scripture text to give, and says why", async () => {
+  it("wires the real Scripture provider, not a stub, since PRD-08 phase 2", async () => {
     const runtime = boot();
 
+    expect(runtime.scripture.isStub).toBe(false);
     await expect(runtime.scripture.getPassage("2KI.24.1-4")).resolves.toMatchObject({
-      status: "unavailable",
+      status: "available",
       reference: "2KI.24.1-4",
+      translation: "World English Bible",
+    });
+  });
+
+  it("still reports the defined unavailable outcome for a reference outside the bundle", async () => {
+    const runtime = boot();
+
+    await expect(runtime.scripture.getPassage("JHN.3.16")).resolves.toMatchObject({
+      status: "unavailable",
+      reference: "JHN.3.16",
     });
   });
 });
@@ -94,37 +103,15 @@ describe("encounter controller", () => {
     runtime = boot();
   });
 
-  it("engages the encounter and awards the base stone once", () => {
+  it("engages the encounter and awards the engagement stone once", () => {
     openEncounter(runtime, "2KI.24.1-4");
-    expect(runtime.store.getState().balance()).toBe(1);
+    expect(runtime.store.getState().balance()).toBe(ENGAGEMENT_STONE_AWARD);
 
     runtime.view.getState().closeEncounter();
     openEncounter(runtime, "2KI.24.1-4");
 
-    expect(runtime.store.getState().balance()).toBe(1);
+    expect(runtime.store.getState().balance()).toBe(ENGAGEMENT_STONE_AWARD);
     expect(runtime.view.getState().openEncounterReference).toBe("2KI.24.1-4");
-  });
-
-  it("awards the bonus stone once when the verdict recognises the connection", async () => {
-    openEncounter(runtime, "2KI.24.1-4");
-
-    await requestVerdict(runtime, "2KI.24.1-4");
-    expect(runtime.store.getState().balance()).toBe(3);
-
-    await requestVerdict(runtime, "2KI.24.1-4");
-    expect(runtime.store.getState().balance()).toBe(3);
-  });
-
-  it("shows the stub verdict message rather than pretending a guide replied", async () => {
-    openEncounter(runtime, "2KI.24.1-4");
-
-    await requestVerdict(runtime, "2KI.24.1-4");
-
-    expect(runtime.view.getState().verdict).toEqual({
-      reference: "2KI.24.1-4",
-      message: STUB_VERDICT_MESSAGE,
-    });
-    expect(runtime.view.getState().verdictPending).toBe(false);
   });
 
   it("notices, rather than throws, when a reference is not loaded content", () => {
@@ -134,22 +121,6 @@ describe("encounter controller", () => {
     expect(runtime.view.getState().notices).toEqual([
       expect.objectContaining({ id: "encounter-unknown-GEN.1.1", tone: "error" }),
     ]);
-  });
-
-  it("clears the pending flag even when the provider rejects", async () => {
-    const failing = createAppRuntime({
-      storage: createInMemoryStorage(),
-      saveKey: KEY,
-      bus: createEventBus(),
-      verdicts: {
-        isStub: true,
-        evaluate: () => Promise.reject(new Error("provider exploded")),
-      },
-    });
-    if (!failing.ok) throw new Error(failing.reason);
-
-    await expect(requestVerdict(failing.value, "2KI.24.1-4")).rejects.toThrow("provider exploded");
-    expect(failing.value.view.getState().verdictPending).toBe(false);
   });
 
   it("leaves progression untouched: engaging never unlocks a scene", () => {
@@ -163,7 +134,6 @@ describe("encounter controller", () => {
     const result = runtime.store.getState().completeScene("scene-1");
 
     expect(result).toMatchObject({ ok: true });
-    expect(runtime.store.getState().balance()).toBe(0);
     expect(runtime.store.getState().revealedRegionIds()).toEqual(["region-1", "region-2"]);
   });
 });

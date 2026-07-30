@@ -77,6 +77,21 @@ describe.skipIf(!target)(`scene-${target} blocking`, () => {
     expect(violations.map(describeViolation)).toEqual([]);
   });
 
+  it("keeps the spawn point clear of its own cast", () => {
+    // Not one of `validateSceneBlocking`'s four checks, but the suite enforces it
+    // over all nine files and a worker needs it here or it only surfaces after
+    // the fan-out. Spawning inside a character's click radius means the player
+    // starts on top of them and a ground click resolves to them instead.
+    const { scene } = load();
+    const tooClose = scene.placements
+      .map((p) => ({
+        reference: p.reference,
+        distance: Math.round(Math.hypot(p.x - scene.spawn.x, p.y - scene.spawn.y)),
+      }))
+      .filter((p) => p.distance < CHARACTER_CLICK_RADIUS);
+    expect(tooClose).toEqual([]);
+  });
+
   it("reports what it checked, so a silent pass on an empty file is impossible", () => {
     const { scene, collision } = load();
     expect(scene.placements.length).toBeGreaterThan(0);

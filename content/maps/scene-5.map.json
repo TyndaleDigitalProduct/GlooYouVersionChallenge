@@ -1,17 +1,76 @@
 {
   "scene": 5,
-  "status": "draft",
+  "status": "authored",
   "backdrop": "babylon-palace",
-  "note": "DAN.1.8-10, Daniel's resolve. The terraced garden, away from the tables. DRAFT. This file exists so that all nine scenes are visible to the loader and the suite (PRD-13 phase 2), and so that a missing or unstaged backdrop fails at boot rather than degrading to a grey rectangle. Nobody has placed this scene's cast yet: `placements` is empty and `status` is \"draft\", which src/content/loadContent.ts refuses to combine with a playable scene. Promoting this to \"authored\" is what turns the phase-4 validator on for it, so an unauthored scene cannot quietly ship as an empty room. The spawn and exit below are provisional: standable and inside the right zone, but not reviewed.",
-  "spawn": {
-    "x": 1500,
-    "y": 480
-  },
+  "note": "DAN.1.8-10, Daniel's resolve not to defile himself with the king's food and wine. The beat happens where the food is served: the food pavilion, south-east of the precinct. Daniel and Ashpenaz stand apart from everyone else, close together, in the quiet negotiation the dialogue is built around. The kitchen servant works the tables inside the pavilion's south edge; the trainee eats without hesitation at its east side, the unbothered contrast the scene needs. Hananiah, Mishael and Azariah are spread at different heights around the pavilion rather than clustered with Daniel or each other, per the no-Judean-row rule. The two guides sit near the story beats they echo: GEN.39.20-23 (Joseph's integrity under pressure) near Daniel's stand, PRO.29.25 (the fear of man is a snare) near Ashpenaz, who is afraid of the king. Spawn and exit corrected from the provisional draft, which pointed at the terraced garden (that zone now belongs to scene 6); spawn moved into the pavilion's south approach so the tables are the first thing on screen.",
+  "spawn": { "x": 1480, "y": 980 },
   "exit": {
     "x": 938,
     "y": 282,
     "width": 40,
-    "height": 48
+    "height": 48,
+    "note": "the palace doorway shared by scenes 3-7; the Lamplighter walks the party there to close the scene, per ADR-0004. Left unchanged from the draft: it is a fixed cross-scene trigger, not part of this scene's zone."
   },
-  "placements": []
+  "placements": [
+    {
+      "reference": "lamplighter:scene-5",
+      "x": 1440,
+      "y": 955,
+      "note": "beside the spawn, at the pavilion's south approach, where the player arrives"
+    },
+    {
+      "reference": "character:scene-5:daniel",
+      "x": 1220,
+      "y": 760,
+      "note": "apart from the crowd, facing Ashpenaz to make his request"
+    },
+    {
+      "reference": "character:scene-5:hananiah",
+      "x": 1340,
+      "y": 700,
+      "note": "west approach to the pavilion, watching, not clustered with Daniel"
+    },
+    {
+      "reference": "character:scene-5:mishael",
+      "x": 1600,
+      "y": 600,
+      "note": "north side of the pavilion, at a different height from the other three"
+    },
+    {
+      "reference": "character:scene-5:azariah",
+      "x": 1720,
+      "y": 820,
+      "note": "east side of the pavilion, nearest the trainee's contrast"
+    },
+    {
+      "reference": "character:scene-5:ashpenaz",
+      "x": 1270,
+      "y": 800,
+      "note": "facing Daniel, apart from the pavilion crowd, in the same conversation"
+    },
+    {
+      "reference": "character:scene-5:kitchen-servant",
+      "x": 1500,
+      "y": 915,
+      "note": "at the tables, serving trays from the pavilion"
+    },
+    {
+      "reference": "character:scene-5:trainee-at-the-table",
+      "x": 1610,
+      "y": 950,
+      "note": "eating the king's food without hesitation, the contrast Daniel is drawing"
+    },
+    {
+      "reference": "GEN.39.20-23",
+      "x": 1150,
+      "y": 850,
+      "note": "Torah guide, Joseph's integrity under pressure, near Daniel's stand"
+    },
+    {
+      "reference": "PRO.29.25",
+      "x": 1330,
+      "y": 810,
+      "note": "OT Poetry/Wisdom guide, the fear of man is a snare, near Ashpenaz who fears the king"
+    }
+  ]
 }

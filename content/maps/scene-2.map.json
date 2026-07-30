@@ -1,17 +1,82 @@
 {
   "scene": 2,
-  "status": "draft",
+  "status": "authored",
   "backdrop": "temple",
-  "note": "DAN.1.2, the temple stripped and burning. Arrives through the gap in the north wall. DRAFT. This file exists so that all nine scenes are visible to the loader and the suite (PRD-13 phase 2), and so that a missing or unstaged backdrop fails at boot rather than degrading to a grey rectangle. Nobody has placed this scene's cast yet: `placements` is empty and `status` is \"draft\", which src/content/loadContent.ts refuses to combine with a playable scene. Promoting this to \"authored\" is what turns the phase-4 validator on for it, so an unauthored scene cannot quietly ship as an empty room. The spawn and exit below are provisional: standable and inside the right zone, but not reviewed.",
-  "spawn": {
-    "x": 860,
-    "y": 120
-  },
+  "note": "DAN.1.2, the temple court after the fall: smoke-hazed, the burnt sanctuary on its raised plaza in the middle, burning houses at the edges. The player arrives through the gap in the north wall, straight into the loading of the two ox carts already laden with Temple treasure, so the first thing on screen is the plunder itself. The Babylonian officer and soldier work the carts and the corridor down from the sanctuary; the Levite stands by the altar and bronze sea he used to tend; Daniel and Hananiah watch the vessels go from the corridor between the carts and the sanctuary; Mishael keeps to the sanctuary's west side, near where his uncle would have served; Azariah, the onlooker and the Levite form a small knot of watchers southwest of the altar. The guides stand apart, out past the ruined houses at the south edge, findable but not part of the crowd.",
+  "spawn": { "x": 860, "y": 120 },
   "exit": {
     "x": 880,
     "y": 950,
     "width": 140,
-    "height": 50
+    "height": 50,
+    "note": "the road out of the courtyard, where the deportation caravan is forming. Shut until the Lamplighter closes the scene."
   },
-  "placements": []
+  "placements": [
+    {
+      "reference": "lamplighter:scene-2",
+      "x": 900,
+      "y": 150,
+      "note": "just south of the breach, where the player arrives, between the two loaded ox carts"
+    },
+    {
+      "reference": "character:scene-2:babylonian-officer",
+      "x": 918,
+      "y": 240,
+      "note": "overseeing the west cart's load; he wants an inventory, not a pile"
+    },
+    {
+      "reference": "character:scene-2:babylonian-soldier",
+      "x": 1055,
+      "y": 195,
+      "note": "keeping the line moving at the east cart"
+    },
+    {
+      "reference": "character:scene-2:daniel",
+      "x": 1050,
+      "y": 260,
+      "note": "in the corridor between the carts and the sanctuary, watching the soldiers' faces as they carry the vessels"
+    },
+    {
+      "reference": "character:scene-2:hananiah",
+      "x": 1150,
+      "y": 330,
+      "note": "further down the corridor, watching the treasure go out with the four of them on the same list"
+    },
+    {
+      "reference": "character:scene-2:mishael",
+      "x": 820,
+      "y": 440,
+      "note": "the sanctuary's west side, where his uncle would have served; he can't look at him today"
+    },
+    {
+      "reference": "character:scene-2:a-levite",
+      "x": 790,
+      "y": 675,
+      "note": "south of the bronze altar he polished cups for every festival since he was a boy"
+    },
+    {
+      "reference": "character:scene-2:azariah",
+      "x": 700,
+      "y": 700,
+      "note": "southwest of the altar with the Levite and the onlooker, holding on to Jeremiah's seventy years"
+    },
+    {
+      "reference": "character:scene-2:onlooker-in-the-crowd",
+      "x": 750,
+      "y": 720,
+      "note": "part of the small knot of watchers by the altar, not standing alone"
+    },
+    {
+      "reference": "PSA.106.40-42",
+      "x": 420,
+      "y": 900,
+      "note": "OT Poetry/Wisdom guide, apart from the crowd past the southwest burning house"
+    },
+    {
+      "reference": "ISA.42.21-25",
+      "x": 1650,
+      "y": 900,
+      "note": "Prophets guide, apart from the crowd past the southeast burning house"
+    }
+  ]
 }

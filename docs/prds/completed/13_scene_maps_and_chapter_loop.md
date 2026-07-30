@@ -1,5 +1,26 @@
 # PRD-13: Scene maps, room transitions, and the chapter loop
 
+**Delivered 2026-07-30**, all eight delivery steps, on PR #14. All five quality
+gates green: 565 tests, e2e 15/15, coverage exit 0, build and lint clean.
+`src/core/` untouched, as ADR-0004 intended.
+
+Two things were *not* closed by the gates, because no gate can close them, and
+they are carried forward rather than claimed as done:
+
+- **About a dozen of scene 1's ~38 city houses are not blocked.** A second art
+  variant with no dark outline and per-instance noise, so neither outline
+  detection nor template matching finds them. Needs eyes. The criterion as
+  written names walls, pools, tents and the dais, all of which are blocked.
+- **101 placements pass the validator but have not all been seen.** The validator
+  proves nobody is walled off, overlapping, or out of bounds. It cannot prove
+  anyone is standing somewhere sensible, and eight of the nine scenes were
+  authored by workers that never saw the pictures.
+
+One decision was superseded mid-flight: transitions were **walk-to-exit** for
+part of the day, then became a **fade on an explicit control**. The text below
+records the final decision; the walk-to-exit reasoning survives only in the
+`Resolved by the operator` section and in PR #14's history.
+
 ## Goal
 
 Turn nine coloured rectangles into nine places, and connect them into a game that

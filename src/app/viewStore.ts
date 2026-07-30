@@ -27,8 +27,46 @@ import { createStore } from "zustand/vanilla";
  *   offer (§2). Reached only from "home" via Enter or a confirmed New game.
  * - "intro": skippable, reopenable cast/mechanics walkthrough (§3).
  * - "playing": the encounter/world loop PRD-08 already built.
+ * - "complete": PRD-13 phase 5's end state, once every scene of the chapter is
+ *   closed (`isGameComplete`, src/core/progression.ts). Its own phase rather
+ *   than a return to "home", because finishing Daniel 1 has to name what was
+ *   finished instead of dropping the player back at the title screen as though
+ *   nothing had happened.
  */
-export type Phase = "home" | "setup" | "intro" | "playing";
+export type Phase = "home" | "setup" | "intro" | "playing" | "complete";
+
+/**
+ * PRD-13 phase 5: a scene transition in flight.
+ *
+ * Transitions are a fade on the Lamplighter's "ready to move on" control
+ * (operator, 2026-07-30, superseding walk-to-exit): the screen fades out, the
+ * world swaps rooms behind the black, a caption names the time change, and the
+ * screen fades back in on the new scene's own spawn point. Nobody walks
+ * anywhere, so this fade *is* the transition and carries the whole beat.
+ *
+ * The three stages are separate state rather than one boolean because the room
+ * swap has to happen at a specific point in the middle: while the overlay is
+ * fully opaque. Swapping early shows the room change; swapping late shows the
+ * old room again on the way back in. `SceneTransition` (src/ui) drives the
+ * clock; every stage here is a deliberate, testable step.
+ *
+ * - "out": the overlay is fading up. The old room is still on screen under it.
+ * - "arriving": fully opaque, the world has swapped, the caption is readable.
+ * - "in": the overlay is fading away over the new room.
+ */
+export interface SceneTransitionState {
+  fromSceneId: string;
+  toSceneId: string;
+  /** The arriving scene's caption. Null only if the content file omitted one. */
+  caption: string | null;
+  stage: "out" | "arriving" | "in";
+}
+
+export interface SceneTransitionRequest {
+  fromSceneId: string;
+  toSceneId: string;
+  caption: string | null;
+}
 
 export type NoticeTone = "info" | "warning" | "error";
 
@@ -88,6 +126,26 @@ export interface ViewState {
   /** PRD-11: the in-game HUD menu (replay intro, connect YouVersion). */
   menuOpen: boolean;
 
+  /**
+   * PRD-13 phase 5: which of the nine rooms the world canvas is drawing.
+   *
+   * Deliberately explicit state rather than a read of `currentSceneId()`, for
+   * two reasons the old derivation could not cover. A completed scene can be
+   * re-entered (PRD-12 revisit), so the room on screen is routinely *not* the
+   * current scene; and `currentSceneId()` advances the instant `completeScene`
+   * fires, which is while the Lamplighter's panel is still open, so following it
+   * would swap the room out from under the player mid-conversation.
+   *
+   * It is view state, not a rule: nothing about which room is drawn is
+   * persisted, and nothing in src/core knows or cares. Null until `runtime.ts`
+   * sets it at boot from the loaded save.
+   */
+  roomSceneId: string | null;
+  /** PRD-13 phase 5: the fade in flight, or null. See `SceneTransitionState`. */
+  sceneTransition: SceneTransitionState | null;
+  /** PRD-13 phase 5: the chapter map, open over whichever phase is showing. */
+  chapterMapOpen: boolean;
+
   advanceDialogue(): void;
   setNearbyReference(reference: string | null): void;
   openEncounter(reference: string): void;
@@ -123,6 +181,27 @@ export interface ViewState {
   closeMenu(): void;
   /** The HUD menu's "Replay intro": playing -> intro, menu closes. */
   reopenIntro(): void;
+
+  /**
+   * PRD-13 phase 5: puts the player in a room and rewinds the dialogue to that
+   * scene's first beat. The rewind is not incidental: the opening beats are per
+   * scene but `dialogueIndex` is a single counter, so arriving anywhere with it
+   * left where the last scene ended shows no opening at all.
+   */
+  enterRoom(sceneId: string): void;
+  /** Starts the fade. Closes every panel and the chapter map, and enters "playing". */
+  beginSceneTransition(request: SceneTransitionRequest): void;
+  /** Fully opaque: swap the room and show the caption. */
+  arriveInScene(): void;
+  /** Start fading the overlay away over the new room. */
+  revealScene(): void;
+  /** The fade is done. */
+  endSceneTransition(): void;
+  /** PRD-13 phase 5: the chapter map. Closes the HUD menu if that is what opened it. */
+  openChapterMap(): void;
+  closeChapterMap(): void;
+  /** PRD-13 phase 5: the end state, once every scene of the chapter is closed. */
+  showChapterComplete(): void;
 }
 
 export function createViewStore() {
@@ -138,6 +217,9 @@ export function createViewStore() {
     phase: "home",
     newGameConfirmOpen: false,
     menuOpen: false,
+    roomSceneId: null,
+    sceneTransition: null,
+    chapterMapOpen: false,
 
     advanceDialogue() {
       set((state) => ({ ...state, dialogueIndex: state.dialogueIndex + 1 }));
@@ -274,6 +356,87 @@ export function createViewStore() {
           : { ...state, phase: "intro", menuOpen: false },
       );
     },
+
+    enterRoom(sceneId) {
+      set((state) =>
+        state.roomSceneId === sceneId && state.dialogueIndex === 0
+          ? state
+          : { ...state, roomSceneId: sceneId, dialogueIndex: 0 },
+      );
+    },
+
+    beginSceneTransition(request) {
+      // Everything open belongs to the room being left, so all of it closes
+      // here rather than in each caller: the Lamplighter panel that offered
+      // the control, any encounter or character panel, and the proximity
+      // reading, which is stale the moment the cast changes. The phase is
+      // forced to "playing" because the chapter map can start a transition
+      // from the home screen, which is the one route into play that does not
+      // go through Continue.
+      set((state) => ({
+        ...state,
+        sceneTransition: {
+          fromSceneId: request.fromSceneId,
+          toSceneId: request.toSceneId,
+          caption: request.caption,
+          stage: "out",
+        },
+        phase: "playing",
+        chapterMapOpen: false,
+        menuOpen: false,
+        openEncounterReference: null,
+        openLamplighterSceneId: null,
+        openCharacterReference: null,
+        nearbyReference: null,
+      }));
+    },
+
+    arriveInScene() {
+      set((state) => {
+        // Out of order (no transition in flight) is a no-op rather than a
+        // half-built one: the clock lives in a React effect, and an effect that
+        // fires twice must not be able to strand the store in "arriving" with
+        // nothing to arrive at.
+        if (state.sceneTransition?.stage !== "out") return state;
+        return {
+          ...state,
+          sceneTransition: { ...state.sceneTransition, stage: "arriving" },
+          roomSceneId: state.sceneTransition.toSceneId,
+          dialogueIndex: 0,
+        };
+      });
+    },
+
+    revealScene() {
+      set((state) => {
+        if (state.sceneTransition?.stage !== "arriving") return state;
+        return { ...state, sceneTransition: { ...state.sceneTransition, stage: "in" } };
+      });
+    },
+
+    endSceneTransition() {
+      set((state) =>
+        state.sceneTransition === null ? state : { ...state, sceneTransition: null },
+      );
+    },
+
+    openChapterMap() {
+      set((state) =>
+        state.chapterMapOpen && !state.menuOpen
+          ? state
+          : { ...state, chapterMapOpen: true, menuOpen: false },
+      );
+    },
+
+    closeChapterMap() {
+      set((state) => (state.chapterMapOpen ? { ...state, chapterMapOpen: false } : state));
+    },
+
+    showChapterComplete() {
+      set((state) =>
+        state.phase === "complete" ? state : { ...state, phase: "complete", menuOpen: false },
+      );
+    },
   }));
 }
 
@@ -298,6 +461,29 @@ export function isAnyPanelOpen(
     state.openLamplighterSceneId !== null ||
     state.openCharacterReference !== null
   );
+}
+
+/**
+ * True whenever the world canvas must ignore pointer input.
+ *
+ * A superset of `isAnyPanelOpen`, added by PRD-13 phase 5 rather than folded
+ * into it: that predicate names the three *world-driven* panels and is what the
+ * e2e suite reasons about, while this one is WorldScene's input guard and also
+ * covers the two new full-screen surfaces. A click during the fade would resolve
+ * against a room that is halfway through being replaced, and a click through the
+ * chapter map would walk the player somewhere they cannot see.
+ */
+export function isWorldInputBlocked(
+  state: Pick<
+    ViewState,
+    | "openEncounterReference"
+    | "openLamplighterSceneId"
+    | "openCharacterReference"
+    | "sceneTransition"
+    | "chapterMapOpen"
+  >,
+): boolean {
+  return isAnyPanelOpen(state) || state.sceneTransition !== null || state.chapterMapOpen;
 }
 
 /** True once a given passage has been opened for a given encounter. */

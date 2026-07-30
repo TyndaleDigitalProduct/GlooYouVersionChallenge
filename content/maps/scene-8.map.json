@@ -7,13 +7,6 @@
     "x": 960,
     "y": 985
   },
-  "exit": {
-    "x": 880,
-    "y": 1000,
-    "width": 160,
-    "height": 40,
-    "note": "back out through the south door"
-  },
   "placements": [
     {
       "reference": "character:scene-8:nebuchadnezzar",

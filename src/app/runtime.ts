@@ -9,7 +9,9 @@
 //      construction (src/core exposes no rehydrate action, by design);
 //   3. construct the store on the *real* manifest built from content, never
 //      the test fixture;
-//   4. attach persistence, so every subsequent change is written.
+//   4. seed the room the world will draw, because PRD-13 phase 5 made that
+//      explicit view state and Phaser reads it on its first frame;
+//   5. attach persistence, so every subsequent change is written.
 //
 // PRD-13 adds the scene maps to step 1's "validate content": they are validated
 // against the manifest built from the refs document, so a scene map that names a
@@ -125,6 +127,15 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     bus,
     initialState: loaded.state,
   });
+
+  // PRD-13 phase 5: which room the world draws is explicit view state, so it has
+  // to be seeded before Phaser boots. The first unfinished scene on a fresh or
+  // resumed save; the last playable scene once the chapter is finished, since
+  // `currentSceneId()` is null then and the world still has to draw somewhere.
+  const initialRoom =
+    store.getState().currentSceneId() ??
+    [...content.value.scenes].reverse().find((scene) => scene.playable)?.id;
+  if (initialRoom) view.getState().enterRoom(initialRoom);
 
   attachPersistence(store, storage, saveKey, (failure) => {
     view.getState().pushNotice({

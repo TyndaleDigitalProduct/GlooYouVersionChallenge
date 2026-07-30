@@ -1,10 +1,15 @@
-# PRD-13 resume state, paused 2026-07-30
+# PRD-13 resume state, 2026-07-30
 
 Working scratch. Delete when PRD-13 merges.
 
-Paused at **delivery step 4 of 8: the operator review gate.** Nothing is
-committed. Everything is in the working tree on branch
-`prd-13/scene-maps-and-chapter-loop`.
+**All eight delivery steps are done.** Steps 1-7 are committed on branch
+`prd-13/scene-maps-and-chapter-loop`; step 8 (phase 5) is in the working tree,
+uncommitted, awaiting operator approval to commit and open the PR.
+
+The sections below are the trail as it was written at each pause, kept because
+they record *why* things are the way they are. The "What is NOT done" list is
+historical: see [Step 8](#step-8-phase-5-transitions-and-the-chapter-loop) at the
+bottom for the current state.
 
 ## What is done: steps 1-3
 
@@ -151,3 +156,65 @@ Question 6 (are a revisited scene's encounters replayable) will bite in phase 5.
 ## Note on the control channel
 
 The Telegram loop was closed mid-task; the operator moved to `/remote-control`.
+
+## Step 8: phase 5, transitions and the chapter loop
+
+Done 2026-07-30, uncommitted. Built to the operator's **revised** transition
+decision: a fade on an explicit "ready to move on" control, superseding
+walk-to-exit. Nobody walks to a door.
+
+**What a scene close looks like now.** The Lamplighter's panel is two presses.
+"I'm finished here" runs `completeScene` (the Lamplighter is still the gate, the
+stone award is untouched); only then does "Ready to move on" appear, naming its
+destination. Pressing it fades to black, swaps the room behind the black with the
+arriving scene's caption on screen, and fades back in at that scene's own spawn
+point. On scene 9 there is nowhere to fade to, so the second press becomes "Close
+the chapter" and lands on the end-state screen.
+
+**`exit` is deleted** from the schema and all nine map files. The schema is a
+`strictObject`, so a scene file that still carries one now fails at boot.
+
+**Where the new pieces live.**
+
+| Piece                          | File                                    |
+| ------------------------------ | --------------------------------------- |
+| Which scene follows, + caption | `src/app/sceneFlow.ts`                  |
+| Chapter map data               | `src/app/chapterMap.ts`                 |
+| Room + fade + map view state   | `src/app/viewStore.ts`                  |
+| The fade and its clock         | `src/ui/SceneTransition.tsx`            |
+| The chapter map                | `src/ui/ChapterMapScreen.tsx`           |
+| The end state                  | `src/ui/ChapterCompleteScreen.tsx`      |
+| Room swap                      | `src/game/WorldScene.ts` (`subscribe`)  |
+
+**Decisions worth knowing on resume.**
+
+- **The room on screen is explicit view state** (`ViewState.roomSceneId`), seeded
+  at boot by `runtime.ts`, not a read of `currentSceneId()`. That derivation
+  cannot work here: it advances the instant `completeScene` fires, while the
+  Lamplighter's panel is still open, and it cannot express a revisit. This is what
+  resolved the "needs the exit and the fade to exist first" comment in
+  `WorldScene.activeSceneMap`.
+- **The fade is DOM, not a Phaser camera fade.** The caption is readable text
+  (ADR-0002), and a camera fade would darken the canvas while leaving the HUD
+  bright on top of a black world.
+- **The `playable` gate bug was a conflation, not a condition.** `DialogueBox`
+  used `!scene.playable` as a stand-in for "the player has reached the end of the
+  content", which only ever fired because completing scene 1 advanced onto an
+  unplayable scene 2. Three questions were separated: which scene's dialogue
+  (`roomSceneId`), is there an opening to play (render nothing if not), and has
+  the chapter ended (`isGameComplete`, the end-state screen). The
+  "End of the vertical slice" panel is gone.
+- **`transitionCaption` is authored per scene** in `content/daniel-1.dialogue.json`,
+  optional in the schema so test fixtures need not invent one, and required of the
+  real nine by `loadContent.test.ts`.
+- **A revisited scene replays no forced opening**, and the transition path never
+  calls `completeScene`, so re-entry cannot re-award.
+- **Five defaults taken on unanswered open questions** (3, 4, 6, 7, 9); each is
+  argued in the doc comment of the file that implements it. Cheap for the operator
+  to overrule.
+- `src/core/` verified untouched.
+
+All five gates green after the work: 565 passing / 4 skipped (up from 544),
+coverage exit 0 with `src/core/**` at 98.03%, build ✓, lint clean, `pnpm e2e`
+15/15 (up from 13, and the walkthrough now crosses a transition into scene 2 and
+back into scene 1 through the chapter map).

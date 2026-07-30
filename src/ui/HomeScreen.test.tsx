@@ -78,6 +78,57 @@ describe("HomeScreen (PRD-11, storyboard-v2.md §1)", () => {
     expect(runtime.view.getState().phase).toBe("playing");
   });
 
+  it("offers the chapter map beside Continue, but only with a save behind it (PRD-13 phase 5)", async () => {
+    // Open question 3, defaulted: beside Continue rather than replacing it. The
+    // map is a progress view and a door back into finished scenes, so it has
+    // nothing to show on a first run.
+    const user = userEvent.setup();
+    const firstRun = boot();
+
+    const { unmount } = render(
+      <RuntimeProvider runtime={firstRun}>
+        <HomeScreen />
+      </RuntimeProvider>,
+    );
+    expect(screen.queryByTestId("home-chapter-map")).not.toBeInTheDocument();
+    unmount();
+
+    const returning = boot();
+    returning.store.getState().setPlayerName("Ezra");
+    render(
+      <RuntimeProvider runtime={returning}>
+        <HomeScreen />
+      </RuntimeProvider>,
+    );
+
+    await user.click(screen.getByTestId("home-chapter-map"));
+
+    expect(returning.view.getState().chapterMapOpen).toBe(true);
+    // Continue is untouched: the map does not replace it.
+    expect(screen.getByTestId("home-continue")).toBeEnabled();
+    expect(returning.view.getState().phase).toBe("home");
+  });
+
+  it("Continue on a finished chapter lands on the end state, not an empty world", async () => {
+    const user = userEvent.setup();
+    const runtime = boot();
+    runtime.store.getState().setPlayerName("Ezra");
+    for (const scene of runtime.content.scenes) runtime.store.getState().completeScene(scene.id);
+
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <HomeScreen />
+      </RuntimeProvider>,
+    );
+
+    expect(screen.getByTestId("home-continue-detail")).toHaveTextContent("Every scene complete");
+    await user.click(screen.getByTestId("home-continue"));
+
+    // `currentSceneId()` is null here, so "playing" would be a chapter with
+    // nothing left to do in it.
+    expect(runtime.view.getState().phase).toBe("complete");
+  });
+
   it("New game opens a confirm naming exactly what is lost, and nothing more", async () => {
     const user = userEvent.setup();
     const runtime = boot();

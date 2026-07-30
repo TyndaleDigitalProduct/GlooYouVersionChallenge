@@ -4,13 +4,6 @@
   "backdrop": "temple",
   "note": "DAN.1.2, the temple court after the fall: smoke-hazed, the burnt sanctuary on its raised plaza in the middle, burning houses at the edges. The player arrives through the gap in the north wall, straight into the loading of the two ox carts already laden with Temple treasure, so the first thing on screen is the plunder itself. The Babylonian officer and soldier work the carts and the corridor down from the sanctuary; the Levite stands by the altar and bronze sea he used to tend; Daniel and Hananiah watch the vessels go from the corridor between the carts and the sanctuary; Mishael keeps to the sanctuary's west side, near where his uncle would have served; Azariah, the onlooker and the Levite form a small knot of watchers southwest of the altar. The guides stand apart, out past the ruined houses at the south edge, findable but not part of the crowd.",
   "spawn": { "x": 860, "y": 120 },
-  "exit": {
-    "x": 880,
-    "y": 950,
-    "width": 140,
-    "height": 50,
-    "note": "the road out of the courtyard, where the deportation caravan is forming. Shut until the Lamplighter closes the scene."
-  },
   "placements": [
     {
       "reference": "lamplighter:scene-2",

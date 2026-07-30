@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { createViewStore, hasReadBothPassages, hasReadPassage, isAnyPanelOpen } from "./viewStore";
+import {
+  createViewStore,
+  hasReadBothPassages,
+  hasReadPassage,
+  isAnyPanelOpen,
+  isWorldInputBlocked,
+} from "./viewStore";
 
 describe("view store", () => {
   it("starts with nothing open and no notices", () => {
@@ -304,6 +310,187 @@ describe("view store", () => {
       const listener = vi.fn();
       store.subscribe(listener);
       store.getState().continueGame();
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("rooms, transitions and the chapter map (PRD-13 phase 5)", () => {
+    it("starts with no room, no transition, and the chapter map shut", () => {
+      const view = createViewStore().getState();
+
+      expect(view.roomSceneId).toBeNull();
+      expect(view.sceneTransition).toBeNull();
+      expect(view.chapterMapOpen).toBe(false);
+    });
+
+    it("entering a room records it and rewinds the dialogue to that scene's first beat", () => {
+      // The opening beats are per scene but `dialogueIndex` is one counter, so
+      // arriving anywhere has to rewind it. Without this, fading into scene 2
+      // with the index left at 3 from scene 1 shows no opening at all.
+      const store = createViewStore();
+      store.getState().advanceDialogue();
+      store.getState().advanceDialogue();
+
+      store.getState().enterRoom("scene-2");
+
+      expect(store.getState().roomSceneId).toBe("scene-2");
+      expect(store.getState().dialogueIndex).toBe(0);
+    });
+
+    it("runs the fade in three stages and lands the player in the new room part way through", () => {
+      const store = createViewStore();
+      store.getState().enterRoom("scene-1");
+
+      store
+        .getState()
+        .beginSceneTransition({ fromSceneId: "scene-1", toSceneId: "scene-2", caption: "Dawn." });
+      expect(store.getState().sceneTransition).toEqual({
+        fromSceneId: "scene-1",
+        toSceneId: "scene-2",
+        caption: "Dawn.",
+        stage: "out",
+      });
+      // Still in the old room: the world must not swap while it is visible.
+      expect(store.getState().roomSceneId).toBe("scene-1");
+
+      store.getState().arriveInScene();
+      expect(store.getState().sceneTransition?.stage).toBe("arriving");
+      expect(store.getState().roomSceneId).toBe("scene-2");
+      expect(store.getState().dialogueIndex).toBe(0);
+
+      store.getState().revealScene();
+      expect(store.getState().sceneTransition?.stage).toBe("in");
+      expect(store.getState().roomSceneId).toBe("scene-2");
+
+      store.getState().endSceneTransition();
+      expect(store.getState().sceneTransition).toBeNull();
+      expect(store.getState().roomSceneId).toBe("scene-2");
+    });
+
+    it("closes every open panel as the fade starts, so nothing survives the room swap", () => {
+      const store = createViewStore();
+      store.getState().openLamplighter("scene-1");
+      store.getState().openCharacter("scene-1", "daniel");
+      store.getState().openEncounter("2KI.24.1-4");
+      store.getState().setNearbyReference("2KI.24.1-4");
+
+      store
+        .getState()
+        .beginSceneTransition({ fromSceneId: "scene-1", toSceneId: "scene-2", caption: null });
+
+      expect(store.getState().openLamplighterSceneId).toBeNull();
+      expect(store.getState().openCharacterReference).toBeNull();
+      expect(store.getState().openEncounterReference).toBeNull();
+      // The old room's proximity is stale the moment the room changes.
+      expect(store.getState().nearbyReference).toBeNull();
+    });
+
+    it("blocks world input for the whole of a transition, and again while the map is open", () => {
+      const store = createViewStore();
+      expect(isWorldInputBlocked(store.getState())).toBe(false);
+
+      store
+        .getState()
+        .beginSceneTransition({ fromSceneId: "scene-1", toSceneId: "scene-2", caption: null });
+      expect(isWorldInputBlocked(store.getState())).toBe(true);
+
+      store.getState().arriveInScene();
+      expect(isWorldInputBlocked(store.getState())).toBe(true);
+      store.getState().revealScene();
+      expect(isWorldInputBlocked(store.getState())).toBe(true);
+
+      store.getState().endSceneTransition();
+      expect(isWorldInputBlocked(store.getState())).toBe(false);
+
+      store.getState().openChapterMap();
+      expect(isWorldInputBlocked(store.getState())).toBe(true);
+      store.getState().closeChapterMap();
+      expect(isWorldInputBlocked(store.getState())).toBe(false);
+
+      store.getState().openEncounter("2KI.24.1-4");
+      expect(isWorldInputBlocked(store.getState())).toBe(true);
+    });
+
+    it("advancing a stage out of order is a no-op rather than a half-built transition", () => {
+      const store = createViewStore();
+
+      store.getState().arriveInScene();
+      store.getState().revealScene();
+      store.getState().endSceneTransition();
+
+      expect(store.getState().sceneTransition).toBeNull();
+      expect(store.getState().roomSceneId).toBeNull();
+    });
+
+    it("the chapter map opens over any phase and closes back to it", () => {
+      const store = createViewStore();
+      store.getState().continueGame();
+
+      store.getState().openChapterMap();
+      expect(store.getState().chapterMapOpen).toBe(true);
+      expect(store.getState().phase).toBe("playing");
+
+      store.getState().closeChapterMap();
+      expect(store.getState().chapterMapOpen).toBe(false);
+      expect(store.getState().phase).toBe("playing");
+    });
+
+    it("opening the chapter map from the HUD menu closes the menu with it", () => {
+      const store = createViewStore();
+      store.getState().continueGame();
+      store.getState().openMenu();
+
+      store.getState().openChapterMap();
+
+      expect(store.getState().menuOpen).toBe(false);
+      expect(store.getState().chapterMapOpen).toBe(true);
+    });
+
+    it("the chapter map's Enter puts the player in the playing phase and fades in", () => {
+      // Reachable from the home screen too, where the phase is not "playing"
+      // yet: the map is the one control that can start play without Continue.
+      const store = createViewStore();
+      store.getState().openChapterMap();
+
+      store
+        .getState()
+        .beginSceneTransition({ fromSceneId: "scene-1", toSceneId: "scene-3", caption: "Later." });
+
+      expect(store.getState().chapterMapOpen).toBe(false);
+      expect(store.getState().phase).toBe("playing");
+      expect(store.getState().sceneTransition?.toSceneId).toBe("scene-3");
+    });
+
+    it("the end state is its own phase, and the chapter map can be opened over it", () => {
+      const store = createViewStore();
+      store.getState().continueGame();
+
+      store.getState().showChapterComplete();
+      expect(store.getState().phase).toBe("complete");
+
+      store.getState().openChapterMap();
+      expect(store.getState().phase).toBe("complete");
+      expect(store.getState().chapterMapOpen).toBe(true);
+    });
+
+    it("leaving the end state returns to the world rather than the home screen", () => {
+      const store = createViewStore();
+      store.getState().showChapterComplete();
+
+      store.getState().continueGame();
+
+      expect(store.getState().phase).toBe("playing");
+    });
+
+    it("does not notify subscribers for a room entry or map toggle that changes nothing", () => {
+      const store = createViewStore();
+      store.getState().enterRoom("scene-2");
+      const listener = vi.fn();
+      store.subscribe(listener);
+
+      store.getState().enterRoom("scene-2");
+      store.getState().closeChapterMap();
 
       expect(listener).not.toHaveBeenCalled();
     });

@@ -58,6 +58,19 @@ function HudMenuPanel() {
         aria-label="Menu"
         data-testid="hud-menu"
       >
+        {/* PRD-13 phase 5: the chapter map's in-play home. It is a progress view
+            and a door back into finished scenes, not a step in the loop, so behind
+            the menu is exactly where it belongs — see ChapterMapScreen.tsx for the
+            open question this defaults. */}
+        <button
+          type="button"
+          className="vv-button"
+          data-testid="menu-chapter-map"
+          onClick={() => runtime.view.getState().openChapterMap()}
+        >
+          Chapter map
+        </button>
+
         <button
           type="button"
           className="vv-button"

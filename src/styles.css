@@ -1065,3 +1065,329 @@ button.vv-insight-card:disabled {
 .vv-hud-menu__youversion p {
   margin: 0 0 0.45rem;
 }
+
+/* --- scene transition (PRD-13 phase 5) ------------------------------------
+   The fade is the entire room transition: nobody walks to a door, so this
+   overlay and its caption carry the whole beat. It is the last child of
+   .vv-overlay and sits above the notices (z-index: 2) and every phase overlay,
+   because it has to blank the HUD and any open panel as well as the canvas —
+   a Phaser camera fade would have dimmed only the canvas and left the chrome
+   sitting brightly on top of a black world.
+
+   Same warm near-black as the letterbox, not neutral black, so the world goes
+   out like a lamp rather than being covered by a sheet. */
+.vv-transition {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  box-sizing: border-box;
+  background: #160f08;
+  opacity: 1;
+}
+
+/* Keyed animations rather than a class-flip transition: the element is mounted
+   at the moment the fade starts, and a transition needs a paint at the starting
+   value before it will run. An animation just runs. `steps()` for the same
+   reason the buttons use it — a smooth ramp reads as video over pixel art.
+
+   The durations mirror FADE_MS in SceneTransition.tsx, which owns the clock. If
+   one changes, the other has to: too short here and the room swap shows, too
+   long and the black outlasts the caption. */
+.vv-transition[data-stage="out"] {
+  animation: vv-transition-out 450ms steps(9) both;
+}
+
+.vv-transition[data-stage="in"] {
+  animation: vv-transition-in 450ms steps(9) both;
+}
+
+@keyframes vv-transition-out {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vv-transition-in {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* The caption is the whole mitigation for the five transitions that land on the
+   picture they left (scenes 3-7 share one backdrop, 8-9 share another), so it is
+   set large and centred with nothing else on screen to compete with. Body serif,
+   not the display face: it is content-driven text and carries punctuation the
+   pixel font has no glyph for. */
+.vv-transition__caption {
+  margin: 0;
+  max-width: 34rem;
+  color: var(--vv-sand);
+  font-size: clamp(1.1rem, 3vw, 1.8rem);
+  line-height: 1.4;
+  text-align: center;
+  text-shadow: 0 2px 0 rgb(20 12 5 / 85%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The cut stays, the ramp goes. The stage clock is unchanged, so the caption
+     still gets its full reading time; only the ramp between black and clear is
+     dropped. */
+  .vv-transition[data-stage="out"],
+  .vv-transition[data-stage="in"] {
+    animation-duration: 1ms;
+  }
+}
+
+/* --- chapter map (PRD-13 phase 5) -----------------------------------------
+   Built in the existing DOM vocabulary with no new art (open question 4,
+   defaulted): the same oak frame, parchment, and gold plates as every other
+   panel. A bare list of nine links would have been a placeholder in a phase
+   whose point is removing them, so each scene is a card with its state legible
+   at a glance. */
+.vv-chapter-map {
+  width: min(46rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.vv-chapter-map__header {
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid rgb(156 58 48 / 45%);
+}
+
+/* Shell copy, fixed at "Daniel, chapter one" — inside the display face's glyph
+   set (see the @font-face note; no ampersand, no parentheses, no slash). */
+.vv-chapter-map__title {
+  margin: 0;
+  font-family: var(--vv-font-display);
+  font-size: 1.35em;
+  letter-spacing: 0.02em;
+  color: var(--vv-ink);
+}
+
+.vv-chapter-map__summary {
+  margin: 0.25rem 0 0;
+  color: var(--vv-ink-soft);
+  font-size: 0.85em;
+}
+
+.vv-chapter-map__scenes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One scene. The left rule is the state cue; the badge beside the button says
+   the same thing in words, so nothing depends on hue alone (ADR-0003's rule for
+   insight cards, applied here). */
+.vv-chapter-scene {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.35rem 0.65rem;
+  border: 2px solid var(--vv-wood);
+  border-left: 8px solid var(--vv-wood);
+  background: var(--vv-parchment);
+}
+
+.vv-chapter-scene--complete {
+  border-left-color: var(--vv-verdigris);
+}
+
+.vv-chapter-scene--current {
+  border-left-color: var(--vv-gold);
+  background: var(--vv-sand);
+  box-shadow: inset 0 0 0 2px rgb(240 228 196 / 70%);
+}
+
+/* Locked scenes are drained rather than hidden: knowing there are nine and that
+   six are still shut is the point of a progress view. */
+.vv-chapter-scene--locked {
+  border-left-color: var(--vv-wood-dark);
+  background: var(--vv-parchment-deep);
+  color: var(--vv-ink-soft);
+  filter: grayscale(0.35);
+}
+
+.vv-chapter-scene--here {
+  border-color: var(--vv-lapis);
+}
+
+.vv-chapter-scene__ordinal {
+  flex: none;
+  width: 1.8em;
+  margin: 0;
+  color: var(--vv-rust);
+  font-family: var(--vv-font-display);
+  font-size: 1.3em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.vv-chapter-scene__body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The passage reference leads, in bold, with the setting following it on the
+   same line: the reference is what identifies a scene, the setting is what makes
+   it recognisable. Separated by a rule rather than a middot, since the middot is
+   one of the glyphs the pixel display face has no character for and this line
+   is content-driven. */
+.vv-chapter-scene__verses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.92em;
+}
+
+.vv-chapter-scene__setting {
+  font-weight: 400;
+  font-size: 0.95em;
+  padding-left: 0.5rem;
+  border-left: 2px solid rgb(122 83 48 / 40%);
+}
+
+.vv-chapter-scene__references {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.1rem 0 0;
+  color: var(--vv-ink-soft);
+  font-size: 0.78em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A grid rather than a flex row, so the badge and the button each get a fixed
+   cell. A locked scene renders no button at all (a dead control is worse than
+   none), and with a flex row that made its badge drift right, out of line with
+   every other badge in the list. Grid leaves the empty cell empty. */
+.vv-chapter-scene__state {
+  flex: none;
+  display: grid;
+  grid-template-columns: 5.5em 7rem;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.vv-chapter-scene__badge {
+  margin: 0;
+  color: var(--vv-wood);
+  font-family: var(--vv-font-display);
+  font-size: 0.72em;
+  letter-spacing: 0.06em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.vv-chapter-scene__here {
+  padding: 0.05rem 0.35rem;
+  background: var(--vv-lapis);
+  color: var(--vv-sand);
+  font-size: 0.9em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.vv-chapter-map__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.4rem;
+  border-top: 2px solid rgb(122 83 48 / 35%);
+}
+
+/* Narrow viewports: the badge and button drop below the text, since a 1.8em
+   ordinal, a passage reference, a setting and a button do not fit across a phone. */
+@media (max-width: 560px) {
+  .vv-chapter-scene {
+    flex-wrap: wrap;
+  }
+
+  .vv-chapter-scene__state {
+    width: 100%;
+    justify-content: end;
+  }
+}
+
+/* The chapter map's door on the home screen, beside Continue rather than
+   replacing it (open question 3, defaulted). Positioned clear of both painted
+   scrolls: they are centred at 40.5% and 60% and are 10.42% wide, so 71.5%
+   sits outside the right edge of Continue with room to spare. */
+.vv-home__chapter-map {
+  position: absolute;
+  top: 90.2%;
+  left: 71.5%;
+  transform: translate(-50%, -50%);
+}
+
+/* --- chapter complete (PRD-13 phase 5) ------------------------------------
+   The end state. Opaque like the other full-screen phases, so the finished world
+   is not half-visible behind the thing telling you it is finished. */
+.vv-complete {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at center, rgb(46 28 12 / 94%) 0%, rgb(15 9 4 / 97%) 100%);
+}
+
+.vv-complete__panel {
+  width: min(34rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+/* Shell copy, fixed at "Chapter one, closed" — safe for the display face. */
+.vv-complete__title {
+  margin: 0 0 0.6rem;
+  font-family: var(--vv-font-display);
+  font-size: 1.45em;
+  letter-spacing: 0.02em;
+  color: var(--vv-ink);
+}
+
+/* The tally, as an inset sub-panel: the same shade-off-parchment-with-a-wood-rule
+   the setup and menu screens use for a block inside a frame, rather than a second
+   nine-slice, which would read as two popups. */
+.vv-complete__tally {
+  margin: 0 0 0.8rem;
+  padding: 0.6rem 0.7rem 0.6rem 1.6rem;
+  border: 2px solid var(--vv-wood);
+  background: var(--vv-parchment-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.vv-complete__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding-top: 0.7rem;
+  border-top: 2px solid rgb(122 83 48 / 35%);
+}

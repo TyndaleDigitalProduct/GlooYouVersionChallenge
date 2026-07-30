@@ -7,13 +7,6 @@
     "x": 1335,
     "y": 500
   },
-  "exit": {
-    "x": 938,
-    "y": 282,
-    "width": 40,
-    "height": 48,
-    "note": "the palace doorway gap, shared by every courtyard scene; leads on toward the throne room"
-  },
   "placements": [
     {
       "reference": "lamplighter:scene-6",

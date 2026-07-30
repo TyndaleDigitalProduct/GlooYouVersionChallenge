@@ -86,6 +86,22 @@ export const dialogueSceneSchema = z.object({
   lamplighterOpening: z.array(lamplighterOpeningBeatSchema),
   characters: z.array(characterDialogueSchema),
   lamplighterExit: lamplighterExitSchema.optional(),
+  /**
+   * PRD-13 phase 5: the caption shown over the fade as this scene is entered,
+   * naming when and where it happens ("Three years pass. The palace library.").
+   *
+   * It belongs to the *arriving* beat rather than the departing one, so a scene
+   * reached from the chapter map is stamped the same way as one reached by
+   * closing its predecessor. It is also the entire mitigation for the five
+   * transitions that land on the picture they left (scenes 3-7 share
+   * `babylon-palace`, 8-9 share `throne-room`): without text saying time
+   * passed, arriving back on the same backdrop reads as a bug.
+   *
+   * Optional for the same reason `lamplighterExit` is: a synthetic test scene
+   * must not have to invent one. Required of the real files by
+   * loadContent.test.ts, which is what stops it shipping missing.
+   */
+  transitionCaption: z.string().min(1).optional(),
 });
 
 export type DialogueScene = z.infer<typeof dialogueSceneSchema>;
@@ -126,9 +142,14 @@ export type Persona = z.infer<typeof personaSchema>;
 // compare them.
 //
 // A **scene file** describes the *beat*: which backdrop, where the player spawns,
-// where each of the cast stands, and where the exit is. There are nine, they
-// differ genuinely between scenes that share a picture, and they are the only
-// part that is fanned out.
+// and where each of the cast stands. There are nine, they differ genuinely
+// between scenes that share a picture, and they are the only part that is
+// fanned out.
+//
+// It used to carry an `exit` rectangle too. PRD-13 phase 5 deleted it: with
+// transitions reduced to a fade on the Lamplighter's "ready to move on" control,
+// nobody walks to a door and nothing reads an exit, so keeping it would have
+// meant authored data with no consumer.
 //
 // So a scene file carrying a collision rectangle is not something to merge, it is
 // a schema error: it means the split has been misunderstood and the fan-out is no
@@ -203,15 +224,12 @@ export const sceneMapDocumentSchema = z.strictObject({
   /** Backdrop key. Must name one of the four backdrop files. */
   backdrop: z.string().min(1),
   note: z.string().min(1),
-  /** Where the player stands on entering. */
-  spawn: z.object({ x: z.number().int().min(0), y: z.number().int().min(0) }),
   /**
-   * Where the player walks to leave for the next scene. Authored here because
-   * it is a property of the beat, not the picture: five scenes share
-   * `babylon-palace` and leave it by different doors. Shut until the
-   * Lamplighter closes the scene (operator, 2026-07-30); phase 5 opens it.
+   * Where the player stands on entering, whether that entry is the fade in
+   * from the previous scene or a jump from the chapter map. This is the only
+   * geometry a transition needs now that walking to an exit is gone.
    */
-  exit: mapRectSchema,
+  spawn: z.object({ x: z.number().int().min(0), y: z.number().int().min(0) }),
   placements: z.array(scenePlacementSchema),
 
   // Backdrop data, rejected by name. See the block comment above.

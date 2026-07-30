@@ -43,6 +43,21 @@ describe("HudMenu (PRD-11, storyboard-v2.md §3 'behind the HUD menu')", () => {
     expect(screen.queryByTestId("hud-menu")).not.toBeInTheDocument();
   });
 
+  it("opens the chapter map and closes the menu behind it (PRD-13 phase 5)", async () => {
+    const user = userEvent.setup();
+    const runtime = boot();
+    runtime.view.getState().continueGame();
+    renderMenu(runtime);
+    await user.click(screen.getByTestId("hud-menu-toggle"));
+
+    await user.click(screen.getByTestId("menu-chapter-map"));
+
+    expect(runtime.view.getState().chapterMapOpen).toBe(true);
+    expect(runtime.view.getState().menuOpen).toBe(false);
+    // Still mid-play underneath: the map is a progress view, not a phase.
+    expect(runtime.view.getState().phase).toBe("playing");
+  });
+
   it("Replay intro reopens the intro and closes the menu", async () => {
     const user = userEvent.setup();
     const runtime = boot();

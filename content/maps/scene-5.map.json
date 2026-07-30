@@ -2,15 +2,8 @@
   "scene": 5,
   "status": "authored",
   "backdrop": "babylon-palace",
-  "note": "DAN.1.8-10, Daniel's resolve not to defile himself with the king's food and wine. The beat happens where the food is served: the food pavilion, south-east of the precinct. Daniel and Ashpenaz stand apart from everyone else, close together, in the quiet negotiation the dialogue is built around. The kitchen servant works the tables inside the pavilion's south edge; the trainee eats without hesitation at its east side, the unbothered contrast the scene needs. Hananiah, Mishael and Azariah are spread at different heights around the pavilion rather than clustered with Daniel or each other, per the no-Judean-row rule. The two guides sit near the story beats they echo: GEN.39.20-23 (Joseph's integrity under pressure) near Daniel's stand, PRO.29.25 (the fear of man is a snare) near Ashpenaz, who is afraid of the king. Spawn and exit corrected from the provisional draft, which pointed at the terraced garden (that zone now belongs to scene 6); spawn moved into the pavilion's south approach so the tables are the first thing on screen.",
+  "note": "DAN.1.8-10, Daniel's resolve not to defile himself with the king's food and wine. The beat happens where the food is served: the food pavilion, south-east of the precinct. Daniel and Ashpenaz stand apart from everyone else, close together, in the quiet negotiation the dialogue is built around. The kitchen servant works the tables inside the pavilion's south edge; the trainee eats without hesitation at its east side, the unbothered contrast the scene needs. Hananiah, Mishael and Azariah are spread at different heights around the pavilion rather than clustered with Daniel or each other, per the no-Judean-row rule. The two guides sit near the story beats they echo: GEN.39.20-23 (Joseph's integrity under pressure) near Daniel's stand, PRO.29.25 (the fear of man is a snare) near Ashpenaz, who is afraid of the king. Spawn corrected from the provisional draft, which pointed at the terraced garden (that zone now belongs to scene 6); spawn moved into the pavilion's south approach so the tables are the first thing on screen.",
   "spawn": { "x": 1480, "y": 980 },
-  "exit": {
-    "x": 938,
-    "y": 282,
-    "width": 40,
-    "height": 48,
-    "note": "the palace doorway shared by scenes 3-7; the Lamplighter walks the party there to close the scene, per ADR-0004. Left unchanged from the draft: it is a fixed cross-scene trigger, not part of this scene's zone."
-  },
   "placements": [
     {
       "reference": "lamplighter:scene-5",

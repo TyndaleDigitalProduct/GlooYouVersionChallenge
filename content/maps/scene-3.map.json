@@ -2,15 +2,8 @@
   "scene": 3,
   "status": "authored",
   "backdrop": "babylon-palace",
-  "note": "DAN.1.3-5, selection and the training programme. This scene owns the palace front and the south approach in front of it, with the scribal quarter (scene 7's zone) only brushed at its western edge; the dormitory (scene 4), food pavilion (scene 5) and terraced garden (scene 6) are left untouched. The player arrives from the south approach, past the reflecting pools, into the open court below the palace facade, where Ashpenaz is holding the selection Isaiah once warned Hezekiah about: young men without defect, taken for the king's service. The palace scribe records names at his side; the court attendant and a fellow trainee are two more people caught up in the same intake. The exit sits at the palace doorway gap in the facade, the natural next step from being chosen to being taken inside for training.",
+  "note": "DAN.1.3-5, selection and the training programme. This scene owns the palace front and the south approach in front of it, with the scribal quarter (scene 7's zone) only brushed at its western edge; the dormitory (scene 4), food pavilion (scene 5) and terraced garden (scene 6) are left untouched. The player arrives from the south approach, past the reflecting pools, into the open court below the palace facade, where Ashpenaz is holding the selection Isaiah once warned Hezekiah about: young men without defect, taken for the king's service. The palace scribe records names at his side; the court attendant and a fellow trainee are two more people caught up in the same intake. The scene closes through the Lamplighter and fades on to the training itself; nobody walks to a door (PRD-13 phase 5).",
   "spawn": { "x": 750, "y": 900 },
-  "exit": {
-    "x": 938,
-    "y": 282,
-    "width": 40,
-    "height": 48,
-    "note": "the palace doorway gap in the facade; leads into the training program proper (scene 4)"
-  },
   "placements": [
     {
       "reference": "lamplighter:scene-3",

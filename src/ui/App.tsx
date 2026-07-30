@@ -1,4 +1,7 @@
 import type { AppRuntime } from "@/app/runtime";
+import { findSceneContent } from "@/content/loadContent";
+import { ChapterCompleteScreen } from "./ChapterCompleteScreen";
+import { ChapterMapScreen } from "./ChapterMapScreen";
 import { CharacterDialoguePanel } from "./CharacterDialoguePanel";
 import { DialogueBox } from "./DialogueBox";
 import { EncounterPanel } from "./EncounterPanel";
@@ -8,7 +11,8 @@ import { IntroOverlay } from "./IntroOverlay";
 import { LamplighterExitPanel } from "./LamplighterExitPanel";
 import { NoticeStack } from "./NoticeStack";
 import { ProximityPrompt } from "./ProximityPrompt";
-import { RuntimeProvider, useViewState } from "./RuntimeContext";
+import { RuntimeProvider, useRuntime, useViewState } from "./RuntimeContext";
+import { SceneTransition } from "./SceneTransition";
 import { SetupScreen } from "./SetupScreen";
 import { ValeStonesHud } from "./ValeStonesHud";
 
@@ -22,6 +26,14 @@ import { ValeStonesHud } from "./ValeStonesHud";
  * component is what actually stops the player reaching it before "playing".
  * `NoticeStack` is the one exception, rendered in every phase, since a
  * recovered-save notice matters just as much on the home screen as in play.
+ *
+ * PRD-13 phase 5 adds two more phase-independent layers and one phase.
+ * `ChapterMapScreen` and `SceneTransition` are rendered outside the phase switch
+ * because neither belongs to a phase: the chapter map opens over the home screen
+ * and over play alike, and the fade has to cover the HUD and any open panel as
+ * well as the canvas, which is the whole reason it is a DOM overlay rather than a
+ * Phaser camera fade. The new "complete" phase is the end state, reached once
+ * every scene of the chapter is closed.
  */
 export function App({ runtime }: { runtime: AppRuntime }) {
   return (
@@ -42,6 +54,12 @@ function AppShell() {
       {phase === "setup" ? <SetupScreen /> : null}
       {phase === "intro" ? <IntroOverlay /> : null}
       {phase === "playing" ? <PlayingScreen /> : null}
+      {phase === "complete" ? <ChapterCompleteScreen /> : null}
+
+      <ChapterMapScreen />
+      {/* Last, so the fade covers every layer above: the HUD, the phase overlays,
+          and the canvas underneath all of them. */}
+      <SceneTransition />
     </div>
   );
 }
@@ -52,7 +70,7 @@ function PlayingScreen() {
       <div className="vv-overlay__top">
         <ValeStonesHud />
         <HudMenu />
-        <p className="vv-build-tag">PRD-04 vertical slice · placeholder content</p>
+        <SceneTag />
       </div>
 
       <div className="vv-overlay__bottom">
@@ -64,5 +82,29 @@ function PlayingScreen() {
       <LamplighterExitPanel />
       <CharacterDialoguePanel />
     </>
+  );
+}
+
+/**
+ * Which room the player is standing in, top right.
+ *
+ * This slot used to read "PRD-04 vertical slice · placeholder content", which was
+ * true while the world was nine coloured rectangles and the dialogue was filler.
+ * Both are gone: the dialogue document has been authored copy since 2026-07-29 and
+ * PRD-13 replaced the placeholder world, so leaving the tag would have put a false
+ * disclaimer in every screenshot of the finished game. It says where you are
+ * instead, which is worth something now that there are nine places to be and five
+ * of them share a backdrop.
+ */
+function SceneTag() {
+  const runtime = useRuntime();
+  const roomSceneId = useViewState((state) => state.roomSceneId);
+  const scene = roomSceneId ? findSceneContent(runtime.content, roomSceneId) : undefined;
+  if (!scene) return null;
+
+  return (
+    <p className="vv-build-tag" data-testid="scene-tag">
+      Scene {scene.ordinal} of {runtime.content.scenes.length} · {scene.verses}
+    </p>
   );
 }

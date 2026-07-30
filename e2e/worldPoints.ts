@@ -9,8 +9,8 @@
 //
 // Where the cast stands: no longer computed. It was derived here from the 3x3
 // region grid and the three row fractions, mirroring the arithmetic the game
-// used. Both are deleted; placement is authored in content/maps/scene-1.map.json,
-// so this file reads that file. Mirroring authored coordinates would be
+// used. Both are deleted; placement is authored in content/maps/scene-N.map.json,
+// so this file reads those files. Mirroring authored coordinates would be
 // pointless, and re-deriving them impossible.
 //
 // Where that lands on screen: no longer a fixed fraction. Every marker in the
@@ -48,10 +48,23 @@ const dialogueDocument = readJson<{
   scenes: Array<{ id: number; characters: Array<{ speaker: string }> }>;
 }>("../content/daniel-1.dialogue.json");
 
-const sceneOneMap = readJson<{
+// Per scene, not scene 1 only. All nine scenes are playable as of PRD-13 phase 5,
+// and the suite now walks across a transition into scene 2, so every lookup takes
+// the ordinal of the room it is asking about.
+interface SceneMapDocument {
   spawn: { x: number; y: number };
   placements: Array<{ reference: string; x: number; y: number }>;
-}>("../content/maps/scene-1.map.json");
+}
+
+const sceneMaps = new Map<number, SceneMapDocument>();
+
+function sceneMap(ordinal: number): SceneMapDocument {
+  const cached = sceneMaps.get(ordinal);
+  if (cached) return cached;
+  const loaded = readJson<SceneMapDocument>(`../content/maps/scene-${ordinal}.map.json`);
+  sceneMaps.set(ordinal, loaded);
+  return loaded;
+}
 
 export interface WorldPoint {
   reference: string;
@@ -59,41 +72,43 @@ export interface WorldPoint {
   y: number;
 }
 
-function placementFor(reference: string): WorldPoint {
-  const placement = sceneOneMap.placements.find((candidate) => candidate.reference === reference);
+function placementFor(ordinal: number, reference: string): WorldPoint {
+  const placement = sceneMap(ordinal).placements.find(
+    (candidate) => candidate.reference === reference,
+  );
   if (!placement) {
-    throw new Error(`content/maps/scene-1.map.json places nothing for "${reference}"`);
+    throw new Error(`content/maps/scene-${ordinal}.map.json places nothing for "${reference}"`);
   }
   return { reference, x: placement.x, y: placement.y };
 }
 
-/** Where the player starts, so a test can reason about how far it has to walk. */
-export function scene1Spawn(): { x: number; y: number } {
-  return sceneOneMap.spawn;
+/** Where the player starts in a scene, so a test can reason about how far it has to walk. */
+export function sceneSpawn(ordinal: number): { x: number; y: number } {
+  return sceneMap(ordinal).spawn;
 }
 
-/** Scene 1's guide positions, in curated order (the Chronicler, then the Watchman). */
-export function scene1GuidePositions(): WorldPoint[] {
-  const sceneOne = refsDocument.scenes.find((scene) => scene.id === 1);
-  if (!sceneOne) throw new Error("scene 1 is missing from content/daniel-1.refs.json");
+/** A scene's guide positions, in curated order. */
+export function guidePositions(ordinal: number): WorldPoint[] {
+  const scene = refsDocument.scenes.find((candidate) => candidate.id === ordinal);
+  if (!scene) throw new Error(`scene ${ordinal} is missing from content/daniel-1.refs.json`);
 
-  return sceneOne.cross_references.map((crossRef) => placementFor(crossRef.ref));
+  return scene.cross_references.map((crossRef) => placementFor(ordinal, crossRef.ref));
 }
 
-/** Scene 1's Lamplighter marker position, reachable at scene exit (PRD-12). */
-export function lamplighterPosition(): WorldPoint {
-  return placementFor(lamplighterReference("scene-1"));
+/** A scene's Lamplighter marker position, who closes the scene and offers the way on. */
+export function lamplighterPosition(ordinal: number): WorldPoint {
+  return placementFor(ordinal, lamplighterReference(`scene-${ordinal}`));
 }
 
-/** One of scene 1's story character/NPC marker positions, looked up by its speaker name. */
-export function scene1CharacterPosition(speaker: string): WorldPoint {
-  const sceneOne = dialogueDocument.scenes.find((scene) => scene.id === 1);
-  if (!sceneOne) throw new Error("scene 1 is missing from content/daniel-1.dialogue.json");
-  if (!sceneOne.characters.some((character) => character.speaker === speaker)) {
-    throw new Error(`no character named "${speaker}" in scene 1`);
+/** One of a scene's story character/NPC marker positions, looked up by its speaker name. */
+export function characterPosition(ordinal: number, speaker: string): WorldPoint {
+  const scene = dialogueDocument.scenes.find((candidate) => candidate.id === ordinal);
+  if (!scene) throw new Error(`scene ${ordinal} is missing from content/daniel-1.dialogue.json`);
+  if (!scene.characters.some((character) => character.speaker === speaker)) {
+    throw new Error(`no character named "${speaker}" in scene ${ordinal}`);
   }
 
-  return placementFor(characterReference("scene-1", characterIdFor(speaker)));
+  return placementFor(ordinal, characterReference(`scene-${ordinal}`, characterIdFor(speaker)));
 }
 
 interface WorldTestHandle {
@@ -117,6 +132,22 @@ async function waitForWorld(page: Page): Promise<void> {
 export async function waitForPlayerToSettle(page: Page): Promise<void> {
   await waitForWorld(page);
   await page.waitForFunction(() => window.__verseAndValeWorld?.isWalking() === false);
+}
+
+/**
+ * Waits out a scene transition (PRD-13 phase 5): the fade out, the caption at
+ * full black while the room swaps, and the fade back in.
+ *
+ * Necessary before any further world interaction, and not only for timing. The
+ * overlay is opaque and takes pointer events, so a click aimed at the canvas
+ * during a fade lands on the overlay instead; and the scene restarts partway
+ * through, which replaces the test handle's world, so a coordinate read before
+ * the fade finishes may belong to the room being left.
+ */
+export async function waitForSceneTransition(page: Page): Promise<void> {
+  const overlay = page.locator("[data-testid='scene-transition']");
+  await overlay.waitFor({ state: "detached" });
+  await waitForWorld(page);
 }
 
 async function playerIsWithin(page: Page, worldX: number, worldY: number): Promise<boolean> {

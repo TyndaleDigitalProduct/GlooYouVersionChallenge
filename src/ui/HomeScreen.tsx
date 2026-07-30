@@ -47,8 +47,21 @@ export function HomeScreen() {
   const currentSceneId = useGameState((state) => state.currentSceneId());
   const balance = useGameState((state) => state.balance());
 
+  const gameComplete = useGameState((state) => state.isGameComplete());
   const hasSave = Boolean(playerName);
   const scene = currentSceneId ? findSceneContent(runtime.content, currentSceneId) : undefined;
+
+  // PRD-13 phase 5: with the chapter finished there is no current scene to
+  // continue *to*, so Continue lands on the end state instead of dropping the
+  // player into a chapter with nothing left in it.
+  const continueGame = () => {
+    const view = runtime.view.getState();
+    if (gameComplete) {
+      view.showChapterComplete();
+      return;
+    }
+    view.continueGame();
+  };
 
   const newGame = () => {
     // With no save there is nothing to erase, so the destructive confirm
@@ -84,7 +97,7 @@ export function HomeScreen() {
           className="vv-home__scroll vv-home__scroll--continue"
           data-testid="home-continue"
           disabled={!hasSave}
-          onClick={() => runtime.view.getState().continueGame()}
+          onClick={continueGame}
         >
           <img className="vv-home__scroll-art" src="/assets/ui/button-continue.png" alt="" />
           <span className="vv-visually-hidden">Continue</span>
@@ -94,7 +107,7 @@ export function HomeScreen() {
           {hasSave ? (
             <>
               {scene
-                ? `Scene ${scene.ordinal} of ${runtime.content.scenes.length} — ${scene.verses}`
+                ? `Scene ${scene.ordinal} of ${runtime.content.scenes.length} · ${scene.verses}`
                 : "Every scene complete"}
               {" · "}
               {balance} Vale Stone{balance === 1 ? "" : "s"}
@@ -103,6 +116,24 @@ export function HomeScreen() {
             "No saved game yet"
           )}
         </p>
+
+        {/* PRD-13 phase 5, open question 3 defaulted: the chapter map sits
+            *beside* Continue rather than replacing it. Continue is still the one
+            press that resumes the game; this is a second, quieter door, into the
+            progress view and from there back into any finished scene. It is not
+            painted into the art, so it is a plain plate off to the side of the
+            two scrolls rather than a third scroll competing with them, and it
+            only appears with a save behind it. */}
+        {hasSave ? (
+          <button
+            type="button"
+            className="vv-button vv-button--quiet vv-home__chapter-map"
+            data-testid="home-chapter-map"
+            onClick={() => runtime.view.getState().openChapterMap()}
+          >
+            Chapter map
+          </button>
+        ) : null}
       </div>
 
       {confirmOpen ? <NewGameConfirm /> : null}

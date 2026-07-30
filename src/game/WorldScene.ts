@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { AppRuntime } from "@/app/runtime";
-import { isAnyPanelOpen } from "@/app/viewStore";
+import { isWorldInputBlocked } from "@/app/viewStore";
 import { openWorldInteraction } from "@/app/worldInteractions";
 import { guideArtFor, spriteKeysToPreload, storyCharacterArtFor } from "@/content/cast";
 import type { SceneMap } from "@/content/loadContent";
@@ -149,9 +149,14 @@ interface MoveTarget {
  * arithmetic rows, this now draws one authored room: a full-map backdrop at 1:1
  * (ADR-0004), authored rectangle collision, hand-placed cast read out of the
  * scene's map file, and walk-behind overlays so the player can pass behind a
- * tent or a column. Fog of war has left the canvas; it becomes the chapter-map
- * screen in phase 5, and `revealedRegionIds` is unchanged and still drives the
- * HUD readout.
+ * tent or a column. Fog of war has left the canvas: it is the chapter-map screen
+ * now (src/ui/ChapterMapScreen.tsx), and `revealedRegionIds` is unchanged and
+ * still drives the HUD readout.
+ *
+ * *One* room at a time, and which one is view state rather than a derivation —
+ * see `activeSceneMap`. Phase 5 gave the scene the ability to swap rooms
+ * (`subscribe`, `resetRoomState`), which happens under a fully opaque fade so it
+ * is never seen mid-change.
  *
  * Movement is click/tap-to-move (PRD-08 phase 4). There is no keyboard path
  * through the game; this also supersedes `ProximityPrompt`'s "e" key.
@@ -168,6 +173,8 @@ export class WorldScene extends Phaser.Scene {
   private walkTargetRing!: Phaser.GameObjects.Ellipse;
   private playerFacingRow = 0;
   private moveTarget: MoveTarget | null = null;
+  /** The room currently drawn, so a restart only fires on a genuine change. */
+  private drawnSceneId: string | null = null;
   private collision: readonly MapRect[] = [];
   /** Standable grid for this room, built once. Routing and the validator share it. */
   private pathGrid!: PathGrid;
@@ -178,19 +185,30 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /**
-   * The room to draw. Deliberately the current scene *clamped to playable
-   * scenes*: `store.currentSceneId()` advances to scene 2 the moment scene 1
-   * completes, and scenes 2-9 have draft maps and no dialogue, so following it
-   * would swap the finished room for an empty one at the exact moment the
-   * player is being congratulated. Walking between rooms is phase 5's job and
-   * needs the exit and the fade to exist first.
+   * The room to draw: whichever one the view store says the player is standing
+   * in (`ViewState.roomSceneId`, seeded at boot by runtime.ts and moved by
+   * `arriveInScene` at the midpoint of the fade).
+   *
+   * This resolves the comment that stood here through phases 1-4, which drew
+   * `currentSceneId()` clamped to playable scenes and said room-swapping "needs
+   * the exit and the fade to exist first". The fade exists now, and the exit
+   * turned out not to be needed at all (operator, 2026-07-30), but the deeper
+   * problem with `currentSceneId()` is why this reads explicit state instead:
+   * it advances the instant `completeScene` fires, which is while the
+   * Lamplighter's panel is still open, so following it would swap the room out
+   * from under the player mid-conversation. It also cannot express a revisit,
+   * where the room on screen is deliberately not the current scene.
+   *
+   * The fallbacks remain: `currentSceneId()` if nothing has entered a room yet,
+   * and the last playable scene if the chapter is finished (`currentSceneId()`
+   * is null then, and the world still has to draw somewhere).
    */
   private activeSceneMap(): SceneMap {
     const { currentSceneId } = this.runtime.store.getState();
     const playable = this.runtime.content.scenes.filter((scene) => scene.playable);
-    const current = currentSceneId();
+    const wanted = this.runtime.view.getState().roomSceneId ?? currentSceneId();
     const chosen =
-      playable.find((scene) => scene.id === current) ?? playable[playable.length - 1] ?? undefined;
+      playable.find((scene) => scene.id === wanted) ?? playable[playable.length - 1] ?? undefined;
     if (!chosen) throw new Error("no playable scene to draw");
 
     const map = this.runtime.maps.byScene[chosen.id];
@@ -202,8 +220,16 @@ export class WorldScene extends Phaser.Scene {
     return map;
   }
 
+  /**
+   * A room swap re-runs `preload`, and every texture the last room used is still
+   * in the manager: all nine rooms share the cast sheets, and five of them share
+   * `babylon-palace`. Re-queuing one is a redundant fetch at best and a key
+   * conflict at worst, so already-loaded keys are skipped. First boot loads
+   * everything; every restart after it loads only a backdrop it has not seen.
+   */
   preload(): void {
     for (const key of spriteKeysToPreload(this.runtime.cast)) {
+      if (this.textures.exists(key)) continue;
       this.load.spritesheet(key, `assets/sprites/${key}.png`, {
         frameWidth: FRAME_WIDTH,
         frameHeight: FRAME_HEIGHT,
@@ -211,7 +237,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const { backdrop } = this.activeSceneMap();
-    this.load.image(backdrop.key, backdrop.image);
+    if (!this.textures.exists(backdrop.key)) this.load.image(backdrop.key, backdrop.image);
 
     // A backdrop that fails to load must not degrade to a blank canvas: that is
     // exactly the placeholder ADR-0004 and PRD-13 phase 2 forbid, and it would
@@ -228,6 +254,8 @@ export class WorldScene extends Phaser.Scene {
 
   create(): void {
     const map = this.activeSceneMap();
+    this.resetRoomState();
+    this.drawnSceneId = map.sceneId;
     this.collision = map.backdrop.collision;
     this.pathGrid = buildPathGrid(WORLD_WIDTH, WORLD_HEIGHT, PLAYER_SIZE, this.collision);
 
@@ -280,6 +308,26 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // --- construction -------------------------------------------------------
+
+  /**
+   * Clears everything the previous room left behind.
+   *
+   * Phaser is handed a constructed scene *instance* rather than a class
+   * (gameConfig.ts, so the scene can take the runtime without a global), which
+   * means a restart re-runs `create` on this same object with its fields
+   * intact. The three marker lists would otherwise accumulate the old room's
+   * cast alongside the new one, and every one of them would keep a sprite whose
+   * game object Phaser has already destroyed — so `nearestMarker` would resolve
+   * clicks against characters who are not there. The game objects themselves are
+   * disposed by Phaser on shutdown; these are the references to them.
+   */
+  private resetRoomState(): void {
+    this.guides.splice(0);
+    this.lamplighters.splice(0);
+    this.characters.splice(0);
+    this.moveTarget = null;
+    this.playerFacingRow = 0;
+  }
 
   /**
    * One walk animation per direction per sheet. Keys are namespaced by sprite,
@@ -553,9 +601,12 @@ export class WorldScene extends Phaser.Scene {
    * touch alike, which is what makes this the same code path for both.
    *
    * Guarded against a click reaching the world while any panel is open — an
-   * encounter, the Lamplighter's exit, or a story character/NPC's lines
-   * (PRD-12, `isAnyPanelOpen`): the scrim already swallows pointer events at
-   * the DOM layer, but this is cheap insurance against relying on that alone.
+   * encounter, the Lamplighter's exit, or a story character/NPC's lines — and,
+   * from PRD-13 phase 5, while a scene transition is running or the chapter map
+   * is open (`isWorldInputBlocked`). The scrim already swallows pointer events at
+   * the DOM layer, but this is cheap insurance against relying on that alone,
+   * and it matters more for the fade than for a panel: a click landing mid-fade
+   * would resolve against a room that is halfway through being replaced.
    *
    * Resolves against `allMarkers()` — every guide, the Lamplighter, and every
    * story character/NPC together, in one call — rather than a separate
@@ -571,7 +622,7 @@ export class WorldScene extends Phaser.Scene {
    */
   private bindPointerInput(): void {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (isAnyPanelOpen(this.runtime.view.getState())) return;
+      if (isWorldInputBlocked(this.runtime.view.getState())) return;
 
       const resolution = resolveClick(
         this.player.x,
@@ -628,6 +679,15 @@ export class WorldScene extends Phaser.Scene {
       // rather than incrementally, so re-marking guides has to be a full
       // resync too, not an attempt to undo specific events.
       this.runtime.bus.on("game:reset", () => this.syncGuides()),
+      // PRD-13 phase 5: the room swap. `arriveInScene` moves `roomSceneId` at
+      // the midpoint of the fade, while the screen is fully opaque, so the
+      // restart is never visible. Driven off the store rather than a bus event
+      // because which room is drawn is view state, not a domain event, and
+      // src/core is not modified by this PRD (ADR-0004).
+      this.runtime.view.subscribe(() => {
+        const wanted = this.runtime.view.getState().roomSceneId;
+        if (wanted && wanted !== this.drawnSceneId) this.scene.restart();
+      }),
     );
   }
 

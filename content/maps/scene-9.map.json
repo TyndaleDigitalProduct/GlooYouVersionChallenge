@@ -7,13 +7,6 @@
     "x": 960,
     "y": 560
   },
-  "exit": {
-    "x": 880,
-    "y": 1000,
-    "width": 160,
-    "height": 40,
-    "note": "the south door, same physical exit as scene 8; the end-of-chapter close-out is phase 5's job"
-  },
   "placements": [
     {
       "reference": "character:scene-9:daniel",

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { continueToPlaying, seedReturningPlayerSave } from "./gameEntry";
-import { clickWorldPoint, scene1GuidePositions } from "./worldPoints";
+import { clickWorldPoint, guidePositions } from "./worldPoints";
 
 // PRD-08 phase 3's last criterion: an e2e test driving a full encounter —
 // walk up, read both passages, pick three, lock, see the reveal, see the
@@ -21,7 +21,7 @@ test("full encounter: read both passages, pick three, lock, see the reveal and t
   // Clicking directly on the character walks the player to them and opens
   // the interaction in one gesture (PRD-08 phase 4): no separate
   // proximity-prompt click is needed.
-  const [chronicler] = scene1GuidePositions();
+  const [chronicler] = guidePositions(1);
   await clickWorldPoint(page, chronicler.x, chronicler.y);
   await expect(page.getByTestId("encounter-panel")).toBeVisible();
 

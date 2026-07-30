@@ -187,27 +187,36 @@ same mistake 101 times.
 
 ### Phase 5: room transitions and the chapter map
 
-Transitions are **walk-to-exit** (operator decision, 2026-07-30). The Lamplighter
-closing a scene does not itself move the player; it opens an exit, and the player
-walks to it. This overrides ADR-0004's "Deferred: room-to-room transitions" for
-the exit case, though not for free walking between rooms mid-scene.
+Transitions are a **fade on an explicit "ready to move on" control** (operator
+decision, 2026-07-30, superseding the walk-to-exit decision taken earlier the
+same day). The Lamplighter closing a scene offers the control; pressing it fades
+out and fades back in on the next scene at its spawn point. Nobody walks
+anywhere, and there is no exit rectangle, no exit marker, and no off-screen
+indicator.
 
-- [ ] Completing a scene through the Lamplighter **opens an exit** rather than
-      moving the player. Today `completeScene` fires and the world does not
-      change at all. The exit is **shut until the Lamplighter closes the scene**
-      (operator, 2026-07-30): the Lamplighter stays the gate, the walk is a
-      confirmation beat, and the existing scene-complete stone award is
-      untouched.
-- [ ] Walking to the exit loads the next scene at its own spawn point.
-- [ ] **The exit is findable, and what marks it is the Lamplighter itself.**
-      On scene close the Lamplighter **walks to the door** and the player
-      follows (operator, 2026-07-30). The map is 1920x1080 and the camera shows
-      960x540, so a static marker would be off-screen three quarters of the
-      time; a moving guide the player is already looking at solves that without
-      overloading the lantern, which already means "this guide has a scored
-      encounter". Treat "the player can always tell where the exit is" as the
-      criterion. The Lamplighter's walk needs the same collision-aware pathing
-      as the player (phase 3), so it cannot cut through a wall on its way.
+This keeps ADR-0004's "Deferred: room-to-room transitions" deferred in full,
+rather than partially overriding it as walk-to-exit did.
+
+**What this decision removed from the work:** the exit's visual vocabulary, the
+findability problem on a 1920x1080 map with a 960x540 view, the Lamplighter's
+walk to the door and its pathing, and the `exit` field itself, which is deleted
+from the schema and from all nine scene files because nothing reads it.
+
+- [ ] Completing a scene through the Lamplighter **offers a "ready to move on"
+      control** rather than moving the player or opening a door. Today
+      `completeScene` fires and the world does not change at all. The control is
+      **not available until the Lamplighter has closed the scene** (operator,
+      2026-07-30): the Lamplighter stays the gate and the existing
+      scene-complete stone award is untouched.
+- [ ] The control lives in the Lamplighter's exit panel that PRD-12 already
+      built (`viewStore.ts`, the branch-tagged `all`/`some`/`none` copy), not as
+      a new widget on the canvas. Everything readable is in the DOM (ADR-0002).
+- [ ] Pressing it loads the next scene at that scene's own spawn point.
+- [ ] The `exit` field is **deleted** from `src/content/schema.ts` and from all
+      nine scene files. Nothing reads it, and leaving authored data that nothing
+      consumes is the kind of placeholder this PRD exists to remove. This also
+      makes the shared-doorway oddity moot: all four palace scenes had
+      independently kept the same provisional rectangle at (938, 282).
 - [ ] **Same-backdrop transitions read correctly.** Scenes 3-7 share
       `babylon-palace` and 8-9 share `throne-room`, so for five of the eight
       transitions the player walks out of a door and arrives back on the same
@@ -216,6 +225,8 @@ the exit case, though not for free walking between rooms mid-scene.
       with a caption naming the time change.** The picture repeating is fine
       once the text has said time passed. Applies to all eight transitions, not
       just the five same-backdrop ones, so the vocabulary stays consistent.
+      With walk-to-exit gone, this fade is the *entire* transition, so it
+      carries more weight than when it was one beat of three.
 - [ ] A chapter map screen shows the nine scenes of Daniel 1 and which are
       unlocked, complete, and current, driven by `revealedRegionIds` and
       `isSceneRevisitable`.
@@ -321,8 +332,10 @@ operator passed on, not an argument for skipping the checks.
   Phase 4, scene 1 first.
 - **Scope is all nine scenes and the full loop.** Not a scene-1 slice.
 - **ADR-0004 accepted.** Prerequisite cleared.
-- **The exit is shut until the Lamplighter closes the scene**, and the
-  Lamplighter marks it by **walking to the door**. The lantern is not reused.
+- **Transitions fade on a "ready to move on" control** in the Lamplighter's exit
+  panel, available only once the Lamplighter has closed the scene. Nobody walks
+  to a door. This supersedes the walk-to-exit decision taken earlier the same
+  day, and with it the Lamplighter's walk, the exit marker, and the `exit` field.
   Phase 5.
 - **Same-backdrop transitions fade out and fade back in with a caption naming
   the time change.** Phase 5.

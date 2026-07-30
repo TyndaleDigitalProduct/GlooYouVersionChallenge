@@ -124,9 +124,9 @@ export const FOOT_MARKER_OFFSET_Y = 4;
 // with a read gate and stones," which only a guide has. Positioned above and
 // beside the head, clear of the foot marker.
 //
-// PRD-13 leaves this alone deliberately. The exit a completed scene opens is
-// marked by the Lamplighter walking to the door, not by a second meaning
-// loaded onto the lantern (operator, 2026-07-30).
+// PRD-13 leaves this alone deliberately. Moving on to the next scene is a
+// control in the Lamplighter's own panel (operator, 2026-07-30) rather than a
+// second meaning loaded onto the lantern, and there is no door to mark.
 // Halved with SPRITE_SCALE (2026-07-30): these are absolute world pixels against
 // the drawn figure, so at scale 1 the old values floated the lantern well above a
 // smaller head.
@@ -149,7 +149,7 @@ export interface Point {
   y: number;
 }
 
-/** An authored rectangle: collision, an overlay's crop, or a scene's exit. */
+/** An authored rectangle: a collision box or an overlay's crop. */
 export interface MapRect {
   x: number;
   y: number;
@@ -262,8 +262,7 @@ export function slideStep(
  * The path is sampled in sub-steps no longer than half the body before the
  * contact point is bisected. Checking only the endpoint would let a long step
  * hop straight over a thin wall — not a risk at `PLAYER_SPEED` and 60fps, where
- * a step is about 4px, but it would become one for anything faster (the
- * Lamplighter's walk to the exit in phase 5 uses this same function), and it is
+ * a step is about 4px, but it would become one for anything faster, and it is
  * cheap to be correct: a 4px step samples once.
  */
 function furthestFree(

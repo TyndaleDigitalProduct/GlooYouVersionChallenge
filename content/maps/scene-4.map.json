@@ -2,15 +2,8 @@
   "scene": 4,
   "status": "authored",
   "backdrop": "babylon-palace",
-  "note": "DAN.1.6-7, the four are given their Babylonian names. This scene owns the dormitory of nine beds on the precinct's west side; the palace front (scene 3), the food pavilion (scene 5), the terraced garden (scene 6) and the ziggurat/scribal quarter (scene 7) are left untouched. This is a roll-call at the trainees' own quarters rather than a public ceremony, so the registry table sits among the beds rather than at the palace door. The registry scribe is the focal point, pressing each new name into the clay; Ashpenaz stands over his shoulder, the one actually conferring the names. Daniel and Hananiah are brought to the table first; Mishael and Azariah wait their turn down the west aisle between the beds, with a trainee further back at the tail of the same line, so the queue bends around the dormitory rather than reading as a straight row of four. The exit is the palace doorway gap, the same door scene 3 uses, leading on to scene 5's dinner table.",
+  "note": "DAN.1.6-7, the four are given their Babylonian names. This scene owns the dormitory of nine beds on the precinct's west side; the palace front (scene 3), the food pavilion (scene 5), the terraced garden (scene 6) and the ziggurat/scribal quarter (scene 7) are left untouched. This is a roll-call at the trainees' own quarters rather than a public ceremony, so the registry table sits among the beds rather than at the palace door. The registry scribe is the focal point, pressing each new name into the clay; Ashpenaz stands over his shoulder, the one actually conferring the names. Daniel and Hananiah are brought to the table first; Mishael and Azariah wait their turn down the west aisle between the beds, with a trainee further back at the tail of the same line, so the queue bends around the dormitory rather than reading as a straight row of four. The scene closes through the Lamplighter and fades on to scene 5's dinner table.",
   "spawn": { "x": 300, "y": 480 },
-  "exit": {
-    "x": 938,
-    "y": 282,
-    "width": 40,
-    "height": 48,
-    "note": "the palace doorway gap in the facade, shared with scene 3; leads on to the king's table in scene 5"
-  },
   "placements": [
     {
       "reference": "lamplighter:scene-4",

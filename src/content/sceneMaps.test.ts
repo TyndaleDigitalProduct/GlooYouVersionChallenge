@@ -49,7 +49,6 @@ function draftScene(ordinal: number, backdrop = "test-room") {
     backdrop,
     note: "synthetic draft",
     spawn: { x: 100, y: 100 },
-    exit: { x: 200, y: 200, width: 40, height: 40 },
     placements: [],
   };
 }
@@ -214,11 +213,29 @@ describe("buildSceneMaps", () => {
   });
 
   it("does not run the blocking checks on a draft scene, since it places nobody", () => {
-    // Scene 3 is not playable, so its map stays a draft with an empty cast. The
-    // wall it shares with scene 1 cannot make an empty cast fail.
-    const result = buildSceneMaps([oneBackdrop], nineScenes(), content);
+    // All nine scenes are playable as of PRD-13 phase 5, and the loader refuses
+    // to pair a playable scene with a draft map, so reaching the draft branch at
+    // all now takes a content document where some scene is *not* playable. That
+    // is what this builds: the branch still exists for a future chapter whose
+    // scenes are authored one at a time, and it is worth proving it still skips
+    // the checks rather than deleting the coverage along with the last draft.
+    const dialogueWithADraftScene = {
+      ...rawDialogueDocument,
+      scenes: rawDialogueDocument.scenes.map((scene) =>
+        scene.id === 3 ? { ...scene, playable: false } : scene,
+      ),
+    };
+    const built = buildGameContent(rawRefsDocument, dialogueWithADraftScene);
+    if (!built.ok) throw new Error(`fixture content is invalid: ${built.reason}`);
+
+    const scenes = built.value.scenes.map((scene) =>
+      scene.playable ? authoredScene(scene.ordinal) : draftScene(scene.ordinal),
+    );
+    const result = buildSceneMaps([oneBackdrop], scenes, built.value);
+
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(result.value.byScene["scene-3"].status).toBe("draft");
     expect(result.value.byScene["scene-3"].placements).toEqual([]);
   });
 });
@@ -250,6 +267,20 @@ describe("the scene schema keeps backdrop data out of scene files", () => {
 
   it("rejects any other unexpected key too, so a typo is not silently ignored", () => {
     const parsed = sceneMapDocumentSchema.safeParse({ ...draftScene(1), spwan: { x: 1, y: 1 } });
+    expect(parsed.success).toBe(false);
+  });
+
+  // PRD-13 phase 5 deleted `exit`. Transitions are a fade on the Lamplighter's
+  // "ready to move on" control, so nobody walks to a door and nothing reads an
+  // exit rectangle. Leaving the field authored-but-unread would be exactly the
+  // placeholder this PRD exists to remove, so the schema refuses it: a scene
+  // file that still carries one fails at boot rather than carrying dead data.
+  it("rejects the deleted exit rectangle rather than accepting data nothing reads", () => {
+    const parsed = sceneMapDocumentSchema.safeParse({
+      ...draftScene(1),
+      exit: { x: 200, y: 200, width: 40, height: 40 },
+    });
+
     expect(parsed.success).toBe(false);
   });
 });

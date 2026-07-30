@@ -2,15 +2,8 @@
   "scene": 7,
   "status": "authored",
   "backdrop": "babylon-palace",
-  "note": "DAN.1.17, knowledge and wisdom given. The ziggurat and scribal quarter, north-west of the precinct: open study ground south of the ziggurat of Etemenanki, clear of the dormitory beds to the south and the palace facade to the east. The Chaldean tutor stands apart, addressing the four rather than standing among them. Hananiah, fresh from besting him in a question, stands closest; Daniel, Mishael and Azariah fall back at increasing distances and differing heights so the four read as a cluster around a lesson, not a row. The library attendant keeps to the tablets on the west side, near the ziggurat's shelving. The student from another province studies alone on the east side, a visible peer who is not one of the four. Spawn puts the player facing the ziggurat and the study ground at once; the exit is the palace doorway shared with the rest of the precinct's staged scenes, leading on to the king's presentation.",
+  "note": "DAN.1.17, knowledge and wisdom given. The ziggurat and scribal quarter, north-west of the precinct: open study ground south of the ziggurat of Etemenanki, clear of the dormitory beds to the south and the palace facade to the east. The Chaldean tutor stands apart, addressing the four rather than standing among them. Hananiah, fresh from besting him in a question, stands closest; Daniel, Mishael and Azariah fall back at increasing distances and differing heights so the four read as a cluster around a lesson, not a row. The library attendant keeps to the tablets on the west side, near the ziggurat's shelving. The student from another province studies alone on the east side, a visible peer who is not one of the four. Spawn puts the player facing the ziggurat and the study ground at once; the scene closes through the Lamplighter and fades on to the king's presentation.",
   "spawn": { "x": 300, "y": 420 },
-  "exit": {
-    "x": 938,
-    "y": 282,
-    "width": 40,
-    "height": 48,
-    "note": "the palace doorway, leading to the king's presentation of the four (scene 8)"
-  },
   "placements": [
     {
       "reference": "lamplighter:scene-7",

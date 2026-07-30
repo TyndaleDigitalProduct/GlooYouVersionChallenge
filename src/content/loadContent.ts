@@ -106,6 +106,12 @@ export interface SceneContent {
   characters: CharacterDialogue[];
   /** The Lamplighter's three closing lines. Absent only for a scene with no dialogue authored yet. */
   lamplighterExit: LamplighterExit | undefined;
+  /**
+   * PRD-13 phase 5: the caption shown over the fade as this scene is entered.
+   * See `dialogueSceneSchema.transitionCaption` for why it belongs to the
+   * arriving beat and why it is optional here but required of the real files.
+   */
+  transitionCaption: string | undefined;
   crossReferences: CrossReferenceContent[];
 }
 
@@ -137,8 +143,8 @@ export interface SceneMap {
   status: "draft" | "authored";
   backdrop: Backdrop;
   note: string;
+  /** Where the player stands on entering, however they entered (PRD-13 phase 5). */
   spawn: { x: number; y: number };
-  exit: MapRect;
   /** One entry per placed character. Empty for a draft scene. */
   placements: MarkerPlacement[];
 }
@@ -254,7 +260,6 @@ export function buildSceneMaps(
       backdrop,
       note: document.note,
       spawn: { ...document.spawn },
-      exit: { ...document.exit },
       placements,
     };
   }
@@ -439,6 +444,7 @@ export function buildGameContent(rawRefs: unknown, rawDialogue: unknown): Result
       lamplighterExit: dialogueScene.lamplighterExit
         ? { ...dialogueScene.lamplighterExit }
         : undefined,
+      transitionCaption: dialogueScene.transitionCaption,
       crossReferences: scene.cross_references.map((crossRef) => ({
         reference: crossRef.ref,
         sceneId,

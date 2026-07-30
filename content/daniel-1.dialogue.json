@@ -1,10 +1,11 @@
 {
   "status": "final",
-  "note": "Authored game dialogue for all nine scenes of Daniel 1. Reviewed and approved by Keith, 2026-07-29. Scene settings and cross-references come from content/daniel-1.refs.json. Lamplighter exits branch on all/some/none encounters engaged; PRD-12 wires the branch selection at runtime.",
+  "note": "Authored game dialogue for all nine scenes of Daniel 1. Reviewed and approved by Keith, 2026-07-29. Scene settings and cross-references come from content/daniel-1.refs.json. Lamplighter exits branch on all/some/none encounters engaged; PRD-12 wires the branch selection at runtime. PRD-13 phase 5 made all nine scenes playable and added transitionCaption, the line shown over the fade as a scene is entered: it names when and where the beat happens, which is what keeps the five transitions that land on the picture they left from reading as a bug.",
   "scenes": [
     {
       "id": 1,
       "playable": true,
+      "transitionCaption": "The third year of Jehoiakim. Jerusalem, under siege.",
       "lamplighterOpening": [
         {
           "text": "There you are. Stay close to the lamp; the city is dark tonight, and something darker than night is on its way."
@@ -113,7 +114,8 @@
     },
     {
       "id": 2,
-      "playable": false,
+      "playable": true,
+      "transitionCaption": "Dawn, and the gates stand open. The temple courts, Jerusalem.",
       "lamplighterOpening": [
         {
           "text": "So the siege ended the way sieges usually do. Last night the gates opened."
@@ -211,7 +213,8 @@
     },
     {
       "id": 3,
-      "playable": false,
+      "playable": true,
+      "transitionCaption": "A long road east, and weeks of it. The palace at Babylon.",
       "lamplighterOpening": [
         {
           "text": "Welcome to Babylon. A long road from Jerusalem, and the four of them walked every mile of it, same as you."
@@ -315,7 +318,8 @@
     },
     {
       "id": 4,
-      "playable": false,
+      "playable": true,
+      "transitionCaption": "The first morning of the program. The trainees' quarters.",
       "lamplighterOpening": [
         {
           "text": "They made the cut, all four of them. Three years in the king's program, starting today."
@@ -408,7 +412,8 @@
     },
     {
       "id": 5,
-      "playable": false,
+      "playable": true,
+      "transitionCaption": "That evening. The king's table.",
       "lamplighterOpening": [
         {
           "text": "New names, new clothes, new books. Babylon has been remaking those four from the outside in."
@@ -501,7 +506,8 @@
     },
     {
       "id": 6,
-      "playable": false,
+      "playable": true,
+      "transitionCaption": "The ten days begin. The terraced garden.",
       "lamplighterOpening": [
         {
           "text": "Daniel asked his quiet question about the menu, and the official turned pale. That's where we left it."
@@ -594,7 +600,8 @@
     },
     {
       "id": 7,
-      "playable": false,
+      "playable": true,
+      "transitionCaption": "Three years pass. The scribal quarter.",
       "lamplighterOpening": [
         {
           "text": "The vegetables won. Ten days, and the king's own attendant couldn't argue with what he saw."
@@ -684,7 +691,8 @@
     },
     {
       "id": 8,
-      "playable": false,
+      "playable": true,
+      "transitionCaption": "The three years are up. The throne room.",
       "lamplighterOpening": [
         {
           "text": "Three years, gone like a watch in the night. The training is over, and today every trainee stands in front of the king himself."
@@ -785,7 +793,8 @@
     },
     {
       "id": 9,
-      "playable": false,
+      "playable": true,
+      "transitionCaption": "Years at court, on into the reign of Cyrus. The throne room.",
       "lamplighterOpening": [
         {
           "text": "The four of them entered the king's service, and some time has passed. Life at court settled into, well, life at court."

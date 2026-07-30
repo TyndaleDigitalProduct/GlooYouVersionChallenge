@@ -4,13 +4,6 @@
   "backdrop": "jerusalem-siege",
   "note": "DAN.1.1, Jerusalem under siege. The player starts inside the city, a few steps in from the breach in the west wall, so the first thing on screen is a wall that has been broken open. The Judean cast is in the city and Nebuchadnezzar is out at his command tent in the camp, which means the walk to him crosses the siege ramp and goes out through the breach: the geography carries the verse. The Lamplighter stands just inside the breach, at the entrance, per ADR-0004. Coordinates are hand-authored against the picture and snapped to ground the phase-4 validator accepts; they are expected to be corrected in the operator's visual review pass.",
   "spawn": { "x": 1143, "y": 626 },
-  "exit": {
-    "x": 1520,
-    "y": 426,
-    "width": 100,
-    "height": 40,
-    "note": "the temple court's south approach, since scene 2 is the temple. Shut until the Lamplighter closes the scene; phase 5 opens it."
-  },
   "placements": [
     {
       "reference": "character:scene-1:gatekeeper",

@@ -426,10 +426,26 @@ describe("the real content files", () => {
     expect(content.manifest.crossReferences).toHaveLength(24);
   });
 
-  it("make scene 1 the only playable scene until PRD-12 wires runtime support for the rest", () => {
+  it("make all nine scenes playable, now that all nine have authored maps", () => {
+    // Was "scene 1 only", while scenes 2-9 had no dialogue and then draft maps.
+    // PRD-13 phase 5 flips the rest: every scene has authored blocking and the
+    // chapter runs end to end, so a non-playable scene would now be a bug rather
+    // than a stage of the work.
     const playable = content.scenes.filter((scene) => scene.playable);
 
-    expect(playable.map((scene) => scene.id)).toEqual(["scene-1"]);
+    expect(playable).toHaveLength(9);
+  });
+
+  it("give every scene a transition caption naming when and where it happens", () => {
+    // The caption is the entire same-backdrop mitigation (PRD-13 phase 5):
+    // five of the eight transitions land on the picture they left, so without
+    // text saying time passed, "walk out of the palace, arrive at the palace"
+    // reads as a bug. Optional in the schema so a synthetic test fixture need
+    // not invent one; required here, over the real files, so it cannot ship
+    // missing.
+    for (const scene of content.scenes) {
+      expect(scene.transitionCaption, `scene ${scene.id}`).toBeTruthy();
+    }
   });
 
   it("give scene 1 its two curated cross-references, with sections", () => {

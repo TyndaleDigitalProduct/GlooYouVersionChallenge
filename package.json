@@ -15,7 +15,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "biome check .",
     "e2e": "playwright test",
-    "stage:assets": "node scripts/stage-assets.mjs --verify"
+    "stage:assets": "node scripts/stage-assets.mjs --verify",
+    "validate:scene": "vitest run tests/validateScene.test.ts"
   },
   "dependencies": {
     "phaser": "4.2.1",

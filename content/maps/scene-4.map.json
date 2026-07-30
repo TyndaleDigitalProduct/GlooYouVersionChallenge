@@ -1,17 +1,82 @@
 {
   "scene": 4,
-  "status": "draft",
+  "status": "authored",
   "backdrop": "babylon-palace",
-  "note": "DAN.1.6-7, the four are introduced and renamed. The scribal quarter under the ziggurat. DRAFT. This file exists so that all nine scenes are visible to the loader and the suite (PRD-13 phase 2), and so that a missing or unstaged backdrop fails at boot rather than degrading to a grey rectangle. Nobody has placed this scene's cast yet: `placements` is empty and `status` is \"draft\", which src/content/loadContent.ts refuses to combine with a playable scene. Promoting this to \"authored\" is what turns the phase-4 validator on for it, so an unauthored scene cannot quietly ship as an empty room. The spawn and exit below are provisional: standable and inside the right zone, but not reviewed.",
-  "spawn": {
-    "x": 300,
-    "y": 480
-  },
+  "note": "DAN.1.6-7, the four are given their Babylonian names. This scene owns the dormitory of nine beds on the precinct's west side; the palace front (scene 3), the food pavilion (scene 5), the terraced garden (scene 6) and the ziggurat/scribal quarter (scene 7) are left untouched. This is a roll-call at the trainees' own quarters rather than a public ceremony, so the registry table sits among the beds rather than at the palace door. The registry scribe is the focal point, pressing each new name into the clay; Ashpenaz stands over his shoulder, the one actually conferring the names. Daniel and Hananiah are brought to the table first; Mishael and Azariah wait their turn down the west aisle between the beds, with a trainee further back at the tail of the same line, so the queue bends around the dormitory rather than reading as a straight row of four. The exit is the palace doorway gap, the same door scene 3 uses, leading on to scene 5's dinner table.",
+  "spawn": { "x": 300, "y": 480 },
   "exit": {
     "x": 938,
     "y": 282,
     "width": 40,
-    "height": 48
+    "height": 48,
+    "note": "the palace doorway gap in the facade, shared with scene 3; leads on to the king's table in scene 5"
   },
-  "placements": []
+  "placements": [
+    {
+      "reference": "lamplighter:scene-4",
+      "x": 340,
+      "y": 510,
+      "note": "at the player's elbow on arrival, so the roll call is the first thing on screen"
+    },
+    {
+      "reference": "character:scene-4:registry-scribe",
+      "x": 290,
+      "y": 385,
+      "note": "the registry table among the beds, the focal point of the roll call"
+    },
+    {
+      "reference": "character:scene-4:ashpenaz",
+      "x": 235,
+      "y": 435,
+      "note": "beside the scribe's table, the official actually conferring the Babylonian names"
+    },
+    {
+      "reference": "character:scene-4:daniel",
+      "x": 365,
+      "y": 460,
+      "note": "brought to the table first, waiting on Belteshazzar to be read out"
+    },
+    {
+      "reference": "character:scene-4:hananiah",
+      "x": 430,
+      "y": 495,
+      "note": "beside Daniel at the table's edge, next up as Shadrach"
+    },
+    {
+      "reference": "character:scene-4:mishael",
+      "x": 130,
+      "y": 660,
+      "note": "waiting his turn down the west aisle, between the first and second row of beds"
+    },
+    {
+      "reference": "character:scene-4:azariah",
+      "x": 150,
+      "y": 830,
+      "note": "further back in the same bending line, by the southern beds"
+    },
+    {
+      "reference": "character:scene-4:trainee-in-line",
+      "x": 170,
+      "y": 950,
+      "note": "the tail of the line, deep in the dormitory aisle"
+    },
+    {
+      "reference": "EZK.14.13-14",
+      "x": 540,
+      "y": 400,
+      "note": "Prophets guide, east of the beds; Ezekiel's own high opinion of Daniel, findable apart from the roll call"
+    },
+    {
+      "reference": "GEN.41.39-45",
+      "x": 560,
+      "y": 650,
+      "note": "Torah guide, in the gap between the beds and the canal path; Joseph's renaming survived intact"
+    },
+    {
+      "reference": "2KI.24.15-17",
+      "x": 580,
+      "y": 870,
+      "note": "OT History guide, the east edge of the dormitory; the same king's renaming of Zedekiah"
+    }
+  ]
 }

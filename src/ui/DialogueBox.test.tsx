@@ -110,6 +110,49 @@ describe("the playable gate (PRD-13 phase 5)", () => {
   });
 });
 
+describe("the Lamplighter portrait", () => {
+  function bootReal() {
+    const result = createAppRuntime({
+      storage: createInMemoryStorage(),
+      saveKey: "test:dialogue-portrait",
+      bus: createEventBus(),
+    });
+    if (!result.ok) throw new Error(`runtime failed to boot: ${result.reason}`);
+    return result.value;
+  }
+
+  it("peeks the Lamplighter's own sprite over the opening beats, so he reads as speaking", () => {
+    const runtime = bootReal();
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <DialogueBox />
+      </RuntimeProvider>,
+    );
+
+    const portrait = screen.getByTestId("lamplighter-portrait");
+    // The real Lamplighter, cropped from his walk sheet — not an ex_* stand-in
+    // bust for a different character.
+    expect(portrait).toHaveStyle({
+      backgroundImage: `url(assets/sprites/${runtime.cast.lamplighterSpriteKey}.png)`,
+    });
+  });
+
+  it("is gone once the opening is over and free movement takes the screen", () => {
+    const runtime = bootReal();
+    // Passing every opening beat leaves DialogueBox rendering nothing at all.
+    const openingLength = runtime.content.scenes[0].lamplighterOpening.length;
+    for (let i = 0; i < openingLength; i += 1) runtime.view.getState().advanceDialogue();
+
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <DialogueBox />
+      </RuntimeProvider>,
+    );
+
+    expect(screen.queryByTestId("lamplighter-portrait")).not.toBeInTheDocument();
+  });
+});
+
 describe("DialogueBox {name} substitution (PRD-11)", () => {
   it("substitutes every {name} occurrence with the saved player name", () => {
     const runtime = boot();

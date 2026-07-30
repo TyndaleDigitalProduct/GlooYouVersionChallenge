@@ -431,8 +431,56 @@ body {
 
 /* --- dialogue ----------------------------------------------------------- */
 
+/* Wraps the Lamplighter and the dialogue panel so he is the panel's *sibling*,
+   not its child: only a sibling can be painted over by the panel's parchment and
+   wood frame, which is what makes him read as standing behind the box rather than
+   on top of it. `isolation` keeps the one z-index below scoped to this stage so
+   it never competes with the phase overlays. It carries the panel's old width so
+   the panel (width:100%) still fills the same 52rem column. */
+.vv-dialogue-stage {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 52rem;
+}
+
 .vv-dialogue {
   max-width: 52rem;
+  /* Lifted above the portrait so the panel's parchment and frame paint over his
+     lower half; the portrait sits at the default layer behind it. */
+  position: relative;
+  z-index: 1;
+}
+
+/* The Lamplighter, cropped from his 96x256 walk sheet (4 cols x 8 rows of
+   24x32) to the top 22px of his front idle frame and hung *behind* the panel so
+   only his head and shoulders (the top 18px) rise above its top edge — the
+   panel, painting over him, hides the rest, so he reads as standing behind the
+   box and looming up to speak. Everything is sized off the viewport height so he
+   stays that big on any screen. His whole idle frame (32px) is 25.2vh tall, so
+   the sheet is scaled to match — 96x256 * (25.2vh / 32px) = 75.6vh x 201.6vh —
+   and pinned to 0 0 for that one frame. The visible crop is the top 22px =
+   17.325vh, of which the bottom 4px (3.15vh) is tucked behind the panel's top
+   edge (bottom: 100% is the top edge; -3.15vh sinks him that far below it) so
+   the seam where the crop ends is never visible — the panel covers it. width is
+   the frame's 24px column at this scale (18.9vh); his opaque pixels start 4px in
+   (the front frame's box is x 4-19), so a left of `frame-wood - 3.15vh` sets his
+   body flush against the panel's left content edge. image-rendering keeps the
+   pixels crisp at any size. Only the sheet URL is set inline, from the cast —
+   everything geometric is here. */
+.vv-dialogue__portrait {
+  position: absolute;
+  z-index: 0;
+  left: calc(var(--vv-frame-wood) - 3.15vh);
+  bottom: calc(100% - 3.15vh);
+  width: 18.9vh;
+  height: 17.325vh;
+  margin: 0;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 75.6vh 201.6vh;
+  image-rendering: pixelated;
 }
 
 .vv-dialogue__header {

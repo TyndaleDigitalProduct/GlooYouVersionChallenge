@@ -70,34 +70,58 @@ export function DialogueBox() {
   const isLastBeat = dialogueIndex === openingBeats.length - 1;
 
   return (
-    <section className="vv-panel vv-dialogue" data-testid="dialogue-box">
-      <header className="vv-dialogue__header">
-        <p className="vv-dialogue__speaker">The Lamplighter</p>
-        <p className="vv-dialogue__setting">
-          {scene.verses} · {scene.setting}
-        </p>
-      </header>
+    // A stage wrapping the portrait and the panel so the Lamplighter can be a
+    // *sibling* of the panel rather than its child: only then can the panel's
+    // parchment and wood frame paint over his lower half, so he reads as
+    // standing behind the box with his head and shoulders rising out of it. A
+    // child can never sit behind its own parent's background, which is why he
+    // used to sit on top of the box instead of behind it.
+    <div className="vv-dialogue-stage">
+      {/* The Lamplighter's own sprite, cropped from his walk sheet to his
+          front-facing idle frame (row 0, column 0 — see spriteDirections.ts) and
+          hung behind the panel so his head and shoulders emerge from behind its
+          top edge, as if he is looming up over the box to speak. No painted bust
+          exists for him yet (blocked art, PRD-13 out-of-scope), and an ex_*
+          stand-in would be a different character's face; his real sprite is the
+          honest choice. The crop, scale and placement all live in CSS; only the
+          sheet URL is dynamic, keyed off the cast so a tone swap cannot mispoint
+          it. */}
+      <figure
+        className="vv-dialogue__portrait"
+        data-testid="lamplighter-portrait"
+        aria-hidden="true"
+        style={{ backgroundImage: `url(assets/sprites/${runtime.cast.lamplighterSpriteKey}.png)` }}
+      />
 
-      {runtime.content.dialogueStatus === "placeholder" && (
-        <p className="vv-placeholder-tag">Placeholder copy, not authored dialogue</p>
-      )}
-      <p className="vv-dialogue__text" data-testid="dialogue-text">
-        {substituteName(beat.text, playerName)}
-      </p>
+      <section className="vv-panel vv-dialogue" data-testid="dialogue-box">
+        <header className="vv-dialogue__header">
+          <p className="vv-dialogue__speaker">The Lamplighter</p>
+          <p className="vv-dialogue__setting">
+            {scene.verses} · {scene.setting}
+          </p>
+        </header>
 
-      <footer className="vv-dialogue__footer">
-        <p className="vv-dialogue__progress">
-          Beat {dialogueIndex + 1} of {openingBeats.length}
+        {runtime.content.dialogueStatus === "placeholder" && (
+          <p className="vv-placeholder-tag">Placeholder copy, not authored dialogue</p>
+        )}
+        <p className="vv-dialogue__text" data-testid="dialogue-text">
+          {substituteName(beat.text, playerName)}
         </p>
-        <button
-          type="button"
-          className="vv-button"
-          data-testid="dialogue-advance"
-          onClick={() => runtime.view.getState().advanceDialogue()}
-        >
-          {isLastBeat ? "Into the streets" : "Continue"}
-        </button>
-      </footer>
-    </section>
+
+        <footer className="vv-dialogue__footer">
+          <p className="vv-dialogue__progress">
+            Beat {dialogueIndex + 1} of {openingBeats.length}
+          </p>
+          <button
+            type="button"
+            className="vv-button"
+            data-testid="dialogue-advance"
+            onClick={() => runtime.view.getState().advanceDialogue()}
+          >
+            {isLastBeat ? "Into the streets" : "Continue"}
+          </button>
+        </footer>
+      </section>
+    </div>
   );
 }

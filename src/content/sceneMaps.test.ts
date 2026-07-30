@@ -274,10 +274,14 @@ describe("the thirteen real map files", () => {
     for (const ordinal of [8, 9]) expect(byScene[ordinal]).toBe("throne-room");
   });
 
-  it("has scene 1 authored and scenes 2-9 still draft", () => {
-    expect(maps.byScene["scene-1"].status).toBe("authored");
-    for (const ordinal of [2, 3, 4, 5, 6, 7, 8, 9]) {
-      expect(maps.byScene[`scene-${ordinal}`].status).toBe("draft");
+  it("has all nine scenes authored", () => {
+    // Was "scene 1 authored, 2-9 still draft" while the fan-out was in flight.
+    // Delivery step 6 authored the remaining eight, so the assertion inverts: the
+    // draft state was a stage of the work, not a property of the data. What it
+    // still guards is that nothing silently regresses to draft, which the loader
+    // would then refuse to combine with a playable scene.
+    for (const ordinal of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+      expect(maps.byScene[`scene-${ordinal}`].status).toBe("authored");
     }
   });
 

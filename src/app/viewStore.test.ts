@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createViewStore, hasReadBothPassages, hasReadPassage } from "./viewStore";
+import { createViewStore, hasReadBothPassages, hasReadPassage, isAnyPanelOpen } from "./viewStore";
 
 describe("view store", () => {
   it("starts with nothing open and no notices", () => {
@@ -8,6 +8,9 @@ describe("view store", () => {
     expect(view.dialogueIndex).toBe(0);
     expect(view.nearbyReference).toBeNull();
     expect(view.openEncounterReference).toBeNull();
+    expect(view.openLamplighterSceneId).toBeNull();
+    expect(view.openCharacterReference).toBeNull();
+    expect(view.characterBeatIndex).toBe(0);
     expect(view.notices).toEqual([]);
   });
 
@@ -65,6 +68,99 @@ describe("view store", () => {
     store.getState().openEncounter("2KI.24.1-4");
 
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  describe("Lamplighter exit panel (PRD-12)", () => {
+    it("opens and closes by scene id", () => {
+      const store = createViewStore();
+
+      store.getState().openLamplighter("scene-1");
+      expect(store.getState().openLamplighterSceneId).toBe("scene-1");
+
+      store.getState().closeLamplighter();
+      expect(store.getState().openLamplighterSceneId).toBeNull();
+    });
+
+    it("does not notify subscribers when opening the scene already open", () => {
+      const store = createViewStore();
+      store.getState().openLamplighter("scene-1");
+
+      const listener = vi.fn();
+      store.subscribe(listener);
+      store.getState().openLamplighter("scene-1");
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("story character/NPC dialogue panel (PRD-12)", () => {
+    it("opens a character by (sceneId, characterId) and starts its beat index at 0", () => {
+      const store = createViewStore();
+
+      store.getState().openCharacter("scene-1", "daniel");
+
+      expect(store.getState().openCharacterReference).toEqual({
+        sceneId: "scene-1",
+        characterId: "daniel",
+      });
+      expect(store.getState().characterBeatIndex).toBe(0);
+    });
+
+    it("advances the character's beat index one at a time", () => {
+      const store = createViewStore();
+      store.getState().openCharacter("scene-1", "daniel");
+
+      store.getState().advanceCharacterDialogue();
+      store.getState().advanceCharacterDialogue();
+
+      expect(store.getState().characterBeatIndex).toBe(2);
+    });
+
+    it("re-opening the same character resets the beat index: a replay, not a resume", () => {
+      const store = createViewStore();
+      store.getState().openCharacter("scene-1", "daniel");
+      store.getState().advanceCharacterDialogue();
+      store.getState().advanceCharacterDialogue();
+      expect(store.getState().characterBeatIndex).toBe(2);
+
+      store.getState().closeCharacter();
+      store.getState().openCharacter("scene-1", "daniel");
+
+      expect(store.getState().characterBeatIndex).toBe(0);
+    });
+
+    it("closes the character panel", () => {
+      const store = createViewStore();
+      store.getState().openCharacter("scene-1", "daniel");
+
+      store.getState().closeCharacter();
+
+      expect(store.getState().openCharacterReference).toBeNull();
+    });
+  });
+
+  describe("isAnyPanelOpen (PRD-12: the one guard on new world input)", () => {
+    it("is false with nothing open", () => {
+      expect(isAnyPanelOpen(createViewStore().getState())).toBe(false);
+    });
+
+    it("is true while an encounter panel is open", () => {
+      const store = createViewStore();
+      store.getState().openEncounter("2KI.24.1-4");
+      expect(isAnyPanelOpen(store.getState())).toBe(true);
+    });
+
+    it("is true while the Lamplighter panel is open", () => {
+      const store = createViewStore();
+      store.getState().openLamplighter("scene-1");
+      expect(isAnyPanelOpen(store.getState())).toBe(true);
+    });
+
+    it("is true while a character dialogue panel is open", () => {
+      const store = createViewStore();
+      store.getState().openCharacter("scene-1", "daniel");
+      expect(isAnyPanelOpen(store.getState())).toBe(true);
+    });
   });
 
   it("ignores a duplicate notice id so a repeated failure cannot stack", () => {

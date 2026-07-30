@@ -79,6 +79,43 @@ export function isSceneFullyResolved(
   );
 }
 
+export type LamplighterExitBranch = "all" | "some" | "none";
+
+/**
+ * Which of the Lamplighter's three branch-tagged exit lines
+ * (`SceneContent.lamplighterExit`, src/content/loadContent.ts) to show, based
+ * on how many of the scene's cross-references the player has engaged with at
+ * all. "all" requires every reference *resolved* — the same condition
+ * `isSceneFullyResolved` uses to award the bonus, so the copy that says "you
+ * heard them all out" and the bonus that pays for it always agree. "none"
+ * requires every reference still `unvisited`. Anything in between —
+ * including a reference merely `engaged` but not yet resolved — is "some":
+ * the player did interact with this scene, just not completely.
+ *
+ * A scene with zero cross-references reports "none": there was nothing to
+ * engage, so "all" (vacuously true) would be a strange thing to tell a
+ * player who never had a choice to make.
+ *
+ * Never punitive about what got skipped (PRD-12 acceptance criteria): this
+ * function only classifies the state, it does not gate `completeScene` or
+ * anything else — leaving with "none" completes the scene exactly like
+ * leaving with "all" does.
+ */
+export function lamplighterExitBranch(
+  manifest: GameManifest,
+  encounters: EncountersState,
+  sceneId: string,
+): LamplighterExitBranch {
+  const references = crossReferencesForScene(manifest, sceneId);
+  if (references.length === 0) return "none";
+
+  const states = references.map((reference) => encounterState(encounters, sceneId, reference));
+
+  if (states.every((state) => state === "resolved")) return "all";
+  if (states.every((state) => state === "unvisited")) return "none";
+  return "some";
+}
+
 export interface AllReferencesBonusOutcome {
   ledger: LedgerEntry[];
   awarded: boolean;

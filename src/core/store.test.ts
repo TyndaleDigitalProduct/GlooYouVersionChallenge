@@ -261,6 +261,74 @@ describe("game store (zustand/vanilla, subscribable without React)", () => {
         balance: expect.any(Number),
       });
     });
+
+    it(
+      "PRD-12 revisit: completing a scene through the Lamplighter with one reference left " +
+        "unengaged does not foreclose the all-references bonus — resolving the remaining " +
+        "reference afterward still earns it",
+      () => {
+        const store = createGameStore({ manifest: threeSceneManifest });
+
+        // Only one of scene-1's two references gets engaged and resolved
+        // before the player leaves through the Lamplighter.
+        store.getState().generateEncounterCards("scene-1", "FIX.1.1", VALID_CARDS);
+        store.getState().lockEncounterSelections("scene-1", "FIX.1.1", ["c1"]);
+        expect(store.getState().lamplighterExitBranch("scene-1")).toBe("some");
+
+        const completion = store.getState().completeScene("scene-1");
+        expect(completion).toEqual({ ok: true, value: { changed: true } });
+        expect(store.getState().isSceneComplete("scene-1")).toBe(true);
+        expect(store.getState().ledger.some((entry) => entry.cause === "all-references")).toBe(
+          false,
+        );
+
+        // The scene is complete, but still revisitable: nothing here rejects
+        // engaging or resolving its second reference now.
+        expect(store.getState().isSceneRevisitable("scene-1")).toBe(true);
+
+        const engage = store.getState().engageEncounter("scene-1", "FIX.1.2");
+        expect(engage.ok).toBe(true);
+
+        store.getState().generateEncounterCards("scene-1", "FIX.1.2", VALID_CARDS);
+        const lock = store.getState().lockEncounterSelections("scene-1", "FIX.1.2", ["c1"]);
+        expect(lock.ok).toBe(true);
+
+        // The consequence PRD-12 calls out: the all-references bonus is
+        // reachable *after* the scene already completed.
+        expect(store.getState().ledger.some((entry) => entry.cause === "all-references")).toBe(
+          true,
+        );
+        expect(store.getState().lamplighterExitBranch("scene-1")).toBe("all");
+
+        // Re-completing the scene through the Lamplighter again is a no-op:
+        // no duplicate scene-complete award turns up alongside the bonus.
+        const secondCompletion = store.getState().completeScene("scene-1");
+        expect(secondCompletion).toEqual({ ok: true, value: { changed: false } });
+        const sceneCompleteEntries = store
+          .getState()
+          .ledger.filter((entry) => entry.cause === "scene-complete");
+        expect(sceneCompleteEntries).toHaveLength(1);
+      },
+    );
+  });
+
+  describe("isSceneRevisitable and lamplighterExitBranch (PRD-12)", () => {
+    it("isSceneRevisitable mirrors isSceneUnlocked", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      expect(store.getState().isSceneRevisitable("scene-1")).toBe(true);
+      expect(store.getState().isSceneRevisitable("scene-2")).toBe(false);
+
+      store.getState().completeScene("scene-1");
+      expect(store.getState().isSceneRevisitable("scene-2")).toBe(true);
+    });
+
+    it("lamplighterExitBranch starts at 'none' and tracks engagement live", () => {
+      const store = createGameStore({ manifest: threeSceneManifest });
+      expect(store.getState().lamplighterExitBranch("scene-1")).toBe("none");
+
+      store.getState().engageEncounter("scene-1", "FIX.1.1");
+      expect(store.getState().lamplighterExitBranch("scene-1")).toBe("some");
+    });
   });
 
   it("completing every scene with zero encounters still yields a complete game", () => {

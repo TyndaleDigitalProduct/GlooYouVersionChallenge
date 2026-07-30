@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   CHARACTER_CLICK_RADIUS,
+  CHARACTER_ROW_FRACTION,
   clampToWorld,
   INTERACT_RADIUS,
+  LAMPLIGHTER_ROW_FRACTION,
   markerPlacements,
+  markerRowPlacements,
   nearestMarker,
   PLAYER_SIZE,
   PLAYER_SPAWN,
@@ -61,6 +64,39 @@ describe("markerPlacements", () => {
     const [region] = regionRects(["region-1"]);
 
     expect(markerPlacements(region, [])).toEqual([]);
+  });
+});
+
+describe("markerRowPlacements (PRD-12: a row per character kind)", () => {
+  it("markerPlacements is the midline row, unchanged", () => {
+    const [region] = regionRects(["region-1"]);
+
+    expect(markerRowPlacements(region, ["A", "B"], 0.5)).toEqual(
+      markerPlacements(region, ["A", "B"]),
+    );
+  });
+
+  it("places a row at an arbitrary fraction of the region's height", () => {
+    const [region] = regionRects(["region-1"]);
+
+    expect(markerRowPlacements(region, ["A"], LAMPLIGHTER_ROW_FRACTION)).toEqual([
+      {
+        reference: "A",
+        x: REGION_WIDTH / 2,
+        y: region.y + REGION_HEIGHT * LAMPLIGHTER_ROW_FRACTION,
+      },
+    ]);
+  });
+
+  it("keeps the Lamplighter row, the guide row, and the character row clear of each other", () => {
+    const [region] = regionRects(["region-1"]);
+
+    const lamplighterY = markerRowPlacements(region, ["A"], LAMPLIGHTER_ROW_FRACTION)[0].y;
+    const guideY = markerPlacements(region, ["A"])[0].y;
+    const characterY = markerRowPlacements(region, ["A"], CHARACTER_ROW_FRACTION)[0].y;
+
+    expect(guideY - lamplighterY).toBeGreaterThan(INTERACT_RADIUS);
+    expect(characterY - guideY).toBeGreaterThan(INTERACT_RADIUS);
   });
 });
 

@@ -11,9 +11,12 @@ import { DialogueBox } from "./DialogueBox";
 import { RuntimeProvider } from "./RuntimeContext";
 
 /**
- * A dialogue document overriding only scene 1's beats with a {name} line.
- * Uses the default (real) cast document, so the speaker here ("Daniel") has
- * to be one it already maps art for.
+ * A dialogue document overriding only scene 1's Lamplighter-opening beat
+ * with a {name} line. DialogueBox (PRD-12) renders only
+ * `lamplighterOpening` now — the Lamplighter's exit and every story
+ * character/NPC's lines are separate, walk-to-able world interactions — so
+ * the name-substitution fixture has to carry its `{name}` line there rather
+ * than under `characters`.
  */
 function dialogueDocumentWithName() {
   return {
@@ -25,10 +28,8 @@ function dialogueDocumentWithName() {
         ? {
             id,
             playable: true,
-            lamplighterOpening: [],
-            characters: [
-              { speaker: "Daniel", beats: [{ text: "Hello, {name}! Welcome, {name}." }] },
-            ],
+            lamplighterOpening: [{ text: "Hello, {name}! Welcome, {name}." }],
+            characters: [],
             lamplighterExit: undefined,
           }
         : {

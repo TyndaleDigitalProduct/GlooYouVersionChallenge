@@ -1,9 +1,11 @@
 import type { AppRuntime } from "@/app/runtime";
+import { CharacterDialoguePanel } from "./CharacterDialoguePanel";
 import { DialogueBox } from "./DialogueBox";
 import { EncounterPanel } from "./EncounterPanel";
 import { HomeScreen } from "./HomeScreen";
 import { HudMenu } from "./HudMenu";
 import { IntroOverlay } from "./IntroOverlay";
+import { LamplighterExitPanel } from "./LamplighterExitPanel";
 import { NoticeStack } from "./NoticeStack";
 import { ProximityPrompt } from "./ProximityPrompt";
 import { RuntimeProvider, useViewState } from "./RuntimeContext";
@@ -59,6 +61,8 @@ function PlayingScreen() {
       </div>
 
       <EncounterPanel />
+      <LamplighterExitPanel />
+      <CharacterDialoguePanel />
     </>
   );
 }

@@ -1,7 +1,8 @@
 import Phaser from "phaser";
-import { openEncounter } from "@/app/encounterController";
 import type { AppRuntime } from "@/app/runtime";
-import { guideArtFor, spriteKeysToPreload } from "@/content/cast";
+import { isAnyPanelOpen } from "@/app/viewStore";
+import { openWorldInteraction } from "@/app/worldInteractions";
+import { guideArtFor, spriteKeysToPreload, storyCharacterArtFor } from "@/content/cast";
 import { encounterState } from "@/core/encounters";
 import {
   directionRowFor,
@@ -13,12 +14,14 @@ import {
 } from "./spriteDirections";
 import {
   ARRIVAL_EPSILON,
+  CHARACTER_ROW_FRACTION,
   clampToWorld,
   FOG_ALPHA,
   FOOT_MARKER_HEIGHT,
   FOOT_MARKER_OFFSET_Y,
   FOOT_MARKER_WIDTH,
   INTERACT_RADIUS,
+  LAMPLIGHTER_ROW_FRACTION,
   LANTERN_LIT_ALPHA,
   LANTERN_LIT_COLOR,
   LANTERN_OFFSET_X,
@@ -26,6 +29,7 @@ import {
   LANTERN_RADIUS,
   type MarkerPlacement,
   markerPlacements,
+  markerRowPlacements,
   NOTICE_RADIUS,
   nearestMarker,
   PALETTE,
@@ -41,6 +45,7 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./worldLayout";
+import { characterReference, lamplighterReference } from "./worldMarkers";
 
 export const WORLD_SCENE_KEY = "WorldScene";
 
@@ -49,8 +54,31 @@ interface GuideMarker extends MarkerPlacement {
   sprite: Phaser.GameObjects.Sprite;
   /** Section-coloured disc at the guide's feet; carries encounter state. */
   footMarker: Phaser.GameObjects.Ellipse;
-  /** The lantern affordance: lit means interactable (PRD-08 phase 4). */
+  /** The lantern affordance: lit means "this guide has a scored encounter" (PRD-12). */
   lantern: Phaser.GameObjects.Ellipse;
+}
+
+/**
+ * The Lamplighter's own marker (PRD-12): a placed, walk-to-able,
+ * clickable character, one per playable scene, so the character who closes
+ * the scene is findable rather than an implicit end of a dialogue array
+ * (storyboard-v2.md item 8). No foot marker (no encounter state to show) and
+ * no lantern (it does not offer a scored cross-reference encounter — see the
+ * lantern doc comment in worldLayout.ts).
+ */
+interface LamplighterMarker extends MarkerPlacement {
+  sceneId: string;
+  sprite: Phaser.GameObjects.Sprite;
+}
+
+/**
+ * One story character/NPC's marker (PRD-12): placed and clickable in free
+ * movement, same as a guide, but carrying no encounter state and no lantern
+ * — clicking one opens `CharacterDialoguePanel`, not a scored encounter.
+ */
+interface CharacterMarker extends MarkerPlacement {
+  sceneId: string;
+  sprite: Phaser.GameObjects.Sprite;
 }
 
 /** Where the player is walking to, and whether arriving there should open an interaction. */
@@ -85,6 +113,8 @@ export class WorldScene extends Phaser.Scene {
   private readonly runtime: AppRuntime;
   private readonly fogByRegion = new Map<string, Phaser.GameObjects.Rectangle>();
   private readonly guides: GuideMarker[] = [];
+  private readonly lamplighters: LamplighterMarker[] = [];
+  private readonly characters: CharacterMarker[] = [];
   private readonly teardown: Array<() => void> = [];
 
   private player!: Phaser.GameObjects.Sprite;
@@ -115,6 +145,8 @@ export class WorldScene extends Phaser.Scene {
     this.createWalkAnimations();
     this.drawRegions(regions);
     this.drawGuides(regions);
+    this.drawLamplighters(regions);
+    this.drawStoryCharacters(regions);
     this.drawPlayer();
     this.bindPointerInput();
     this.subscribe();
@@ -131,13 +163,29 @@ export class WorldScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.movePlayer(delta / 1000);
-    this.turnGuidesTowardPlayer();
+    this.turnCharactersTowardPlayer();
 
     this.runtime.view
       .getState()
       .setNearbyReference(
-        nearestMarker(this.player.x, this.player.y, this.guides, INTERACT_RADIUS),
+        nearestMarker(this.player.x, this.player.y, this.allMarkers(), INTERACT_RADIUS),
       );
+  }
+
+  /**
+   * Every placed, clickable character together: guides, the Lamplighter, and
+   * every story character/NPC. This is what makes `resolveClick`/
+   * `nearestMarker` (worldLayout.ts) resolve a click against all three kinds
+   * in one pass, rather than WorldScene forking a second, parallel
+   * resolution path for the two PRD-12 adds (per the PRD's explicit
+   * "extend, do not fork" instruction). Typed as the union of the three
+   * concrete marker kinds (each a superset of `MarkerPlacement`), so callers
+   * that only need `{reference, x, y}` (resolveClick, nearestMarker) and
+   * callers that also need `.sprite` (turnCharactersTowardPlayer) can both
+   * use it without a second combined list or a cast.
+   */
+  private allMarkers(): ReadonlyArray<GuideMarker | LamplighterMarker | CharacterMarker> {
+    return [...this.guides, ...this.lamplighters, ...this.characters];
   }
 
   // --- construction -------------------------------------------------------
@@ -193,14 +241,29 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * True for a scene whose world content should be drawn and clickable right
+   * now: playable, and unlocked (which — PRD-12 scene revisit,
+   * `isSceneRevisitable`, src/core/progression.ts — never turns false again
+   * once true, so a completed scene's guides, Lamplighter, and story
+   * characters all stay drawn and clickable after completion too). Only
+   * scene 1 is playable today (regression guard: PRD-12 does not flip
+   * `playable` for scenes 2-9), so this is a no-op in practice right now —
+   * it matters once a future scene is made playable, at which point a scene
+   * that has not yet unlocked must not show its cast prematurely.
+   */
+  private isSceneAccessible(sceneId: string): boolean {
+    return this.runtime.store.getState().isSceneRevisitable(sceneId);
+  }
+
   private drawGuides(regionList: readonly RegionRect[]): void {
     const regions = new Map(regionList.map((region) => [region.regionId, region]));
 
-    // Only playable scenes get guides in this slice: the other eight scenes
-    // exist in the manifest so progression and fog are real, but they carry no
-    // content to stand in front of yet.
+    // Only playable, accessible scenes get guides in this slice: the other
+    // eight scenes exist in the manifest so progression and fog are real,
+    // but they carry no content to stand in front of yet.
     for (const scene of this.runtime.content.scenes) {
-      if (!scene.playable) continue;
+      if (!scene.playable || !this.isSceneAccessible(scene.id)) continue;
       const region = regions.get(scene.regionId);
       if (!region) continue;
 
@@ -234,11 +297,16 @@ export class WorldScene extends Phaser.Scene {
           .setScale(SPRITE_SCALE)
           .setDepth(2);
 
-        // The lantern affordance: every character drawn here is a
-        // cross-reference guide, and every one is interactable (including a
-        // resolved one, which is still tappable to revisit its summary
-        // card), so the lantern is always lit in this slice. It carries its
-        // own gentle glow so it reads as *lit* rather than just present.
+        // The lantern affordance: every character drawn by *this* method is a
+        // cross-reference guide, and every one offers a scored encounter
+        // (including a resolved one, which is still tappable to revisit its
+        // summary card), so the lantern is always lit here. PRD-12 places two
+        // more kinds of character in the world (drawLamplighters,
+        // drawStoryCharacters, below) that are clickable but carry no
+        // lantern at all — see the doc comment on LANTERN_* in
+        // worldLayout.ts for what the lantern means now that not every
+        // placed character is a guide. It carries its own gentle glow so it
+        // reads as *lit* rather than just present.
         const lantern = this.add
           .ellipse(
             placement.x + LANTERN_OFFSET_X,
@@ -264,6 +332,74 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * The Lamplighter, one per playable and accessible scene, on its own row
+   * (above the guides') so it never overlaps them. No foot marker, no
+   * lantern (see the class-level doc comment on `LamplighterMarker`).
+   */
+  private drawLamplighters(regionList: readonly RegionRect[]): void {
+    const regions = new Map(regionList.map((region) => [region.regionId, region]));
+
+    for (const scene of this.runtime.content.scenes) {
+      if (!scene.playable || !this.isSceneAccessible(scene.id)) continue;
+      const region = regions.get(scene.regionId);
+      if (!region) continue;
+
+      const [placement] = markerRowPlacements(
+        region,
+        [lamplighterReference(scene.id)],
+        LAMPLIGHTER_ROW_FRACTION,
+      );
+
+      const sprite = this.add
+        .sprite(placement.x, placement.y, this.runtime.cast.lamplighterSpriteKey, idleFrame(0))
+        .setOrigin(0.5, SPRITE_ORIGIN_Y)
+        .setScale(SPRITE_SCALE)
+        .setDepth(2);
+
+      this.lamplighters.push({ ...placement, sceneId: scene.id, sprite });
+    }
+  }
+
+  /**
+   * Every story character/NPC for a scene, one per `scene.characters` entry
+   * (src/content/loadContent.ts), on their own row below the guides'. Clicking
+   * one opens `CharacterDialoguePanel` (src/app/worldInteractions.ts), never a
+   * scored encounter. A speaker `content/characters.json` has no art for is
+   * skipped rather than crashing — `buildCast` (src/content/cast.ts) already
+   * fails loudly at boot for any speaker missing from a *playable* scene, so
+   * this is defence in depth, not the enforcement point.
+   */
+  private drawStoryCharacters(regionList: readonly RegionRect[]): void {
+    const regions = new Map(regionList.map((region) => [region.regionId, region]));
+
+    for (const scene of this.runtime.content.scenes) {
+      if (!scene.playable || !this.isSceneAccessible(scene.id)) continue;
+      const region = regions.get(scene.regionId);
+      if (!region) continue;
+
+      const placements = markerRowPlacements(
+        region,
+        scene.characters.map((character) => characterReference(scene.id, character.characterId)),
+        CHARACTER_ROW_FRACTION,
+      );
+
+      for (const [index, placement] of placements.entries()) {
+        const character = scene.characters[index];
+        const art = storyCharacterArtFor(this.runtime.cast, character.speaker);
+        if (!art) continue;
+
+        const sprite = this.add
+          .sprite(placement.x, placement.y, art.spriteKey, idleFrame(0))
+          .setOrigin(0.5, SPRITE_ORIGIN_Y)
+          .setScale(SPRITE_SCALE)
+          .setDepth(2);
+
+        this.characters.push({ ...placement, sceneId: scene.id, sprite });
+      }
+    }
+  }
+
   private drawPlayer(): void {
     this.player = this.add
       .sprite(
@@ -284,27 +420,34 @@ export class WorldScene extends Phaser.Scene {
    * Click-to-move (PRD-08 phase 4). Phaser's pointer events cover mouse and
    * touch alike, which is what makes this the same code path for both.
    *
-   * Guarded against a click reaching the world while an encounter panel is
-   * open: the scrim already swallows pointer events at the DOM layer (it
-   * sits on top of the canvas and is `pointer-events: auto`), but this is
-   * cheap insurance against relying on that alone.
+   * Guarded against a click reaching the world while any panel is open — an
+   * encounter, the Lamplighter's exit, or a story character/NPC's lines
+   * (PRD-12, `isAnyPanelOpen`): the scrim already swallows pointer events at
+   * the DOM layer (it sits on top of the canvas and is `pointer-events:
+   * auto`), but this is cheap insurance against relying on that alone.
+   *
+   * Resolves against `allMarkers()` — every guide, the Lamplighter, and every
+   * story character/NPC together, in one call — rather than a separate
+   * resolution per kind, per the PRD's "extend, don't fork" instruction for
+   * `resolveClick`/`nearestMarker`. `openWorldInteraction` is what reads the
+   * resolved reference back apart afterward to decide which panel to open.
    */
   private bindPointerInput(): void {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.runtime.view.getState().openEncounterReference !== null) return;
+      if (isAnyPanelOpen(this.runtime.view.getState())) return;
 
       const resolution = resolveClick(
         this.player.x,
         this.player.y,
         pointer.worldX,
         pointer.worldY,
-        this.guides,
+        this.allMarkers(),
       );
 
       if (resolution.reference && !resolution.moveTo) {
         // Already within the interaction radius: open without moving.
         this.moveTarget = null;
-        openEncounter(this.runtime, resolution.reference);
+        openWorldInteraction(this.runtime, resolution.reference);
         return;
       }
 
@@ -386,7 +529,7 @@ export class WorldScene extends Phaser.Scene {
       this.moveTarget = null;
       this.player.anims.stop();
       this.player.setFrame(idleFrame(this.playerFacingRow));
-      if (reference) openEncounter(this.runtime, reference);
+      if (reference) openWorldInteraction(this.runtime, reference);
       return;
     }
 
@@ -406,15 +549,20 @@ export class WorldScene extends Phaser.Scene {
     this.player.setPosition(next.x, next.y);
   }
 
-  /** Guides look up when the player comes close, and face front otherwise. */
-  private turnGuidesTowardPlayer(): void {
-    for (const guide of this.guides) {
-      const dx = this.player.x - guide.x;
-      const dy = this.player.y - guide.y;
+  /**
+   * Every placed character looks up when the player comes close, and faces
+   * front otherwise — guides, the Lamplighter, and every story
+   * character/NPC alike (PRD-12 generalises this beyond guides, same as
+   * `allMarkers()` above).
+   */
+  private turnCharactersTowardPlayer(): void {
+    for (const character of this.allMarkers()) {
+      const dx = this.player.x - character.x;
+      const dy = this.player.y - character.y;
       const withinNotice = Math.hypot(dx, dy) <= NOTICE_RADIUS;
       const row = withinNotice ? (directionRowFor(dx, dy) ?? 0) : 0;
 
-      guide.sprite.setFrame(idleFrame(row));
+      character.sprite.setFrame(idleFrame(row));
     }
   }
 }

@@ -1,17 +1,85 @@
 {
   "scene": 9,
-  "status": "draft",
+  "status": "authored",
   "backdrop": "throne-room",
-  "note": "DAN.1.20-21, ten times better than the magicians. Among the columns, mid-hall. DRAFT. This file exists so that all nine scenes are visible to the loader and the suite (PRD-13 phase 2), and so that a missing or unstaged backdrop fails at boot rather than degrading to a grey rectangle. Nobody has placed this scene's cast yet: `placements` is empty and `status` is \"draft\", which src/content/loadContent.ts refuses to combine with a playable scene. Promoting this to \"authored\" is what turns the phase-4 validator on for it, so an unauthored scene cannot quietly ship as an empty room. The spawn and exit below are provisional: standable and inside the right zone, but not reviewed.",
+  "note": "DAN.1.20-21, ten times better than the magicians, and Daniel remains in service. This is the same hall as scene 8, but later: the formal presentation on the mid-hall runner is over, so this scene works closer to the throne and among the flanking cedar columns rather than at the south door. Daniel stands nearest the dais, the household's usual place having settled into an actual position of favor. The court magician is placed on the aisle between the spawn and Daniel so the player passes the comparison the verse makes on the way to seeing its outcome. The messenger is caught mid-errand in the open aisle; the junior scribe works back among the rear columns, away from the throne. Hananiah, Mishael and Azariah are spread at different depths among the columns rather than grouped. The Prophets and Wisdom guides stand near the dais end, echoing the magicians' comeuppance and Daniel's excess of insight; the History guide sits mid-hall near the court-records beat in Hananiah's dialogue.",
   "spawn": {
-    "x": 760,
-    "y": 620
+    "x": 960,
+    "y": 560
   },
   "exit": {
     "x": 880,
     "y": 1000,
     "width": 160,
-    "height": 40
+    "height": 40,
+    "note": "the south door, same physical exit as scene 8; the end-of-chapter close-out is phase 5's job"
   },
-  "placements": []
+  "placements": [
+    {
+      "reference": "character:scene-9:daniel",
+      "x": 960,
+      "y": 335,
+      "note": "closest of the cast to the dais, established and serving in the court"
+    },
+    {
+      "reference": "character:scene-9:court-magician",
+      "x": 1010,
+      "y": 440,
+      "note": "on the aisle between spawn and Daniel, so the player passes the comparison the verse makes"
+    },
+    {
+      "reference": "character:scene-9:hananiah",
+      "x": 784,
+      "y": 470,
+      "note": "west row of columns, clear of the base, standing apart from the other three"
+    },
+    {
+      "reference": "character:scene-9:mishael",
+      "x": 1136,
+      "y": 580,
+      "note": "east row of columns, a different depth from Hananiah and Azariah"
+    },
+    {
+      "reference": "character:scene-9:azariah",
+      "x": 850,
+      "y": 680,
+      "note": "further back on the aisle, apart from the other Judeans"
+    },
+    {
+      "reference": "character:scene-9:palace-messenger",
+      "x": 970,
+      "y": 780,
+      "note": "caught mid-errand in the open aisle rather than parked in a corner"
+    },
+    {
+      "reference": "character:scene-9:junior-scribe",
+      "x": 1264,
+      "y": 740,
+      "note": "back among the rear columns doing the work, well clear of the throne"
+    },
+    {
+      "reference": "lamplighter:scene-9",
+      "x": 1030,
+      "y": 540,
+      "note": "near the spawn, where the player arrives already close to the dais"
+    },
+    {
+      "reference": "ISA.47.12-15",
+      "x": 1120,
+      "y": 380,
+      "note": "Prophets guide near the dais, echoing Babylon's astrologers coming up short"
+    },
+    {
+      "reference": "PSA.119.98-100",
+      "x": 880,
+      "y": 410,
+      "note": "OT Poetry/Wisdom guide near Daniel, wiser than his teachers"
+    },
+    {
+      "reference": "EST.10.2-3",
+      "x": 820,
+      "y": 600,
+      "note": "OT History guide mid-hall, near the court-records beat in Hananiah's line"
+    }
+  ]
 }

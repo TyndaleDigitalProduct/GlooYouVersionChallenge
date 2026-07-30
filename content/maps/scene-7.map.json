@@ -1,17 +1,82 @@
 {
   "scene": 7,
-  "status": "draft",
+  "status": "authored",
   "backdrop": "babylon-palace",
-  "note": "DAN.1.17, knowledge and wisdom given. The processional way below the palace front. DRAFT. This file exists so that all nine scenes are visible to the loader and the suite (PRD-13 phase 2), and so that a missing or unstaged backdrop fails at boot rather than degrading to a grey rectangle. Nobody has placed this scene's cast yet: `placements` is empty and `status` is \"draft\", which src/content/loadContent.ts refuses to combine with a playable scene. Promoting this to \"authored\" is what turns the phase-4 validator on for it, so an unauthored scene cannot quietly ship as an empty room. The spawn and exit below are provisional: standable and inside the right zone, but not reviewed.",
-  "spawn": {
-    "x": 760,
-    "y": 340
-  },
+  "note": "DAN.1.17, knowledge and wisdom given. The ziggurat and scribal quarter, north-west of the precinct: open study ground south of the ziggurat of Etemenanki, clear of the dormitory beds to the south and the palace facade to the east. The Chaldean tutor stands apart, addressing the four rather than standing among them. Hananiah, fresh from besting him in a question, stands closest; Daniel, Mishael and Azariah fall back at increasing distances and differing heights so the four read as a cluster around a lesson, not a row. The library attendant keeps to the tablets on the west side, near the ziggurat's shelving. The student from another province studies alone on the east side, a visible peer who is not one of the four. Spawn puts the player facing the ziggurat and the study ground at once; the exit is the palace doorway shared with the rest of the precinct's staged scenes, leading on to the king's presentation.",
+  "spawn": { "x": 300, "y": 420 },
   "exit": {
     "x": 938,
     "y": 282,
     "width": 40,
-    "height": 48
+    "height": 48,
+    "note": "the palace doorway, leading to the king's presentation of the four (scene 8)"
   },
-  "placements": []
+  "placements": [
+    {
+      "reference": "lamplighter:scene-7",
+      "x": 335,
+      "y": 460,
+      "note": "just south of where the player arrives, facing the study ground"
+    },
+    {
+      "reference": "character:scene-7:chaldean-tutor",
+      "x": 520,
+      "y": 380,
+      "note": "stands apart from the four, addressing them rather than standing among them"
+    },
+    {
+      "reference": "character:scene-7:hananiah",
+      "x": 470,
+      "y": 400,
+      "note": "closest to the tutor: he just answered a question the tutor couldn't"
+    },
+    {
+      "reference": "character:scene-7:daniel",
+      "x": 560,
+      "y": 440,
+      "note": "a step further back and lower, praying as much as studying"
+    },
+    {
+      "reference": "character:scene-7:mishael",
+      "x": 430,
+      "y": 470,
+      "note": "further back still, toward the tablets; astronomy is his subject"
+    },
+    {
+      "reference": "character:scene-7:azariah",
+      "x": 600,
+      "y": 500,
+      "note": "furthest from the tutor of the four, deep in his own study"
+    },
+    {
+      "reference": "character:scene-7:library-attendant",
+      "x": 250,
+      "y": 505,
+      "note": "with the tablets, west side near the ziggurat's shelving"
+    },
+    {
+      "reference": "character:scene-7:student-from-another-province",
+      "x": 640,
+      "y": 345,
+      "note": "a peer studying apart, on the east edge of the ground: not one of the four"
+    },
+    {
+      "reference": "JAS.1.5",
+      "x": 160,
+      "y": 350,
+      "note": "NT Letters guide, apart to the north-west near the ziggurat, findable on its own"
+    },
+    {
+      "reference": "PRO.2.6",
+      "x": 200,
+      "y": 535,
+      "note": "OT Poetry/Wisdom guide, apart on the west side"
+    },
+    {
+      "reference": "GEN.41.15-16",
+      "x": 652,
+      "y": 475,
+      "note": "Torah guide, apart on the east side, short of the reflecting pool"
+    }
+  ]
 }

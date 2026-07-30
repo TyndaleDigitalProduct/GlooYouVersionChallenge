@@ -1,0 +1,429 @@
+{
+  "backdrop": "throne-room",
+  "image": "assets/maps/throne-room.webp",
+  "note": "Nebuchadnezzar's hall. The throne sits on its dais at the north end of the carpet runner; two rows of cedar columns flank it. The carpet is floor, not obstacle. The door in the south wall (x 850-1070) is the way in and out. Tall props are blocked at their base only, not over their whole drawn block: the part of a tent or a column that rises up the screen is what the player walks behind, and blocking all of it would make walk-behind unreachable. Flat-topped buildings seen from directly above (the city houses, the burnt sanctuary, the palace front) keep full-block collision, and their overlays are therefore inert by design.",
+  "collision": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 1920,
+      "height": 72,
+      "note": "north wall"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "width": 66,
+      "height": 1080,
+      "note": "west wall"
+    },
+    {
+      "x": 1854,
+      "y": 0,
+      "width": 66,
+      "height": 1080,
+      "note": "east wall"
+    },
+    {
+      "x": 0,
+      "y": 1010,
+      "width": 850,
+      "height": 70,
+      "note": "south wall, west of the door"
+    },
+    {
+      "x": 1070,
+      "y": 1010,
+      "width": 850,
+      "height": 70,
+      "note": "south wall, east of the door"
+    },
+    {
+      "x": 878,
+      "y": 184,
+      "width": 164,
+      "height": 100,
+      "note": "throne and dais"
+    },
+    {
+      "x": 688,
+      "y": 370,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 688,
+      "y": 480,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 688,
+      "y": 590,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 688,
+      "y": 700,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 688,
+      "y": 810,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 688,
+      "y": 920,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1168,
+      "y": 370,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1168,
+      "y": 480,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1168,
+      "y": 590,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1168,
+      "y": 700,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1168,
+      "y": 810,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1168,
+      "y": 920,
+      "width": 64,
+      "height": 26,
+      "note": "large cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 494,
+      "y": 346,
+      "width": 52,
+      "height": 22,
+      "note": "small cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 494,
+      "y": 566,
+      "width": 52,
+      "height": 22,
+      "note": "small cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 494,
+      "y": 786,
+      "width": 52,
+      "height": 22,
+      "note": "small cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1374,
+      "y": 346,
+      "width": 52,
+      "height": 22,
+      "note": "small cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1374,
+      "y": 566,
+      "width": 52,
+      "height": 22,
+      "note": "small cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1374,
+      "y": 786,
+      "width": 52,
+      "height": 22,
+      "note": "small cedar column (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 596,
+      "y": 395,
+      "width": 48,
+      "height": 18,
+      "note": "standing lamp (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 596,
+      "y": 615,
+      "width": 48,
+      "height": 18,
+      "note": "standing lamp (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 596,
+      "y": 835,
+      "width": 48,
+      "height": 18,
+      "note": "standing lamp (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1276,
+      "y": 395,
+      "width": 48,
+      "height": 18,
+      "note": "standing lamp (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1276,
+      "y": 615,
+      "width": 48,
+      "height": 18,
+      "note": "standing lamp (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1276,
+      "y": 835,
+      "width": 48,
+      "height": 18,
+      "note": "standing lamp (base only: the drawn top is walk-behind)"
+    }
+  ],
+  "overlays": [
+    {
+      "prop": "throne",
+      "x": 888,
+      "y": 184,
+      "width": 144,
+      "height": 86
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 688,
+      "y": 330,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 688,
+      "y": 440,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 688,
+      "y": 550,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 688,
+      "y": 660,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 688,
+      "y": 770,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 688,
+      "y": 880,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 1168,
+      "y": 330,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 1168,
+      "y": 440,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 1168,
+      "y": 550,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 1168,
+      "y": 660,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 1168,
+      "y": 770,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_large",
+      "x": 1168,
+      "y": 880,
+      "width": 64,
+      "height": 71
+    },
+    {
+      "prop": "cedar_column_small",
+      "x": 494,
+      "y": 316,
+      "width": 52,
+      "height": 56
+    },
+    {
+      "prop": "cedar_column_small",
+      "x": 494,
+      "y": 536,
+      "width": 52,
+      "height": 56
+    },
+    {
+      "prop": "cedar_column_small",
+      "x": 494,
+      "y": 756,
+      "width": 52,
+      "height": 56
+    },
+    {
+      "prop": "cedar_column_small",
+      "x": 1374,
+      "y": 316,
+      "width": 52,
+      "height": 56
+    },
+    {
+      "prop": "cedar_column_small",
+      "x": 1374,
+      "y": 536,
+      "width": 52,
+      "height": 56
+    },
+    {
+      "prop": "cedar_column_small",
+      "x": 1374,
+      "y": 756,
+      "width": 52,
+      "height": 56
+    },
+    {
+      "prop": "standing_lamp",
+      "x": 596,
+      "y": 361,
+      "width": 48,
+      "height": 57
+    },
+    {
+      "prop": "standing_lamp",
+      "x": 596,
+      "y": 581,
+      "width": 48,
+      "height": 57
+    },
+    {
+      "prop": "standing_lamp",
+      "x": 596,
+      "y": 801,
+      "width": 48,
+      "height": 57
+    },
+    {
+      "prop": "standing_lamp",
+      "x": 1276,
+      "y": 361,
+      "width": 48,
+      "height": 57
+    },
+    {
+      "prop": "standing_lamp",
+      "x": 1276,
+      "y": 581,
+      "width": 48,
+      "height": 57
+    },
+    {
+      "prop": "standing_lamp",
+      "x": 1276,
+      "y": 801,
+      "width": 48,
+      "height": 57
+    },
+    {
+      "prop": "banner",
+      "x": 198,
+      "y": 68,
+      "width": 38,
+      "height": 108
+    },
+    {
+      "prop": "banner",
+      "x": 418,
+      "y": 68,
+      "width": 38,
+      "height": 108
+    },
+    {
+      "prop": "banner",
+      "x": 638,
+      "y": 68,
+      "width": 38,
+      "height": 108
+    },
+    {
+      "prop": "banner",
+      "x": 1298,
+      "y": 68,
+      "width": 38,
+      "height": 108
+    },
+    {
+      "prop": "banner",
+      "x": 1518,
+      "y": 68,
+      "width": 38,
+      "height": 108
+    }
+  ]
+}

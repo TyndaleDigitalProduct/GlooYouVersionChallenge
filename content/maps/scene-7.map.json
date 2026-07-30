@@ -1,0 +1,17 @@
+{
+  "scene": 7,
+  "status": "draft",
+  "backdrop": "babylon-palace",
+  "note": "DAN.1.17, knowledge and wisdom given. The processional way below the palace front. DRAFT. This file exists so that all nine scenes are visible to the loader and the suite (PRD-13 phase 2), and so that a missing or unstaged backdrop fails at boot rather than degrading to a grey rectangle. Nobody has placed this scene's cast yet: `placements` is empty and `status` is \"draft\", which src/content/loadContent.ts refuses to combine with a playable scene. Promoting this to \"authored\" is what turns the phase-4 validator on for it, so an unauthored scene cannot quietly ship as an empty room. The spawn and exit below are provisional: standable and inside the right zone, but not reviewed.",
+  "spawn": {
+    "x": 760,
+    "y": 340
+  },
+  "exit": {
+    "x": 938,
+    "y": 282,
+    "width": 40,
+    "height": 48
+  },
+  "placements": []
+}

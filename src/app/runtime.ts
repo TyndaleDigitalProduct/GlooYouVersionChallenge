@@ -10,10 +10,21 @@
 //   3. construct the store on the *real* manifest built from content, never
 //      the test fixture;
 //   4. attach persistence, so every subsequent change is written.
+//
+// PRD-13 adds the scene maps to step 1's "validate content": they are validated
+// against the manifest built from the refs document, so a scene map that names a
+// backdrop nobody staged, or places a character who has no dialogue, is a boot
+// failure and not a surprise mid-game.
 
 import { buildCardSets, type CardSets } from "@/content/cardSets";
 import { buildCast, type Cast } from "@/content/cast";
-import { buildGameContent, type GameContent } from "@/content/loadContent";
+import {
+  buildGameContent,
+  buildSceneMaps,
+  type GameContent,
+  type SceneMaps,
+} from "@/content/loadContent";
+import { RAW_BACKDROP_DOCUMENTS, RAW_SCENE_MAP_DOCUMENTS } from "@/content/rawMaps";
 import type { EventBus } from "@/core/eventBus";
 import { eventBus } from "@/core/eventBus";
 import { ok, type Result } from "@/core/result";
@@ -40,6 +51,8 @@ export interface AppRuntime {
   bus: EventBus;
   content: GameContent;
   cast: Cast;
+  /** The four backdrop files and nine scene files, joined and validated (PRD-13). */
+  maps: SceneMaps;
   /** The reviewed fallback card sets (ADR-0003), keyed by reference. */
   cardSets: CardSets;
   scripture: ScriptureProvider;
@@ -51,6 +64,8 @@ export interface CreateAppRuntimeOptions {
   dialogueDocument?: unknown;
   castDocument?: unknown;
   cardsDocument?: unknown;
+  backdropDocuments?: readonly unknown[];
+  sceneMapDocuments?: readonly unknown[];
   storage?: CoreStorage;
   bus?: EventBus;
   saveKey?: string;
@@ -64,6 +79,8 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     dialogueDocument = rawDialogueDocument,
     castDocument = rawCastDocument,
     cardsDocument = rawCardsDocument,
+    backdropDocuments = RAW_BACKDROP_DOCUMENTS,
+    sceneMapDocuments = RAW_SCENE_MAP_DOCUMENTS,
     // Evaluated lazily by destructuring, so a caller that injects storage
     // never touches `window` at all.
     storage = createBrowserStorage(),
@@ -83,6 +100,14 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
 
   const cardSets = buildCardSets(cardsDocument);
   if (!cardSets.ok) return cardSets;
+
+  // Validated against the content above for the same reason `buildCast` is: a
+  // scene naming a backdrop that does not exist, or an authored scene whose cast
+  // is standing inside a wall, must fail here rather than turn into a grey
+  // rectangle or an uncompletable scene once the game is running (ADR-0004,
+  // PRD-13 phase 2 and phase 4).
+  const maps = buildSceneMaps(backdropDocuments, sceneMapDocuments, content.value);
+  if (!maps.ok) return maps;
 
   const view = createViewStore();
   const loaded = loadGame(storage, saveKey);
@@ -115,6 +140,7 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     bus,
     content: content.value,
     cast: cast.value,
+    maps: maps.value,
     cardSets: cardSets.value,
     scripture,
     session,

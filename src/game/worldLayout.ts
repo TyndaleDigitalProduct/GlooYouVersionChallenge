@@ -1,17 +1,23 @@
-// Pure geometry for the programmatically-drawn world. No Phaser import, so
-// every placement rule here is unit-testable without a canvas or a game loop.
+// Pure geometry for the world. No Phaser import, so every placement and
+// movement rule here is unit-testable without a canvas or a game loop.
 //
-// PRD-04 deliberately draws the world from rectangles rather than a tilemap:
-// ADR-0002 defers the Tiled-versus-LDtk decision to the world PRD, and a spike
-// that shipped a tilemap would have quietly made that call. Everything in this
-// file is expected to be replaced by real map data.
+// PRD-04 drew the world from coloured rectangles on a 3x3 region grid, and said
+// at the top of this file that all of it was expected to be replaced by real map
+// data. PRD-13 replaces it: ADR-0004 makes each of the nine scenes its own room
+// with a full-map backdrop, authored collision rectangles and hand-placed cast,
+// so `regionRects`, the four `REGION_*` constants, the three row-fraction
+// constants and `markerRowPlacements` are gone rather than adapted, along with
+// the ground and fog colours the grid was drawn in.
+//
+// What survives untouched is the click-resolution path: `resolveClick` and
+// `nearestMarker` always took a plain list of `{reference, x, y}` and never
+// cared where the coordinates came from, so authored placement changes nothing
+// about them. What is new is rectangle collision (`blocksBody`, `slideStep`,
+// `nearestUnblockedPoint`), which is the only genuinely new logic ADR-0004
+// asked for.
 
 export const WORLD_WIDTH = 1920;
 export const WORLD_HEIGHT = 1080;
-export const REGION_COLUMNS = 3;
-export const REGION_ROWS = 3;
-export const REGION_WIDTH = WORLD_WIDTH / REGION_COLUMNS;
-export const REGION_HEIGHT = WORLD_HEIGHT / REGION_ROWS;
 
 /** Collision footprint, not display size: the drawn sprite is larger. */
 export const PLAYER_SIZE = 22;
@@ -32,18 +38,78 @@ export const ARRIVAL_EPSILON = 6;
 
 // --- character sprites ----------------------------------------------------
 // The art is 24x32 (see spriteDirections.ts). Drawn at an integer scale, because
-// the game config sets pixelArt and a fractional scale would blur it.
+// the game config sets pixelArt and a fractional scale would blur it. That makes
+// 1 and 2 the only available sizes.
+//
+// Scale 1 from the operator's scene-1 review, 2026-07-30: at 2 a character stood
+// 64 tall beside a 109x81 `house_judean` and a 60x59 `soldier_tent`, so a person
+// was nearly as tall as a house and the room read as cramped. There is no camera
+// zoom (gameConfig is 960x540 over a 1920x1080 world at 1:1), so this scale is
+// the whole of the world-to-character ratio.
 
-export const SPRITE_SCALE = 2;
+export const SPRITE_SCALE = 1;
 /** Origin near the feet, so a character's position is where they stand. */
 export const SPRITE_ORIGIN_Y = 0.9;
 export const WALK_FRAME_RATE = 8;
-// Section-coloured disc under a guide's feet. Wider than the sprite and offset
-// below the standing point, because the sprite draws over anything behind it
-// and a disc hidden under a robe communicates nothing.
-export const FOOT_MARKER_WIDTH = 44;
-export const FOOT_MARKER_HEIGHT = 14;
-export const FOOT_MARKER_OFFSET_Y = 7;
+/**
+ * The drawn sprite's size in world pixels. Distinct from `PLAYER_SIZE`, which is
+ * the body used for collision: a character's art is 24x32 and they occupy about
+ * a 22px square of ground, so at this scale the drawn figure stops very nearly
+ * flush against a wall rather than overlapping it. The validator's world-bounds
+ * check (sceneValidation.ts, check 3) needs the drawn size, because a placement
+ * whose anchor is in bounds can still have half its body off-screen.
+ */
+export const SPRITE_FOOTPRINT_WIDTH = 24 * SPRITE_SCALE;
+export const SPRITE_FOOTPRINT_HEIGHT = 32 * SPRITE_SCALE;
+
+// --- walk target -----------------------------------------------------------
+// Operator review, 2026-07-30: a ground click moved the player with no
+// indication of where they were going. A ring on the ground at the destination
+// is the whole affordance; movement is click-driven (PRD-08 phase 4) and there
+// is no cursor to read.
+//
+// Sized against the foot marker (22x7) so the two read as the same vocabulary,
+// and deliberately NOT the player/lantern gold (`PALETTE.player`,
+// `LANTERN_LIT_COLOR`), which already means "this guide has a scored encounter".
+// A neutral pale ring says "here", and nothing else in the world is this colour.
+export const WALK_TARGET_WIDTH = 20;
+export const WALK_TARGET_HEIGHT = 8;
+export const WALK_TARGET_COLOR = 0xe8eef7;
+export const WALK_TARGET_ALPHA = 0.8;
+export const WALK_TARGET_STROKE_WIDTH = 1;
+
+/** A move target as WorldScene holds it: where, and who it is aimed at. */
+export interface WalkTarget {
+  x: number;
+  y: number;
+  reference: string | null;
+}
+
+/**
+ * Where to draw the walk-target ring, or null for "draw nothing".
+ *
+ * Derived from the move target rather than set beside it. WorldScene clears
+ * `moveTarget` in three separate places — arrival, blocked in every direction,
+ * and a fresh click superseding the old one — so a marker shown and hidden
+ * imperatively would be stranded by whichever path was missed.
+ *
+ * A character target draws nothing: the player stops `INTERACT_RADIUS` short of
+ * them, the character is already the visible destination, and a ring at their
+ * feet would collide with the section-coloured disc that carries encounter
+ * state.
+ */
+export function walkTargetMarker(target: WalkTarget | null): { x: number; y: number } | null {
+  if (!target || target.reference) return null;
+  return { x: target.x, y: target.y };
+}
+
+// Section-coloured disc under a guide's feet. Wider than the collision body and
+// offset below the standing point, because the sprite draws over anything behind
+// it and a disc hidden under a robe communicates nothing. Halved with
+// SPRITE_SCALE (2026-07-30) so the ratio to the drawn figure is unchanged.
+export const FOOT_MARKER_WIDTH = 22;
+export const FOOT_MARKER_HEIGHT = 7;
+export const FOOT_MARKER_OFFSET_Y = 4;
 
 // The lantern affordance (PRD-08 phase 4, storyboard-v2.md item 9 and §4 step
 // 2): personas carry a lantern, meaning "this character has a scored
@@ -57,48 +123,20 @@ export const FOOT_MARKER_OFFSET_Y = 7;
 // placed character now is); it means "this one has a scripture-card encounter
 // with a read gate and stones," which only a guide has. Positioned above and
 // beside the head, clear of the foot marker.
-export const LANTERN_OFFSET_X = 16;
-export const LANTERN_OFFSET_Y = -46;
-export const LANTERN_RADIUS = 5;
+//
+// PRD-13 leaves this alone deliberately. The exit a completed scene opens is
+// marked by the Lamplighter walking to the door, not by a second meaning
+// loaded onto the lantern (operator, 2026-07-30).
+// Halved with SPRITE_SCALE (2026-07-30): these are absolute world pixels against
+// the drawn figure, so at scale 1 the old values floated the lantern well above a
+// smaller head.
+export const LANTERN_OFFSET_X = 8;
+export const LANTERN_OFFSET_Y = -23;
+export const LANTERN_RADIUS = 3;
 export const LANTERN_LIT_COLOR = 0xf2c14e;
 export const LANTERN_UNLIT_COLOR = 0x4a5164;
 export const LANTERN_LIT_ALPHA = 1;
 export const LANTERN_UNLIT_ALPHA = 0.35;
-
-/** Left edge of region 1, on the same line as its guides, so "walk right" works. */
-export const PLAYER_SPAWN = { x: 72, y: REGION_HEIGHT / 2 };
-
-export interface RegionRect {
-  regionId: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  centerX: number;
-  centerY: number;
-}
-
-/**
- * Lays regions out left to right, top to bottom on a fixed grid. With the
- * nine Daniel 1 scenes this is exactly a 3x3 grid filling the world; a longer
- * manifest would run off the bottom, which is acceptable for a spike whose
- * world is placeholder anyway.
- */
-export function regionRects(regionIds: readonly string[]): RegionRect[] {
-  return regionIds.map((regionId, index) => {
-    const x = (index % REGION_COLUMNS) * REGION_WIDTH;
-    const y = Math.floor(index / REGION_COLUMNS) * REGION_HEIGHT;
-    return {
-      regionId,
-      x,
-      y,
-      width: REGION_WIDTH,
-      height: REGION_HEIGHT,
-      centerX: x + REGION_WIDTH / 2,
-      centerY: y + REGION_HEIGHT / 2,
-    };
-  });
-}
 
 export interface MarkerPlacement {
   reference: string;
@@ -106,53 +144,201 @@ export interface MarkerPlacement {
   y: number;
 }
 
-/**
- * Fraction of the region's height each character "row" sits on. PRD-12 adds
- * two more rows of placed characters (the Lamplighter, and every story
- * character/NPC) alongside the guides' existing midline, so all three kinds
- * of character have somewhere to stand without overlapping. The gap between
- * rows (about a third of the region's height) comfortably clears
- * `INTERACT_RADIUS` and `CHARACTER_CLICK_RADIUS`, so a click meant for one
- * row never resolves against a marker in another.
- */
-export const GUIDE_ROW_FRACTION = 0.5;
-export const LAMPLIGHTER_ROW_FRACTION = 0.22;
-export const CHARACTER_ROW_FRACTION = 0.78;
-
-/**
- * Spreads a list of references evenly across a horizontal row of a region, at
- * `yFraction` of the way down it. The shared layout primitive behind every
- * placed-character row (guides, the Lamplighter, story characters/NPCs):
- * generic over what the references name, exactly like `resolveClick` and
- * `nearestMarker` below are generic over what a marker represents.
- */
-export function markerRowPlacements(
-  region: RegionRect,
-  references: readonly string[],
-  yFraction: number,
-): MarkerPlacement[] {
-  return references.map((reference, index) => ({
-    reference,
-    x: region.x + (region.width * (index + 1)) / (references.length + 1),
-    y: region.y + region.height * yFraction,
-  }));
+export interface Point {
+  x: number;
+  y: number;
 }
 
-/** Spreads a scene's guides evenly across the horizontal midline of its region. */
-export function markerPlacements(
-  region: RegionRect,
-  references: readonly string[],
-): MarkerPlacement[] {
-  return markerRowPlacements(region, references, GUIDE_ROW_FRACTION);
+/** An authored rectangle: collision, an overlay's crop, or a scene's exit. */
+export interface MapRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
-/** Keeps the player fully inside the world. Nothing else constrains movement. */
-export function clampToWorld(x: number, y: number, size: number): { x: number; y: number } {
+/** Keeps a body of `size` fully inside the world. */
+export function clampToWorld(x: number, y: number, size: number): Point {
   const half = size / 2;
   return {
     x: Math.min(Math.max(x, half), WORLD_WIDTH - half),
     y: Math.min(Math.max(y, half), WORLD_HEIGHT - half),
   };
+}
+
+export function pointInRect(x: number, y: number, rect: MapRect): boolean {
+  return x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height;
+}
+
+/**
+ * True when a `size`-square body centred on (x,y) cannot stand there: it either
+ * overlaps one of the rectangles or hangs off the edge of the world.
+ *
+ * Rolling the world edge in here is what lets a backdrop file describe only the
+ * things drawn in the picture. It also means every caller gets the same answer,
+ * rather than one path clamping and another colliding.
+ */
+export function blocksBody(x: number, y: number, size: number, rects: readonly MapRect[]): boolean {
+  const half = size / 2;
+  const left = x - half;
+  const right = x + half;
+  const top = y - half;
+  const bottom = y + half;
+
+  if (left < 0 || top < 0 || right > WORLD_WIDTH || bottom > WORLD_HEIGHT) return true;
+
+  for (const rect of rects) {
+    if (
+      right > rect.x &&
+      left < rect.x + rect.width &&
+      bottom > rect.y &&
+      top < rect.y + rect.height
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export interface SlideResult extends Point {
+  /** False when nothing could be moved at all, so a walk loop must stop. */
+  moved: boolean;
+}
+
+/**
+ * One frame of collision-aware walking: at most `maxStep` toward `target`,
+ * sliding along whatever it runs into.
+ *
+ * This is the fix for PRD-13 phase 3's named regression. Before, `movePlayer`
+ * walked a straight line and ended only when it came within `ARRIVAL_EPSILON`
+ * of the target, which never happens if a wall is in the way — a click on a
+ * blocked tile wedged the player against the wall and left the walk loop
+ * running forever. Three things prevent that now:
+ *
+ *   - the full step is tried first, then x-only, then y-only, so a diagonal
+ *     approach slides along a wall instead of stopping dead;
+ *   - a blocked step is bisected rather than abandoned, so the player comes to
+ *     rest flush against the wall and a single large step cannot tunnel through
+ *     a thin one;
+ *   - `moved: false` is reported when no progress at all was possible, which is
+ *     the signal the caller needs to clear its move target.
+ */
+export function slideStep(
+  from: Point,
+  target: Point,
+  size: number,
+  rects: readonly MapRect[],
+  maxStep: number,
+): SlideResult {
+  const dx = target.x - from.x;
+  const dy = target.y - from.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance === 0) return { x: from.x, y: from.y, moved: false };
+
+  const step = Math.min(maxStep, distance);
+  const stepX = (dx / distance) * step;
+  const stepY = (dy / distance) * step;
+
+  // Full diagonal, then each axis alone. Axis-only fallbacks are what make a
+  // wall something to slide along rather than something to stick to.
+  for (const [tryX, tryY] of [
+    [stepX, stepY],
+    [stepX, 0],
+    [0, stepY],
+  ] as const) {
+    if (tryX === 0 && tryY === 0) continue;
+    const reached = furthestFree(from, tryX, tryY, size, rects);
+    if (reached) return { ...reached, moved: true };
+  }
+
+  return { x: from.x, y: from.y, moved: false };
+}
+
+/**
+ * The furthest point along a single offset that a body can still stand at, or
+ * null if it cannot move at all.
+ *
+ * The path is sampled in sub-steps no longer than half the body before the
+ * contact point is bisected. Checking only the endpoint would let a long step
+ * hop straight over a thin wall — not a risk at `PLAYER_SPEED` and 60fps, where
+ * a step is about 4px, but it would become one for anything faster (the
+ * Lamplighter's walk to the exit in phase 5 uses this same function), and it is
+ * cheap to be correct: a 4px step samples once.
+ */
+function furthestFree(
+  from: Point,
+  offsetX: number,
+  offsetY: number,
+  size: number,
+  rects: readonly MapRect[],
+): Point | null {
+  const length = Math.hypot(offsetX, offsetY);
+  const samples = Math.max(1, Math.ceil(length / (size / 2)));
+
+  let lastFree = 0;
+  let firstBlocked = -1;
+  for (let i = 1; i <= samples; i += 1) {
+    const t = i / samples;
+    if (blocksBody(from.x + offsetX * t, from.y + offsetY * t, size, rects)) {
+      firstBlocked = t;
+      break;
+    }
+    lastFree = t;
+  }
+
+  if (firstBlocked === -1) return { x: from.x + offsetX, y: from.y + offsetY };
+
+  // Bisect the last free sample and the first blocked one, so the body comes to
+  // rest flush against the obstacle rather than a sub-step short of it.
+  let low = lastFree;
+  let high = firstBlocked;
+  for (let i = 0; i < 10; i += 1) {
+    const mid = (low + high) / 2;
+    if (blocksBody(from.x + offsetX * mid, from.y + offsetY * mid, size, rects)) high = mid;
+    else low = mid;
+  }
+
+  if (low === 0) return null;
+  return { x: from.x + offsetX * low, y: from.y + offsetY * low };
+}
+
+/**
+ * The nearest point to (x,y) a body can actually stand at, searching outward in
+ * rings. Used to turn a click that landed on a wall, a pool or a building into
+ * a walk target the player can actually reach, so such a click walks the player
+ * up to the obstacle instead of aiming at a point inside it.
+ *
+ * Deliberately not folded into `resolveClick`: ADR-0004 and PRD-13 phase 4 both
+ * treat `resolveClick`/`nearestMarker` as untouched by the map work, and giving
+ * them collision data would be the first step of exactly the leak those
+ * criteria guard against.
+ */
+export function nearestUnblockedPoint(
+  x: number,
+  y: number,
+  size: number,
+  rects: readonly MapRect[],
+): Point {
+  if (!blocksBody(x, y, size, rects)) return { x, y };
+
+  const STEP = 8;
+  const MAX_RINGS = 64;
+  for (let ring = 1; ring <= MAX_RINGS; ring += 1) {
+    const radius = ring * STEP;
+    // Eight directions per ring is enough: obstacles here are axis-aligned
+    // rectangles, so the nearest free point is almost always straight out.
+    for (let i = 0; i < 16; i += 1) {
+      const angle = (i / 16) * Math.PI * 2;
+      const candidateX = x + Math.cos(angle) * radius;
+      const candidateY = y + Math.sin(angle) * radius;
+      if (!blocksBody(candidateX, candidateY, size, rects)) {
+        return { x: candidateX, y: candidateY };
+      }
+    }
+  }
+
+  return { x, y };
 }
 
 /** The reference of the closest guide within `radius`, or null if none is. */
@@ -182,7 +368,7 @@ export interface ClickResolution {
    * lands on a character the player is already close enough to talk to, so
    * nothing should move at all.
    */
-  moveTo: { x: number; y: number } | null;
+  moveTo: Point | null;
   /** Reference of the character this click targets, or null for a plain ground click. */
   reference: string | null;
 }
@@ -197,6 +383,8 @@ export interface ClickResolution {
  * lands inside the interaction radius does not move the player at all —
  * the case a straight "always walk to the click point" implementation would
  * silently miss.
+ *
+ * Unchanged by PRD-13, on purpose. See `nearestUnblockedPoint` above.
  */
 export function resolveClick(
   playerX: number,
@@ -229,18 +417,20 @@ export function resolveClick(
 // because which colour represents which part of the canon is a product
 // decision rather than a layout constant.
 
+/**
+ * What is left of the placeholder palette. `playedGround`, `unplayedGround`,
+ * `regionBorder`, `fog`, `fogEdge` and `FOG_ALPHA` described the 3x3 grid and
+ * went with it (ADR-0004 "Consequences"); the world is a photograph now and has
+ * no colours of its own to choose. `player` stays because the resolved-encounter
+ * foot marker is still drawn in it.
+ *
+ * Open question 8 in PRD-13 asks whether the fog colours should be kept for the
+ * chapter map. They are not kept here, and nothing is stranded by that: a
+ * chapter-progress screen is React and CSS (ADR-0002 puts everything readable in
+ * the DOM overlay), so it will not be reading Phaser hex literals out of this
+ * file. If phase 5 does want these exact values, `0x0b0e14` and `0x323d4f` are
+ * in this file's history.
+ */
 export const PALETTE = {
-  playedGround: 0x2f4739,
-  unplayedGround: 0x2b3444,
-  regionBorder: 0x151b24,
-  fog: 0x0b0e14,
-  fogEdge: 0x323d4f,
   player: 0xf2c14e,
 } as const;
-
-/**
- * Fog opacity. Deliberately short of opaque: a fully black region reads as a
- * rendering failure rather than as unexplored map, and the faint grid
- * underneath is what tells the player there is something there to reveal.
- */
-export const FOG_ALPHA = 0.87;

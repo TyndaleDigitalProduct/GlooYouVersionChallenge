@@ -114,6 +114,115 @@ export const personasDocumentSchema = z.object({
 
 export type Persona = z.infer<typeof personaSchema>;
 
+// --- scene maps (PRD-13 phase 2) -------------------------------------------
+//
+// Two kinds of file, not one, and the split is the load-bearing decision.
+//
+// A **backdrop file** describes the *picture*: its collision rectangles and its
+// walk-behind overlays. There are four, one per image, and they are authored
+// once. If this data lived in the scene file instead, the five scenes that share
+// `babylon-palace` would each carry their own derivation of the same wall, five
+// separate authors would produce five different answers, and nothing would
+// compare them.
+//
+// A **scene file** describes the *beat*: which backdrop, where the player spawns,
+// where each of the cast stands, and where the exit is. There are nine, they
+// differ genuinely between scenes that share a picture, and they are the only
+// part that is fanned out.
+//
+// So a scene file carrying a collision rectangle is not something to merge, it is
+// a schema error: it means the split has been misunderstood and the fan-out is no
+// longer safe. `collision` and `overlays` are therefore declared on the scene
+// schema as `never`, which produces an error naming the offending key rather than
+// a generic "unrecognized key".
+
+export const mapRectSchema = z.object({
+  x: z.number().int().min(0),
+  y: z.number().int().min(0),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  /** Free-text label, so a reviewer can tell which wall a rectangle is. */
+  note: z.string().optional(),
+});
+
+export type MapRectDocument = z.infer<typeof mapRectSchema>;
+
+/**
+ * One walk-behind overlay: a rectangle of the backdrop redrawn above the player
+ * so the player is hidden when standing behind whatever it covers. `prop` names
+ * the element in `public/assets/maps/elements/<backdrop>/` that the covered
+ * structure corresponds to. It is documentation, not a texture key — see the
+ * doc comment on `drawOverlays` in WorldScene.ts for why the overlay is a crop
+ * of the backdrop rather than a second copy of the element art.
+ */
+export const backdropOverlaySchema = mapRectSchema.extend({
+  prop: z.string().min(1),
+});
+
+export const backdropDocumentSchema = z.strictObject({
+  /** Staged backdrop key, matching public/assets/maps/<key>.webp. */
+  backdrop: z.string().regex(/^[a-z0-9-]+$/, "must be a lowercase, hyphenated key"),
+  /** Runtime URL Phaser loads, relative to public/. */
+  image: z.string().min(1),
+  note: z.string().min(1),
+  collision: z.array(mapRectSchema),
+  overlays: z.array(backdropOverlaySchema),
+});
+
+export type BackdropDocument = z.infer<typeof backdropDocumentSchema>;
+
+/** One character's standing point, keyed by the marker reference that names them. */
+export const scenePlacementSchema = z.strictObject({
+  /**
+   * A guide's USFM cross-reference, `lamplighter:<sceneId>`, or
+   * `character:<sceneId>:<characterId>` (src/game/worldMarkers.ts).
+   */
+  reference: z.string().min(1),
+  x: z.number().int().min(0),
+  y: z.number().int().min(0),
+  note: z.string().optional(),
+});
+
+export const sceneMapDocumentSchema = z.strictObject({
+  /** 1-based scene ordinal, matching content/daniel-1.refs.json. */
+  scene: z.number().int().positive(),
+  /**
+   * "authored" means the cast has been placed by hand against the picture and
+   * checked; "draft" means the file exists so the suite and the loader can see
+   * all nine, but nobody has placed anything yet.
+   *
+   * This is what resolves PRD-13 phase 2's tension. Nine scene files have to
+   * exist and a missing backdrop has to fail loudly at boot, but only scene 1 is
+   * authored in the first pass. A draft scene may not be `playable`
+   * (loadContent.ts rejects the pair), so an unauthored scene can never quietly
+   * ship as a room with nobody in it: making it reachable means promoting it to
+   * "authored" first, and that is the point at which the validator starts
+   * demanding real coordinates.
+   */
+  status: z.enum(["draft", "authored"]),
+  /** Backdrop key. Must name one of the four backdrop files. */
+  backdrop: z.string().min(1),
+  note: z.string().min(1),
+  /** Where the player stands on entering. */
+  spawn: z.object({ x: z.number().int().min(0), y: z.number().int().min(0) }),
+  /**
+   * Where the player walks to leave for the next scene. Authored here because
+   * it is a property of the beat, not the picture: five scenes share
+   * `babylon-palace` and leave it by different doors. Shut until the
+   * Lamplighter closes the scene (operator, 2026-07-30); phase 5 opens it.
+   */
+  exit: mapRectSchema,
+  placements: z.array(scenePlacementSchema),
+
+  // Backdrop data, rejected by name. See the block comment above.
+  collision: z
+    .never("collision rectangles belong in the backdrop file, not a scene file")
+    .optional(),
+  overlays: z.never("overlay placements belong in the backdrop file, not a scene file").optional(),
+});
+
+export type SceneMapDocument = z.infer<typeof sceneMapDocumentSchema>;
+
 /** Renders the first zod issue as a short, log-safe string for a Result reason. */
 export function describeIssue(error: z.ZodError): string {
   const issue = error.issues[0];

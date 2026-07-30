@@ -121,7 +121,7 @@ describe("the Lamplighter portrait", () => {
     return result.value;
   }
 
-  it("shows the Lamplighter's own sprite beside the opening beats, so he reads as speaking", () => {
+  it("peeks the Lamplighter's own sprite over the opening beats, so he reads as speaking", () => {
     const runtime = bootReal();
     render(
       <RuntimeProvider runtime={runtime}>

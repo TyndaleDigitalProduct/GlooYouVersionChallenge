@@ -19,11 +19,17 @@
 // a blank page.
 import type { GameManifest } from "@/core/manifest";
 import { err, ok, type Result } from "@/core/result";
+import { describeViolation, validateSceneBlocking } from "@/game/sceneValidation";
+import type { MapRect, MarkerPlacement } from "@/game/worldLayout";
 import {
+  type BackdropDocument,
+  backdropDocumentSchema,
   describeIssue,
   dialogueDocumentSchema,
   type DialogueScene as RawDialogueScene,
   refsDocumentSchema,
+  type SceneMapDocument,
+  sceneMapDocumentSchema,
 } from "./schema";
 
 export interface DialogueBeat {
@@ -100,6 +106,12 @@ export interface SceneContent {
   characters: CharacterDialogue[];
   /** The Lamplighter's three closing lines. Absent only for a scene with no dialogue authored yet. */
   lamplighterExit: LamplighterExit | undefined;
+  /**
+   * PRD-13 phase 5: the caption shown over the fade as this scene is entered.
+   * See `dialogueSceneSchema.transitionCaption` for why it belongs to the
+   * arriving beat and why it is optional here but required of the real files.
+   */
+  transitionCaption: string | undefined;
   crossReferences: CrossReferenceContent[];
 }
 
@@ -110,6 +122,210 @@ export interface GameContent {
   dialogueStatus: "placeholder" | "final";
   /** Provenance line for the dialogue document, surfaced in the UI. */
   placeholderNote: string;
+}
+
+// --- scene maps (PRD-13 phase 2) -------------------------------------------
+
+export interface Backdrop {
+  /** Staged key, e.g. "jerusalem-siege". Also the Phaser texture key. */
+  key: string;
+  /** URL Phaser loads, e.g. "assets/maps/jerusalem-siege.webp". */
+  image: string;
+  note: string;
+  collision: MapRect[];
+  overlays: Array<MapRect & { prop: string }>;
+}
+
+export interface SceneMap {
+  /** Store-facing scene id, e.g. "scene-1". */
+  sceneId: string;
+  ordinal: number;
+  status: "draft" | "authored";
+  backdrop: Backdrop;
+  note: string;
+  /** Where the player stands on entering, however they entered (PRD-13 phase 5). */
+  spawn: { x: number; y: number };
+  /** One entry per placed character. Empty for a draft scene. */
+  placements: MarkerPlacement[];
+}
+
+export interface SceneMaps {
+  backdrops: Record<string, Backdrop>;
+  /** Keyed by scene id, one per manifest scene. */
+  byScene: Record<string, SceneMap>;
+}
+
+export function findSceneMap(maps: SceneMaps, sceneId: string): SceneMap | undefined {
+  return maps.byScene[sceneId];
+}
+
+/**
+ * Joins the four backdrop files and the nine scene files into the shape
+ * WorldScene draws, and refuses anything that would let a placeholder reach the
+ * screen. Returns a Result for the same reason `buildGameContent` does: an
+ * authoring mistake must surface as a visible error state, never as a blank page
+ * and never as a grey rectangle where a room should be.
+ *
+ * The four ways this fails are all deliberate:
+ *
+ *   - a scene naming a backdrop with no backdrop file. ADR-0004 and PRD-13 both
+ *     require this to fail loudly at boot, matching how `buildCast` already
+ *     fails for a speaker with no art, because degrading to a placeholder is
+ *     exactly what PRD-13 exists to remove and it would ship silently;
+ *   - a `playable` scene whose map is still `draft`. This is the guard that lets
+ *     nine files exist while only one is authored;
+ *   - an authored scene that does not place its whole cast. A missing entry means
+ *     a character with dialogue who stands nowhere in the world. The mirror
+ *     case, a placement for somebody who does not exist, is not rejected here
+ *     but by `unknownPlacements` over the real content files in the suite: it is
+ *     harmless at runtime (`drawCast` skips it), the typo that would cause it
+ *     also trips the missing check, and rejecting it at boot would mean every
+ *     test that injects a cut-down dialogue document had to inject nine matching
+ *     map files too;
+ *   - an authored scene that fails any of the four blocking checks
+ *     (src/game/sceneValidation.ts). Reachability is the one that matters: a
+ *     walled-off character makes a scene impossible to complete with no way for
+ *     the player to know why.
+ */
+export function buildSceneMaps(
+  rawBackdrops: readonly unknown[],
+  rawScenes: readonly unknown[],
+  content: GameContent,
+): Result<SceneMaps> {
+  const backdrops: Record<string, Backdrop> = {};
+
+  for (const raw of rawBackdrops) {
+    const parsed = backdropDocumentSchema.safeParse(raw);
+    if (!parsed.success) return err(`backdrop-document-invalid (${describeIssue(parsed.error)})`);
+    if (backdrops[parsed.data.backdrop]) {
+      return err(`duplicate-backdrop (${parsed.data.backdrop})`);
+    }
+    backdrops[parsed.data.backdrop] = toBackdrop(parsed.data);
+  }
+
+  const parsedScenes = new Map<number, SceneMapDocument>();
+  for (const raw of rawScenes) {
+    const parsed = sceneMapDocumentSchema.safeParse(raw);
+    if (!parsed.success) return err(`scene-map-invalid (${describeIssue(parsed.error)})`);
+    if (parsedScenes.has(parsed.data.scene)) {
+      return err(`duplicate-scene-map (${parsed.data.scene})`);
+    }
+    parsedScenes.set(parsed.data.scene, parsed.data);
+  }
+
+  const byScene: Record<string, SceneMap> = {};
+
+  for (const scene of content.scenes) {
+    const document = parsedScenes.get(scene.ordinal);
+    if (!document) return err(`scene-map-missing (${scene.id})`);
+    parsedScenes.delete(scene.ordinal);
+
+    const backdrop = backdrops[document.backdrop];
+    if (!backdrop) {
+      return err(`scene-map-unknown-backdrop (${scene.id} names ${document.backdrop})`);
+    }
+
+    if (scene.playable && document.status === "draft") {
+      return err(`playable-scene-with-draft-map (${scene.id})`);
+    }
+
+    const placements: MarkerPlacement[] = document.placements.map((placement) => ({
+      reference: placement.reference,
+      x: placement.x,
+      y: placement.y,
+    }));
+
+    if (document.status === "authored") {
+      const expected = expectedReferences(scene);
+      const placed = new Set(placements.map((placement) => placement.reference));
+      const missing = expected.filter((reference) => !placed.has(reference));
+      if (missing.length > 0) {
+        return err(`scene-map-missing-placement (${scene.id}: ${missing.join(", ")})`);
+      }
+      const violations = validateSceneBlocking({
+        sceneId: scene.id,
+        spawn: document.spawn,
+        placements,
+        collision: backdrop.collision,
+      });
+      if (violations.length > 0) {
+        return err(`scene-map-blocking-invalid (${violations.map(describeViolation).join("; ")})`);
+      }
+    }
+
+    byScene[scene.id] = {
+      sceneId: scene.id,
+      ordinal: scene.ordinal,
+      status: document.status,
+      backdrop,
+      note: document.note,
+      spawn: { ...document.spawn },
+      placements,
+    };
+  }
+
+  if (parsedScenes.size > 0) {
+    return err(`scene-map-unknown-scene (${[...parsedScenes.keys()].join(", ")})`);
+  }
+
+  return ok({ backdrops, byScene });
+}
+
+function toBackdrop(document: BackdropDocument): Backdrop {
+  return {
+    key: document.backdrop,
+    image: document.image,
+    note: document.note,
+    collision: document.collision.map(({ x, y, width, height }) => ({ x, y, width, height })),
+    overlays: document.overlays.map(({ prop, x, y, width, height }) => ({
+      prop,
+      x,
+      y,
+      width,
+      height,
+    })),
+  };
+}
+
+/**
+ * Every marker reference a scene's map must place: one per cross-reference
+ * guide, the Lamplighter, and one per story character/NPC. Derived from the
+ * content documents rather than authored, so a scene file cannot invent a
+ * character or forget one — which is the mistake a worker authoring eight files
+ * from a pattern is most likely to make.
+ *
+ * Kept as string building rather than an import from src/game/worldMarkers.ts to
+ * avoid a cycle: worldMarkers is where these prefixes are defined, and the two
+ * are kept in step by `loadContent.test.ts`.
+ */
+export function expectedPlacementReferences(scene: SceneContent): string[] {
+  return expectedReferences(scene);
+}
+
+/**
+ * Placements naming somebody the scene has no dialogue or cross-reference for.
+ * Not a boot failure (see `buildSceneMaps`), but a hard failure in the suite over
+ * the real files, and the first thing to run over a scene file a worker returns.
+ */
+export function unknownPlacements(maps: SceneMaps, content: GameContent): string[] {
+  const stray: string[] = [];
+  for (const scene of content.scenes) {
+    const map = maps.byScene[scene.id];
+    if (map?.status !== "authored") continue;
+    const expected = new Set(expectedReferences(scene));
+    for (const placement of map.placements) {
+      if (!expected.has(placement.reference)) stray.push(`${scene.id}: ${placement.reference}`);
+    }
+  }
+  return stray;
+}
+
+function expectedReferences(scene: SceneContent): string[] {
+  return [
+    ...scene.crossReferences.map((crossRef) => crossRef.reference),
+    `lamplighter:${scene.id}`,
+    ...scene.characters.map((character) => `character:${scene.id}:${character.characterId}`),
+  ];
 }
 
 export function sceneIdFor(ordinal: number): string {
@@ -228,6 +444,7 @@ export function buildGameContent(rawRefs: unknown, rawDialogue: unknown): Result
       lamplighterExit: dialogueScene.lamplighterExit
         ? { ...dialogueScene.lamplighterExit }
         : undefined,
+      transitionCaption: dialogueScene.transitionCaption,
       crossReferences: scene.cross_references.map((crossRef) => ({
         reference: crossRef.ref,
         sceneId,

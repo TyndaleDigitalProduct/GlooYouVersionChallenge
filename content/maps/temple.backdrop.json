@@ -1,0 +1,198 @@
+{
+  "backdrop": "temple",
+  "image": "assets/maps/temple.webp",
+  "note": "The temple court after the fall, smoke-hazed, with the burnt sanctuary on a raised plaza in the middle and burning houses around the edges. The plaza is walkable; its furniture is not. The gap in the north wall (x 750-965) is where the player arrives from the siege.",
+  "collision": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 750,
+      "height": 50,
+      "note": "north wall, west of the breach"
+    },
+    {
+      "x": 965,
+      "y": 0,
+      "width": 955,
+      "height": 50,
+      "note": "north wall, east of the breach"
+    },
+    {
+      "x": 36,
+      "y": 0,
+      "width": 36,
+      "height": 1080,
+      "note": "west wall"
+    },
+    {
+      "x": 1850,
+      "y": 0,
+      "width": 36,
+      "height": 1080,
+      "note": "east wall"
+    },
+    {
+      "x": 0,
+      "y": 1010,
+      "width": 1920,
+      "height": 55,
+      "note": "south wall"
+    },
+    {
+      "x": 218,
+      "y": 258,
+      "width": 134,
+      "height": 96,
+      "note": "burning house"
+    },
+    {
+      "x": 262,
+      "y": 518,
+      "width": 134,
+      "height": 96,
+      "note": "burning house"
+    },
+    {
+      "x": 345,
+      "y": 758,
+      "width": 134,
+      "height": 96,
+      "note": "burning house"
+    },
+    {
+      "x": 1498,
+      "y": 298,
+      "width": 134,
+      "height": 96,
+      "note": "burning house"
+    },
+    {
+      "x": 1478,
+      "y": 558,
+      "width": 134,
+      "height": 96,
+      "note": "burning house"
+    },
+    {
+      "x": 1562,
+      "y": 778,
+      "width": 134,
+      "height": 96,
+      "note": "burning house"
+    },
+    {
+      "x": 868,
+      "y": 392,
+      "width": 124,
+      "height": 112,
+      "note": "burnt sanctuary"
+    },
+    {
+      "x": 778,
+      "y": 485,
+      "width": 63,
+      "height": 50,
+      "note": "bronze sea"
+    },
+    {
+      "x": 874,
+      "y": 516,
+      "width": 28,
+      "height": 62,
+      "note": "toppled bronze pillar"
+    },
+    {
+      "x": 758,
+      "y": 600,
+      "width": 64,
+      "height": 49,
+      "note": "bronze altar"
+    },
+    {
+      "x": 996,
+      "y": 676,
+      "width": 48,
+      "height": 32,
+      "note": "showbread table"
+    },
+    {
+      "x": 190,
+      "y": 858,
+      "width": 152,
+      "height": 96,
+      "note": "rubble field"
+    },
+    {
+      "x": 1400,
+      "y": 845,
+      "width": 152,
+      "height": 96,
+      "note": "rubble field"
+    },
+    {
+      "x": 1012,
+      "y": 128,
+      "width": 87,
+      "height": 32,
+      "note": "laden ox cart"
+    },
+    {
+      "x": 872,
+      "y": 178,
+      "width": 87,
+      "height": 32,
+      "note": "laden ox cart"
+    }
+  ],
+  "overlays": [
+    {
+      "prop": "temple_building_burnt",
+      "x": 868,
+      "y": 392,
+      "width": 124,
+      "height": 112
+    },
+    {
+      "prop": "burning_house",
+      "x": 218,
+      "y": 258,
+      "width": 134,
+      "height": 100
+    },
+    {
+      "prop": "burning_house",
+      "x": 262,
+      "y": 518,
+      "width": 134,
+      "height": 100
+    },
+    {
+      "prop": "burning_house",
+      "x": 345,
+      "y": 758,
+      "width": 134,
+      "height": 100
+    },
+    {
+      "prop": "burning_house",
+      "x": 1498,
+      "y": 298,
+      "width": 134,
+      "height": 100
+    },
+    {
+      "prop": "burning_house",
+      "x": 1478,
+      "y": 558,
+      "width": 134,
+      "height": 100
+    },
+    {
+      "prop": "burning_house",
+      "x": 1562,
+      "y": 778,
+      "width": 134,
+      "height": 100
+    }
+  ]
+}

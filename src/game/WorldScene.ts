@@ -1,9 +1,11 @@
 import Phaser from "phaser";
 import type { AppRuntime } from "@/app/runtime";
-import { isAnyPanelOpen } from "@/app/viewStore";
+import { isWorldInputBlocked } from "@/app/viewStore";
 import { openWorldInteraction } from "@/app/worldInteractions";
 import { guideArtFor, spriteKeysToPreload, storyCharacterArtFor } from "@/content/cast";
+import type { SceneMap } from "@/content/loadContent";
 import { encounterState } from "@/core/encounters";
+import { buildPathGrid, findPath, type PathGrid } from "./pathfinding";
 import {
   directionRowFor,
   FRAME_HEIGHT,
@@ -14,40 +16,76 @@ import {
 } from "./spriteDirections";
 import {
   ARRIVAL_EPSILON,
-  CHARACTER_ROW_FRACTION,
   clampToWorld,
-  FOG_ALPHA,
   FOOT_MARKER_HEIGHT,
   FOOT_MARKER_OFFSET_Y,
   FOOT_MARKER_WIDTH,
   INTERACT_RADIUS,
-  LAMPLIGHTER_ROW_FRACTION,
   LANTERN_LIT_ALPHA,
   LANTERN_LIT_COLOR,
   LANTERN_OFFSET_X,
   LANTERN_OFFSET_Y,
   LANTERN_RADIUS,
+  type MapRect,
   type MarkerPlacement,
-  markerPlacements,
-  markerRowPlacements,
   NOTICE_RADIUS,
   nearestMarker,
+  nearestUnblockedPoint,
   PALETTE,
   PLAYER_SIZE,
-  PLAYER_SPAWN,
   PLAYER_SPEED,
-  type RegionRect,
-  regionRects,
   resolveClick,
   SPRITE_ORIGIN_Y,
   SPRITE_SCALE,
+  slideStep,
   WALK_FRAME_RATE,
+  WALK_TARGET_ALPHA,
+  WALK_TARGET_COLOR,
+  WALK_TARGET_HEIGHT,
+  WALK_TARGET_STROKE_WIDTH,
+  WALK_TARGET_WIDTH,
   WORLD_HEIGHT,
   WORLD_WIDTH,
+  walkTargetMarker,
 } from "./worldLayout";
-import { characterReference, lamplighterReference } from "./worldMarkers";
+import { parseCharacterReference, parseLamplighterReference } from "./worldMarkers";
 
 export const WORLD_SCENE_KEY = "WorldScene";
+
+/**
+ * Draw order, by ground line.
+ *
+ * Everything except the backdrop is depth-sorted on the world y where it meets
+ * the floor: a character's feet, a prop's bottom edge. Whoever is further down
+ * the screen is in front. This is the ordinary top-down rule, and PRD-13 needs
+ * it rather than a fixed "overlays above the player" because characters are
+ * authored to stand *beside* things — Nebuchadnezzar at the mouth of his command
+ * tent, Melzar at the food tables. A sprite is 32px tall anchored at the feet, so
+ * a character standing a few pixels below a tent still overlaps the tent's
+ * rectangle, and a fixed depth would draw the tent over their head.
+ *
+ * A prop's own occlusion is unaffected: the player walking north of a prop has a
+ * smaller y and so goes behind it, which is exactly walk-behind.
+ */
+const DEPTH = {
+  backdrop: -1000,
+  /** The section disc, just under its own character. */
+  footMarkerOffset: -0.5,
+  /** The lantern, just over its own character, so a prop in front still hides it. */
+  lanternOffset: 0.25,
+  /** The walk-target ring, just under whatever stands on that ground line. */
+  walkTargetOffset: -0.75,
+} as const;
+
+/** Ground-line depth for a character standing at `y`. */
+function characterDepth(y: number): number {
+  return y;
+}
+
+/** Ground-line depth for a prop whose rectangle ends at `bottom`. */
+function overlayDepth(bottom: number): number {
+  return bottom;
+}
 
 interface GuideMarker extends MarkerPlacement {
   sceneId: string;
@@ -87,71 +125,148 @@ interface MoveTarget {
   y: number;
   /** Reference of the character this target walks toward, or null for a plain ground click. */
   reference: string | null;
+  /**
+   * Remaining waypoints from `findPath`, nearest first, ending at (x, y). Routing
+   * rather than aiming is what lets a click two streets away work: sliding along
+   * obstacles alone parks in the first concave corner (see pathfinding.ts).
+   */
+  route: Array<{ x: number; y: number }>;
 }
 
 /**
- * The scene-1 world.
+ * One scene's room.
  *
  * Everything readable is in the React overlay, so this scene renders no text
- * at all (ADR-0002). It holds no rules either: what is revealed comes from
- * `store.revealedRegionIds()`, and how a guide's marker looks comes from the
- * encounter state in the store. The scene's only writes to the rest of the
- * app are telling the view store which guide the player is standing next to,
- * and opening an encounter when a character click resolves to one — the
- * same app-layer action `ProximityPrompt` calls, just triggered by pointer
- * input on the canvas instead of a DOM click (PRD-08 phase 4).
+ * at all (ADR-0002). It holds no rules either: how a guide's marker looks comes
+ * from the encounter state in the store. The scene's only writes to the rest of
+ * the app are telling the view store which guide the player is standing next to,
+ * and opening an encounter when a character click resolves to one — the same
+ * app-layer action `ProximityPrompt` calls, just triggered by pointer input on
+ * the canvas instead of a DOM click (PRD-08 phase 4).
  *
- * The ground is still rectangles, not a tilemap, so ADR-0002's Tiled versus
- * LDtk decision stays open. Only the characters are real art.
+ * PRD-13 replaces the placeholder world wholesale. Where PRD-04 drew a 3x3 grid
+ * of coloured rectangles with per-region fog and spread characters along three
+ * arithmetic rows, this now draws one authored room: a full-map backdrop at 1:1
+ * (ADR-0004), authored rectangle collision, hand-placed cast read out of the
+ * scene's map file, and walk-behind overlays so the player can pass behind a
+ * tent or a column. Fog of war has left the canvas: it is the chapter-map screen
+ * now (src/ui/ChapterMapScreen.tsx), and `revealedRegionIds` is unchanged and
+ * still drives the HUD readout.
  *
- * Movement is click/tap-to-move (PRD-08 phase 4), replacing PRD-04's arrows
- * and WASD. There is no keyboard path through the game any more: this also
- * supersedes `ProximityPrompt`'s "e" key, which is an accepted tradeoff
- * recorded in this PRD's handoff, not an oversight.
+ * *One* room at a time, and which one is view state rather than a derivation —
+ * see `activeSceneMap`. Phase 5 gave the scene the ability to swap rooms
+ * (`subscribe`, `resetRoomState`), which happens under a fully opaque fade so it
+ * is never seen mid-change.
+ *
+ * Movement is click/tap-to-move (PRD-08 phase 4). There is no keyboard path
+ * through the game; this also supersedes `ProximityPrompt`'s "e" key.
  */
 export class WorldScene extends Phaser.Scene {
   private readonly runtime: AppRuntime;
-  private readonly fogByRegion = new Map<string, Phaser.GameObjects.Rectangle>();
   private readonly guides: GuideMarker[] = [];
   private readonly lamplighters: LamplighterMarker[] = [];
   private readonly characters: CharacterMarker[] = [];
   private readonly teardown: Array<() => void> = [];
 
   private player!: Phaser.GameObjects.Sprite;
+  /** Ring on the ground at a ground-click destination; hidden the rest of the time. */
+  private walkTargetRing!: Phaser.GameObjects.Ellipse;
   private playerFacingRow = 0;
   private moveTarget: MoveTarget | null = null;
+  /** The room currently drawn, so a restart only fires on a genuine change. */
+  private drawnSceneId: string | null = null;
+  private collision: readonly MapRect[] = [];
+  /** Standable grid for this room, built once. Routing and the validator share it. */
+  private pathGrid!: PathGrid;
 
   constructor(runtime: AppRuntime) {
     super(WORLD_SCENE_KEY);
     this.runtime = runtime;
   }
 
+  /**
+   * The room to draw: whichever one the view store says the player is standing
+   * in (`ViewState.roomSceneId`, seeded at boot by runtime.ts and moved by
+   * `arriveInScene` at the midpoint of the fade).
+   *
+   * This resolves the comment that stood here through phases 1-4, which drew
+   * `currentSceneId()` clamped to playable scenes and said room-swapping "needs
+   * the exit and the fade to exist first". The fade exists now, and the exit
+   * turned out not to be needed at all (operator, 2026-07-30), but the deeper
+   * problem with `currentSceneId()` is why this reads explicit state instead:
+   * it advances the instant `completeScene` fires, which is while the
+   * Lamplighter's panel is still open, so following it would swap the room out
+   * from under the player mid-conversation. It also cannot express a revisit,
+   * where the room on screen is deliberately not the current scene.
+   *
+   * The fallbacks remain: `currentSceneId()` if nothing has entered a room yet,
+   * and the last playable scene if the chapter is finished (`currentSceneId()`
+   * is null then, and the world still has to draw somewhere).
+   */
+  private activeSceneMap(): SceneMap {
+    const { currentSceneId } = this.runtime.store.getState();
+    const playable = this.runtime.content.scenes.filter((scene) => scene.playable);
+    const wanted = this.runtime.view.getState().roomSceneId ?? currentSceneId();
+    const chosen =
+      playable.find((scene) => scene.id === wanted) ?? playable[playable.length - 1] ?? undefined;
+    if (!chosen) throw new Error("no playable scene to draw");
+
+    const map = this.runtime.maps.byScene[chosen.id];
+    // buildSceneMaps guarantees one map per manifest scene and refuses a
+    // playable scene with a draft map, so this is unreachable in practice; it
+    // is here so a future change that breaks that invariant fails loudly
+    // rather than rendering an empty room.
+    if (!map) throw new Error(`no scene map for ${chosen.id}`);
+    return map;
+  }
+
+  /**
+   * A room swap re-runs `preload`, and every texture the last room used is still
+   * in the manager: all nine rooms share the cast sheets, and five of them share
+   * `babylon-palace`. Re-queuing one is a redundant fetch at best and a key
+   * conflict at worst, so already-loaded keys are skipped. First boot loads
+   * everything; every restart after it loads only a backdrop it has not seen.
+   */
   preload(): void {
     for (const key of spriteKeysToPreload(this.runtime.cast)) {
+      if (this.textures.exists(key)) continue;
       this.load.spritesheet(key, `assets/sprites/${key}.png`, {
         frameWidth: FRAME_WIDTH,
         frameHeight: FRAME_HEIGHT,
       });
     }
+
+    const { backdrop } = this.activeSceneMap();
+    if (!this.textures.exists(backdrop.key)) this.load.image(backdrop.key, backdrop.image);
+
+    // A backdrop that fails to load must not degrade to a blank canvas: that is
+    // exactly the placeholder ADR-0004 and PRD-13 phase 2 forbid, and it would
+    // ship silently. Surfaced through the same notice channel a failed save
+    // uses, because the overlay is the only place text is allowed to appear.
+    this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key: string }) => {
+      this.runtime.view.getState().pushNotice({
+        id: `asset-load-failed:${file.key}`,
+        tone: "error",
+        message: `A map or sprite could not be loaded (${file.key}). The world will not draw correctly; reload to try again.`,
+      });
+    });
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor(PALETTE.fog);
-
-    const regions = regionRects(
-      this.runtime.content.manifest.scenes.map((scene) => scene.regionId),
-    );
+    const map = this.activeSceneMap();
+    this.resetRoomState();
+    this.drawnSceneId = map.sceneId;
+    this.collision = map.backdrop.collision;
+    this.pathGrid = buildPathGrid(WORLD_WIDTH, WORLD_HEIGHT, PLAYER_SIZE, this.collision);
 
     this.createWalkAnimations();
-    this.drawRegions(regions);
-    this.drawGuides(regions);
-    this.drawLamplighters(regions);
-    this.drawStoryCharacters(regions);
-    this.drawPlayer();
+    this.drawBackdrop(map);
+    this.drawCast(map);
+    this.drawPlayer(map);
+    this.drawOverlays(map);
     this.bindPointerInput();
     this.subscribe();
 
-    this.syncFog();
     this.syncGuides();
 
     this.events.once("shutdown", () => {
@@ -163,6 +278,10 @@ export class WorldScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.movePlayer(delta / 1000);
+    this.syncWalkTargetRing();
+    // Re-sorted every frame: the player is the only thing in the room that moves,
+    // so this is the whole of the depth sort's per-frame cost.
+    this.player.setDepth(characterDepth(this.player.y));
     this.turnCharactersTowardPlayer();
 
     this.runtime.view
@@ -191,6 +310,26 @@ export class WorldScene extends Phaser.Scene {
   // --- construction -------------------------------------------------------
 
   /**
+   * Clears everything the previous room left behind.
+   *
+   * Phaser is handed a constructed scene *instance* rather than a class
+   * (gameConfig.ts, so the scene can take the runtime without a global), which
+   * means a restart re-runs `create` on this same object with its fields
+   * intact. The three marker lists would otherwise accumulate the old room's
+   * cast alongside the new one, and every one of them would keep a sprite whose
+   * game object Phaser has already destroyed — so `nearestMarker` would resolve
+   * clicks against characters who are not there. The game objects themselves are
+   * disposed by Phaser on shutdown; these are the references to them.
+   */
+  private resetRoomState(): void {
+    this.guides.splice(0);
+    this.lamplighters.splice(0);
+    this.characters.splice(0);
+    this.moveTarget = null;
+    this.playerFacingRow = 0;
+  }
+
+  /**
    * One walk animation per direction per sheet. Keys are namespaced by sprite,
    * so two characters sharing a direction never collide in Phaser's global
    * animation registry.
@@ -211,209 +350,250 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private drawRegions(regions: readonly RegionRect[]): void {
-    const playableRegions = new Set(
-      this.runtime.content.scenes.filter((scene) => scene.playable).map((scene) => scene.regionId),
+  /**
+   * The backdrop, once, at 1:1 in world space. One world pixel is one backdrop
+   * pixel (ADR-0004): the images are 1920x1080, which is already
+   * `WORLD_WIDTH` x `WORLD_HEIGHT`, so there is no scaling and nothing to
+   * reconcile. Any need for a scale factor here would mean the staged image is
+   * the wrong size.
+   */
+  private drawBackdrop(map: SceneMap): void {
+    this.add.image(0, 0, map.backdrop.key).setOrigin(0, 0).setDepth(DEPTH.backdrop);
+  }
+
+  /**
+   * Walk-behind, from PRD-13 phase 3. Each overlay is a second copy of the
+   * backdrop, cropped to one prop's rectangle and drawn above the player, so
+   * standing behind a tent, a column or a house hides the player and standing
+   * anywhere else changes nothing.
+   *
+   * A crop of the backdrop rather than a second copy of the element PNG, which
+   * is what the PRD's wording anticipated. The 62 files under
+   * `Environment Elements/` turn out to be a vocabulary kit rather than the
+   * literal composited layers: about a third of them are exact 1:1 copies in the
+   * picture, but the big structures were rescaled or redrawn, the flat fills
+   * carry per-instance noise, and several props sit under a baked shadow band.
+   * Drawing element art on top of those would put a visibly different texture
+   * over an unchanged picture, which is the halo the criterion forbids. A crop of
+   * the backdrop is the same pixels in the same place, so it is invisible by
+   * construction and no alignment can drift. `overlay.prop` still names the
+   * element each rectangle corresponds to, so the set is reviewable by name.
+   *
+   * The cost is that occlusion is rectangular rather than silhouette-shaped,
+   * which is exact for walls, houses, columns and the dais, and clips a few
+   * pixels early at the lower corners of a tent. Every overlay rectangle sits
+   * inside a collision rectangle, so the player can only ever be behind or below
+   * one, never in front of it, which is why a static depth is enough and no
+   * per-frame depth sort is needed.
+   */
+  private drawOverlays(map: SceneMap): void {
+    for (const overlay of map.backdrop.overlays) {
+      // Positioned at the world origin with the full frame, then cropped: the
+      // visible part then lands exactly where it sits in the baked image.
+      this.add
+        .image(0, 0, map.backdrop.key)
+        .setOrigin(0, 0)
+        .setCrop(overlay.x, overlay.y, overlay.width, overlay.height)
+        .setDepth(overlayDepth(overlay.y + overlay.height));
+    }
+  }
+
+  /**
+   * Draws the scene's cast at their authored coordinates. One pass over the
+   * scene map's placements, split by what the marker reference names, replacing
+   * PRD-12's three arithmetic rows (`markerRowPlacements` with
+   * `GUIDE_ROW_FRACTION` / `LAMPLIGHTER_ROW_FRACTION` /
+   * `CHARACTER_ROW_FRACTION`, all deleted). The placements themselves are
+   * validated at boot, so nothing here has to defend against a character
+   * standing in a wall.
+   */
+  private drawCast(map: SceneMap): void {
+    const scene = this.runtime.content.scenes.find((candidate) => candidate.id === map.sceneId);
+    if (!scene) return;
+    if (!this.runtime.store.getState().isSceneRevisitable(scene.id)) return;
+
+    const crossRefBySection = new Map(
+      scene.crossReferences.map((crossRef) => [crossRef.reference, crossRef]),
+    );
+    const speakerByCharacterId = new Map(
+      scene.characters.map((character) => [character.characterId, character.speaker]),
     );
 
-    for (const region of regions) {
-      this.add
-        .rectangle(
-          region.x,
-          region.y,
-          region.width,
-          region.height,
-          playableRegions.has(region.regionId) ? PALETTE.playedGround : PALETTE.unplayedGround,
-        )
-        .setOrigin(0, 0)
-        .setStrokeStyle(2, PALETTE.regionBorder, 1)
-        .setDepth(0);
-
-      // The fog carries its own border, so a hidden region still reads as a
-      // place on a map rather than as a hole in the render.
-      const fog = this.add
-        .rectangle(region.x, region.y, region.width, region.height, PALETTE.fog, FOG_ALPHA)
-        .setOrigin(0, 0)
-        .setStrokeStyle(2, PALETTE.fogEdge, 0.85)
-        .setDepth(5);
-
-      this.fogByRegion.set(region.regionId, fog);
-    }
-  }
-
-  /**
-   * True for a scene whose world content should be drawn and clickable right
-   * now: playable, and unlocked (which — PRD-12 scene revisit,
-   * `isSceneRevisitable`, src/core/progression.ts — never turns false again
-   * once true, so a completed scene's guides, Lamplighter, and story
-   * characters all stay drawn and clickable after completion too). Only
-   * scene 1 is playable today (regression guard: PRD-12 does not flip
-   * `playable` for scenes 2-9), so this is a no-op in practice right now —
-   * it matters once a future scene is made playable, at which point a scene
-   * that has not yet unlocked must not show its cast prematurely.
-   */
-  private isSceneAccessible(sceneId: string): boolean {
-    return this.runtime.store.getState().isSceneRevisitable(sceneId);
-  }
-
-  private drawGuides(regionList: readonly RegionRect[]): void {
-    const regions = new Map(regionList.map((region) => [region.regionId, region]));
-
-    // Only playable, accessible scenes get guides in this slice: the other
-    // eight scenes exist in the manifest so progression and fog are real,
-    // but they carry no content to stand in front of yet.
-    for (const scene of this.runtime.content.scenes) {
-      if (!scene.playable || !this.isSceneAccessible(scene.id)) continue;
-      const region = regions.get(scene.regionId);
-      if (!region) continue;
-
-      const placements = markerPlacements(
-        region,
-        scene.crossReferences.map((crossRef) => crossRef.reference),
-      );
-
-      for (const [index, placement] of placements.entries()) {
-        const crossRef = scene.crossReferences[index];
-        const art = guideArtFor(this.runtime.cast, crossRef.section);
-        if (!art) continue;
-
-        // A section-coloured disc at the feet. With characters instead of
-        // coloured squares, this is what still tells the player at a glance
-        // which part of the canon a guide speaks for.
-        const footMarker = this.add
-          .ellipse(
-            placement.x,
-            placement.y + FOOT_MARKER_OFFSET_Y,
-            FOOT_MARKER_WIDTH,
-            FOOT_MARKER_HEIGHT,
-            art.markerColor,
-            0.75,
-          )
-          .setDepth(1);
-
-        const sprite = this.add
-          .sprite(placement.x, placement.y, art.spriteKey, idleFrame(0))
-          .setOrigin(0.5, SPRITE_ORIGIN_Y)
-          .setScale(SPRITE_SCALE)
-          .setDepth(2);
-
-        // The lantern affordance: every character drawn by *this* method is a
-        // cross-reference guide, and every one offers a scored encounter
-        // (including a resolved one, which is still tappable to revisit its
-        // summary card), so the lantern is always lit here. PRD-12 places two
-        // more kinds of character in the world (drawLamplighters,
-        // drawStoryCharacters, below) that are clickable but carry no
-        // lantern at all — see the doc comment on LANTERN_* in
-        // worldLayout.ts for what the lantern means now that not every
-        // placed character is a guide. It carries its own gentle glow so it
-        // reads as *lit* rather than just present.
-        const lantern = this.add
-          .ellipse(
-            placement.x + LANTERN_OFFSET_X,
-            placement.y + LANTERN_OFFSET_Y,
-            LANTERN_RADIUS * 2,
-            LANTERN_RADIUS * 2,
-            LANTERN_LIT_COLOR,
-            LANTERN_LIT_ALPHA,
-          )
-          .setStrokeStyle(1, 0xffffff, 0.85)
-          .setDepth(4);
-
-        this.tweens.add({
-          targets: lantern,
-          alpha: { from: LANTERN_LIT_ALPHA, to: 0.55 },
-          duration: 850,
-          yoyo: true,
-          repeat: -1,
-        });
-
-        this.guides.push({ ...placement, sceneId: scene.id, sprite, footMarker, lantern });
+    for (const placement of map.placements) {
+      const lamplighterScene = parseLamplighterReference(placement.reference);
+      if (lamplighterScene) {
+        this.drawLamplighter(scene.id, placement);
+        continue;
       }
-    }
-  }
 
-  /**
-   * The Lamplighter, one per playable and accessible scene, on its own row
-   * (above the guides') so it never overlaps them. No foot marker, no
-   * lantern (see the class-level doc comment on `LamplighterMarker`).
-   */
-  private drawLamplighters(regionList: readonly RegionRect[]): void {
-    const regions = new Map(regionList.map((region) => [region.regionId, region]));
-
-    for (const scene of this.runtime.content.scenes) {
-      if (!scene.playable || !this.isSceneAccessible(scene.id)) continue;
-      const region = regions.get(scene.regionId);
-      if (!region) continue;
-
-      const [placement] = markerRowPlacements(
-        region,
-        [lamplighterReference(scene.id)],
-        LAMPLIGHTER_ROW_FRACTION,
-      );
-
-      const sprite = this.add
-        .sprite(placement.x, placement.y, this.runtime.cast.lamplighterSpriteKey, idleFrame(0))
-        .setOrigin(0.5, SPRITE_ORIGIN_Y)
-        .setScale(SPRITE_SCALE)
-        .setDepth(2);
-
-      this.lamplighters.push({ ...placement, sceneId: scene.id, sprite });
-    }
-  }
-
-  /**
-   * Every story character/NPC for a scene, one per `scene.characters` entry
-   * (src/content/loadContent.ts), on their own row below the guides'. Clicking
-   * one opens `CharacterDialoguePanel` (src/app/worldInteractions.ts), never a
-   * scored encounter. A speaker `content/characters.json` has no art for is
-   * skipped rather than crashing — `buildCast` (src/content/cast.ts) already
-   * fails loudly at boot for any speaker missing from a *playable* scene, so
-   * this is defence in depth, not the enforcement point.
-   */
-  private drawStoryCharacters(regionList: readonly RegionRect[]): void {
-    const regions = new Map(regionList.map((region) => [region.regionId, region]));
-
-    for (const scene of this.runtime.content.scenes) {
-      if (!scene.playable || !this.isSceneAccessible(scene.id)) continue;
-      const region = regions.get(scene.regionId);
-      if (!region) continue;
-
-      const placements = markerRowPlacements(
-        region,
-        scene.characters.map((character) => characterReference(scene.id, character.characterId)),
-        CHARACTER_ROW_FRACTION,
-      );
-
-      for (const [index, placement] of placements.entries()) {
-        const character = scene.characters[index];
-        const art = storyCharacterArtFor(this.runtime.cast, character.speaker);
-        if (!art) continue;
-
-        const sprite = this.add
-          .sprite(placement.x, placement.y, art.spriteKey, idleFrame(0))
-          .setOrigin(0.5, SPRITE_ORIGIN_Y)
-          .setScale(SPRITE_SCALE)
-          .setDepth(2);
-
-        this.characters.push({ ...placement, sceneId: scene.id, sprite });
+      const character = parseCharacterReference(placement.reference);
+      if (character) {
+        const speaker = speakerByCharacterId.get(character.characterId);
+        if (speaker) this.drawStoryCharacter(scene.id, placement, speaker);
+        continue;
       }
+
+      const crossRef = crossRefBySection.get(placement.reference);
+      if (crossRef) this.drawGuide(scene.id, placement, crossRef.section);
     }
   }
 
-  private drawPlayer(): void {
+  private drawGuide(sceneId: string, placement: MarkerPlacement, section: string): void {
+    const art = guideArtFor(this.runtime.cast, section);
+    if (!art) return;
+
+    // A section-coloured disc at the feet. With characters instead of coloured
+    // squares, this is what still tells the player at a glance which part of the
+    // canon a guide speaks for.
+    const footMarker = this.add
+      .ellipse(
+        placement.x,
+        placement.y + FOOT_MARKER_OFFSET_Y,
+        FOOT_MARKER_WIDTH,
+        FOOT_MARKER_HEIGHT,
+        art.markerColor,
+        0.75,
+      )
+      .setDepth(characterDepth(placement.y) + DEPTH.footMarkerOffset);
+
+    const sprite = this.add
+      .sprite(placement.x, placement.y, art.spriteKey, idleFrame(0))
+      .setOrigin(0.5, SPRITE_ORIGIN_Y)
+      .setScale(SPRITE_SCALE)
+      .setDepth(characterDepth(placement.y));
+
+    // The lantern affordance: every character drawn by *this* method is a
+    // cross-reference guide, and every one offers a scored encounter (including
+    // a resolved one, which is still tappable to revisit its summary card), so
+    // the lantern is always lit here. The Lamplighter and story characters/NPCs
+    // are clickable but carry no lantern at all — see the LANTERN_* doc comment
+    // in worldLayout.ts. It carries its own gentle glow so it reads as *lit*
+    // rather than just present.
+    const lantern = this.add
+      .ellipse(
+        placement.x + LANTERN_OFFSET_X,
+        placement.y + LANTERN_OFFSET_Y,
+        LANTERN_RADIUS * 2,
+        LANTERN_RADIUS * 2,
+        LANTERN_LIT_COLOR,
+        LANTERN_LIT_ALPHA,
+      )
+      .setStrokeStyle(1, 0xffffff, 0.85)
+      .setDepth(characterDepth(placement.y) + DEPTH.lanternOffset);
+
+    this.tweens.add({
+      targets: lantern,
+      alpha: { from: LANTERN_LIT_ALPHA, to: 0.55 },
+      duration: 850,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    this.guides.push({ ...placement, sceneId, sprite, footMarker, lantern });
+  }
+
+  private drawLamplighter(sceneId: string, placement: MarkerPlacement): void {
+    const sprite = this.add
+      .sprite(placement.x, placement.y, this.runtime.cast.lamplighterSpriteKey, idleFrame(0))
+      .setOrigin(0.5, SPRITE_ORIGIN_Y)
+      .setScale(SPRITE_SCALE)
+      .setDepth(characterDepth(placement.y));
+
+    this.lamplighters.push({ ...placement, sceneId, sprite });
+  }
+
+  /**
+   * One story character/NPC. Clicking one opens `CharacterDialoguePanel`
+   * (src/app/worldInteractions.ts), never a scored encounter. A speaker
+   * `content/characters.json` has no art for is skipped rather than crashing —
+   * `buildCast` (src/content/cast.ts) already fails loudly at boot for any
+   * speaker missing from a *playable* scene, so this is defence in depth.
+   */
+  private drawStoryCharacter(sceneId: string, placement: MarkerPlacement, speaker: string): void {
+    const art = storyCharacterArtFor(this.runtime.cast, speaker);
+    if (!art) return;
+
+    const sprite = this.add
+      .sprite(placement.x, placement.y, art.spriteKey, idleFrame(0))
+      .setOrigin(0.5, SPRITE_ORIGIN_Y)
+      .setScale(SPRITE_SCALE)
+      .setDepth(characterDepth(placement.y));
+
+    this.characters.push({ ...placement, sceneId, sprite });
+  }
+
+  private drawPlayer(map: SceneMap): void {
     this.player = this.add
       .sprite(
-        PLAYER_SPAWN.x,
-        PLAYER_SPAWN.y,
+        map.spawn.x,
+        map.spawn.y,
         this.runtime.cast.playerSpriteKey,
         idleFrame(this.playerFacingRow),
       )
       .setOrigin(0.5, SPRITE_ORIGIN_Y)
       .setScale(SPRITE_SCALE)
-      .setDepth(3);
+      .setDepth(characterDepth(map.spawn.y));
+
+    this.walkTargetRing = this.add
+      .ellipse(0, 0, WALK_TARGET_WIDTH, WALK_TARGET_HEIGHT)
+      .setFillStyle()
+      .setStrokeStyle(WALK_TARGET_STROKE_WIDTH, WALK_TARGET_COLOR, WALK_TARGET_ALPHA)
+      .setVisible(false);
 
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+
+    this.exposeTestHandle();
+  }
+
+  /**
+   * Position the walk-target ring from the current move target, every frame.
+   *
+   * Depth sits on the ring's own ground line like everything else in the room, a
+   * hair under whatever stands there, so the player walks over their destination
+   * rather than the ring floating on top of them.
+   */
+  private syncWalkTargetRing(): void {
+    const at = walkTargetMarker(this.moveTarget);
+    if (!at) {
+      this.walkTargetRing.setVisible(false);
+      return;
+    }
+    this.walkTargetRing
+      .setPosition(at.x, at.y)
+      .setDepth(characterDepth(at.y) + DEPTH.walkTargetOffset)
+      .setVisible(true);
+  }
+
+  /**
+   * A read-only handle for the e2e suite, dev builds only.
+   *
+   * Before PRD-13 the camera never scrolled: every marker in the placeholder
+   * world sat inside the top-left quadrant, so a world coordinate was a fixed
+   * fraction of the canvas and the suite could convert one without asking. A
+   * room is 1920x1080 with a 960x540 view that follows the player, so that
+   * assumption is gone, and the alternative — the suite re-deriving Phaser's
+   * camera lerp — would be a second implementation of the thing under test.
+   * Attached under `import.meta.env.DEV`, which the Playwright config's Vite dev
+   * server satisfies and a production build does not.
+   */
+  private exposeTestHandle(): void {
+    if (!import.meta.env.DEV) return;
+
+    const handle = {
+      worldToScreen: (worldX: number, worldY: number) => {
+        const camera = this.cameras.main;
+        return { x: worldX - camera.scrollX, y: worldY - camera.scrollY };
+      },
+      playerPosition: () => ({ x: this.player.x, y: this.player.y }),
+      isWalking: () => this.moveTarget !== null,
+    };
+
+    (globalThis as unknown as { __verseAndValeWorld?: typeof handle }).__verseAndValeWorld = handle;
+    this.teardown.push(() => {
+      (globalThis as unknown as { __verseAndValeWorld?: typeof handle }).__verseAndValeWorld =
+        undefined;
+    });
   }
 
   /**
@@ -421,20 +601,28 @@ export class WorldScene extends Phaser.Scene {
    * touch alike, which is what makes this the same code path for both.
    *
    * Guarded against a click reaching the world while any panel is open — an
-   * encounter, the Lamplighter's exit, or a story character/NPC's lines
-   * (PRD-12, `isAnyPanelOpen`): the scrim already swallows pointer events at
-   * the DOM layer (it sits on top of the canvas and is `pointer-events:
-   * auto`), but this is cheap insurance against relying on that alone.
+   * encounter, the Lamplighter's exit, or a story character/NPC's lines — and,
+   * from PRD-13 phase 5, while a scene transition is running or the chapter map
+   * is open (`isWorldInputBlocked`). The scrim already swallows pointer events at
+   * the DOM layer, but this is cheap insurance against relying on that alone,
+   * and it matters more for the fade than for a panel: a click landing mid-fade
+   * would resolve against a room that is halfway through being replaced.
    *
    * Resolves against `allMarkers()` — every guide, the Lamplighter, and every
    * story character/NPC together, in one call — rather than a separate
    * resolution per kind, per the PRD's "extend, don't fork" instruction for
    * `resolveClick`/`nearestMarker`. `openWorldInteraction` is what reads the
    * resolved reference back apart afterward to decide which panel to open.
+   *
+   * PRD-13 adds one step after resolution: a ground click that landed on a wall,
+   * a pool or a building is pulled out to the nearest spot the player can stand
+   * (`nearestUnblockedPoint`), so such a click walks the player up to the
+   * obstacle instead of aiming at a point inside it. `resolveClick` itself is
+   * untouched and knows nothing about collision.
    */
   private bindPointerInput(): void {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (isAnyPanelOpen(this.runtime.view.getState())) return;
+      if (isWorldInputBlocked(this.runtime.view.getState())) return;
 
       const resolution = resolveClick(
         this.player.x,
@@ -451,35 +639,59 @@ export class WorldScene extends Phaser.Scene {
         return;
       }
 
-      this.moveTarget = resolution.moveTo
-        ? { x: resolution.moveTo.x, y: resolution.moveTo.y, reference: resolution.reference }
-        : null;
+      if (!resolution.moveTo) {
+        this.moveTarget = null;
+        return;
+      }
+
+      // A character target keeps its own coordinates: the player stops
+      // INTERACT_RADIUS short of them anyway, and characters are validated to
+      // stand on walkable ground, so pulling the target out of a rectangle would
+      // only move the stopping point for no gain.
+      const target = resolution.reference
+        ? resolution.moveTo
+        : nearestUnblockedPoint(
+            resolution.moveTo.x,
+            resolution.moveTo.y,
+            PLAYER_SIZE,
+            this.collision,
+          );
+
+      this.moveTarget = {
+        x: target.x,
+        y: target.y,
+        reference: resolution.reference,
+        route: findPath(
+          this.pathGrid,
+          { x: this.player.x, y: this.player.y },
+          target,
+          PLAYER_SIZE,
+          this.collision,
+        ),
+      };
     });
   }
 
   private subscribe(): void {
     this.teardown.push(
-      this.runtime.bus.on("region:revealed", () => this.syncFog()),
       this.runtime.bus.on("encounter:stateChanged", () => this.syncGuides()),
       // PRD-11 "New game" wipes completion and encounter state wholesale
-      // rather than incrementally, so re-fogging and re-marking guides has
-      // to be a full resync too, not an attempt to undo specific events.
-      this.runtime.bus.on("game:reset", () => {
-        this.syncFog();
-        this.syncGuides();
+      // rather than incrementally, so re-marking guides has to be a full
+      // resync too, not an attempt to undo specific events.
+      this.runtime.bus.on("game:reset", () => this.syncGuides()),
+      // PRD-13 phase 5: the room swap. `arriveInScene` moves `roomSceneId` at
+      // the midpoint of the fade, while the screen is fully opaque, so the
+      // restart is never visible. Driven off the store rather than a bus event
+      // because which room is drawn is view state, not a domain event, and
+      // src/core is not modified by this PRD (ADR-0004).
+      this.runtime.view.subscribe(() => {
+        const wanted = this.runtime.view.getState().roomSceneId;
+        if (wanted && wanted !== this.drawnSceneId) this.scene.restart();
       }),
     );
   }
 
   // --- reads off the store ------------------------------------------------
-
-  private syncFog(): void {
-    const revealed = new Set(this.runtime.store.getState().revealedRegionIds());
-
-    for (const [regionId, fog] of this.fogByRegion) {
-      fog.setVisible(!revealed.has(regionId));
-    }
-  }
 
   private syncGuides(): void {
     const { encounters } = this.runtime.store.getState();
@@ -500,22 +712,25 @@ export class WorldScene extends Phaser.Scene {
   // --- per-frame ----------------------------------------------------------
 
   /**
-   * Walks toward `this.moveTarget`, if any. Pathing only needs the world
-   * bounds (`clampToWorld`), since the ground is open rectangles with no
-   * obstacles to route around (PRD-08 phase 4).
+   * Walks toward `this.moveTarget`, if any, sliding along whatever is in the
+   * way (`slideStep`, worldLayout.ts).
    *
-   * A character target's arrival radius is the interaction radius itself,
-   * not the target's exact point: the player stops once close enough to
-   * talk, which is what "walks to them and opens the interaction" means,
-   * and is also what stops the walk from continuing past a boundary that
-   * would otherwise never resolve to "arrived". A plain ground click uses a
-   * tight epsilon instead, so the player comes to rest at the clicked spot.
+   * A character target's arrival radius is the interaction radius itself, not
+   * the target's exact point: the player stops once close enough to talk, which
+   * is what "walks to them and opens the interaction" means. A plain ground
+   * click uses a tight epsilon instead, so the player comes to rest at the
+   * clicked spot.
+   *
+   * The third way this loop can end is new in PRD-13 and is the fix for the
+   * regression that phase 3 names: when `slideStep` reports that no direction
+   * made progress, the target is unreachable from here and the walk is
+   * abandoned. Before, a target behind a wall meant the arrival check never
+   * passed, the player stayed pinned against the wall, and the loop ran forever.
    */
   private movePlayer(deltaSeconds: number): void {
     if (!this.moveTarget) {
       // Standing still keeps the last facing rather than snapping to front.
-      this.player.anims.stop();
-      this.player.setFrame(idleFrame(this.playerFacingRow));
+      this.stopWalking();
       return;
     }
 
@@ -527,26 +742,57 @@ export class WorldScene extends Phaser.Scene {
     if (distance <= arrivalRadius) {
       const { reference } = this.moveTarget;
       this.moveTarget = null;
-      this.player.anims.stop();
-      this.player.setFrame(idleFrame(this.playerFacingRow));
+      this.stopWalking();
       if (reference) openWorldInteraction(this.runtime, reference);
       return;
     }
 
-    const row = directionRowFor(dx, dy);
+    // Retire waypoints already reached, then head for the next one. An empty
+    // route means "go straight at it", which is the open-ground case and also the
+    // case where routing found nothing better.
+    while (this.moveTarget.route.length > 0) {
+      const [waypoint] = this.moveTarget.route;
+      if (Math.hypot(waypoint.x - this.player.x, waypoint.y - this.player.y) > ARRIVAL_EPSILON) {
+        break;
+      }
+      this.moveTarget.route.shift();
+    }
+    const leg = this.moveTarget.route[0] ?? this.moveTarget;
+
+    const row = directionRowFor(leg.x - this.player.x, leg.y - this.player.y);
     if (row !== null) {
       this.playerFacingRow = row;
       this.player.anims.play(walkAnimKey(this.runtime.cast.playerSpriteKey, row), true);
     }
 
-    const step = Math.min(PLAYER_SPEED * deltaSeconds, distance);
-    const next = clampToWorld(
-      this.player.x + (dx / distance) * step,
-      this.player.y + (dy / distance) * step,
+    const next = slideStep(
+      { x: this.player.x, y: this.player.y },
+      leg,
       PLAYER_SIZE,
+      this.collision,
+      PLAYER_SPEED * deltaSeconds,
     );
 
-    this.player.setPosition(next.x, next.y);
+    if (!next.moved) {
+      // Blocked in every direction: the target cannot be reached from here.
+      const { reference } = this.moveTarget;
+      this.moveTarget = null;
+      this.stopWalking();
+      // A character target still opens if the player got close enough on the
+      // way; otherwise the click simply produced a walk that ran out of road.
+      if (reference && distance <= INTERACT_RADIUS) {
+        openWorldInteraction(this.runtime, reference);
+      }
+      return;
+    }
+
+    const clamped = clampToWorld(next.x, next.y, PLAYER_SIZE);
+    this.player.setPosition(clamped.x, clamped.y);
+  }
+
+  private stopWalking(): void {
+    this.player.anims.stop();
+    this.player.setFrame(idleFrame(this.playerFacingRow));
   }
 
   /**

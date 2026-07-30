@@ -1,0 +1,84 @@
+{
+  "scene": 8,
+  "status": "authored",
+  "backdrop": "throne-room",
+  "note": "DAN.1.18-19, the four are presented to the king. The player enters by the south door and the beat plays out on the carpet runner and mid-hall, at a respectful distance from the throne: this is the formal audience, not the closer, among-the-columns business scene 9 owns nearer the dais. Nebuchadnezzar stands at the near edge of his dais, just below its collision so the depth sort reads him standing in front of the throne rather than swallowed behind it, and still within INTERACT_RADIUS of the open floor. The herald stands between the king and the four, since he is the one who calls them forward. Daniel is a half-step ahead of Hananiah, Azariah and Mishael, each at a different depth and off the centre line, because the king speaks to Daniel and a row of four Judeans is the exact staging this PRD forbids. The palace guard flanks the door he watches rather than standing loose in the hall, and the courtier holds off to one side, watching the audience the way a bystander does. The three guides sit off the runner, findable without crowding the cast: PRO.22.29 (skill before kings) and 1SA.2.1-10 (raising the lowly) on the near side, LUK.21.12-15 (brought before rulers, given words) closer to the door where the player meets it on the way in.",
+  "spawn": {
+    "x": 960,
+    "y": 985
+  },
+  "placements": [
+    {
+      "reference": "character:scene-8:nebuchadnezzar",
+      "x": 960,
+      "y": 304,
+      "note": "at the near edge of the dais, centred on the throne, standing just below its collision so he draws in front of it"
+    },
+    {
+      "reference": "character:scene-8:herald",
+      "x": 960,
+      "y": 620,
+      "note": "between the king and the four, since he is the one who calls them forward"
+    },
+    {
+      "reference": "character:scene-8:daniel",
+      "x": 960,
+      "y": 740,
+      "note": "a half-step ahead of the other three; the king speaks to him directly"
+    },
+    {
+      "reference": "character:scene-8:hananiah",
+      "x": 860,
+      "y": 800,
+      "note": "off to the west and a step back from Daniel, not level with the others"
+    },
+    {
+      "reference": "character:scene-8:azariah",
+      "x": 1060,
+      "y": 860,
+      "note": "off to the east, deeper still, breaking the row"
+    },
+    {
+      "reference": "character:scene-8:mishael",
+      "x": 900,
+      "y": 920,
+      "note": "furthest back of the four, near the runner's south end"
+    },
+    {
+      "reference": "character:scene-8:palace-guard",
+      "x": 1050,
+      "y": 990,
+      "note": "flanking the door he watches, not loose in the middle of the hall"
+    },
+    {
+      "reference": "character:scene-8:courtier",
+      "x": 780,
+      "y": 850,
+      "note": "off to the side of the runner, watching the audience"
+    },
+    {
+      "reference": "lamplighter:scene-8",
+      "x": 1010,
+      "y": 955,
+      "note": "just inside the south door, where the player arrives"
+    },
+    {
+      "reference": "PRO.22.29",
+      "x": 780,
+      "y": 680,
+      "note": "OT Poetry/Wisdom guide, on skill before kings, set apart on the west side of the hall"
+    },
+    {
+      "reference": "1SA.2.1-10",
+      "x": 1140,
+      "y": 680,
+      "note": "OT History guide, Hannah's song of the lowly lifted, set apart on the east side"
+    },
+    {
+      "reference": "LUK.21.12-15",
+      "x": 1130,
+      "y": 900,
+      "note": "Gospels/Acts guide, brought before rulers and given words, near the door the player enters through"
+    }
+  ]
+}

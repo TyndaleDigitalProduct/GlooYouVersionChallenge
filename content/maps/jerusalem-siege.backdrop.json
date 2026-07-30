@@ -1,0 +1,765 @@
+{
+  "backdrop": "jerusalem-siege",
+  "image": "assets/maps/jerusalem-siege.webp",
+  "note": "Jerusalem under siege. Babylonian camp fills the west, the walled city the east, joined only by the siege ramp and the breach in the west wall (y 540-595). Collision keeps the player out of the walls, the tents, the houses, the temple court's furniture and the cistern, and leaves the ramp and the breach open, so camp and city are one connected walkable region. Known gap for the review pass: the city has two house variants and only the dark-outlined one is blocked here. The pale variant carries no outline for edge detection and unique per-instance noise for template matching, so about a dozen of them are still walk-through. There is no siege tower in this composite despite one existing in the element set: what stands at the breach is a battering ram, and that is what is overlaid instead. The ram is deliberately NOT collision: it sits in the mouth of the breach, and blocking it seals the only route between the camp and the city, which the reachability check catches immediately. Tall props are blocked at their base only, not over their whole drawn block: the part of a tent or a column that rises up the screen is what the player walks behind, and blocking all of it would make walk-behind unreachable. Flat-topped buildings seen from directly above (the city houses, the burnt sanctuary, the palace front) keep full-block collision, and their overlays are therefore inert by design.",
+  "collision": [
+    {
+      "x": 1070,
+      "y": 113,
+      "width": 818,
+      "height": 42,
+      "note": "north city wall"
+    },
+    {
+      "x": 1070,
+      "y": 113,
+      "width": 53,
+      "height": 427,
+      "note": "west city wall, north of the breach"
+    },
+    {
+      "x": 1070,
+      "y": 595,
+      "width": 53,
+      "height": 337,
+      "note": "west city wall, south of the breach"
+    },
+    {
+      "x": 1833,
+      "y": 113,
+      "width": 55,
+      "height": 819,
+      "note": "east city wall"
+    },
+    {
+      "x": 1123,
+      "y": 930,
+      "width": 765,
+      "height": 45,
+      "note": "south city wall"
+    },
+    {
+      "x": 1049,
+      "y": 84,
+      "width": 66,
+      "height": 32,
+      "note": "corner tower (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1832,
+      "y": 84,
+      "width": 66,
+      "height": 32,
+      "note": "corner tower (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1049,
+      "y": 938,
+      "width": 66,
+      "height": 32,
+      "note": "corner tower (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1832,
+      "y": 938,
+      "width": 66,
+      "height": 32,
+      "note": "corner tower (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 192,
+      "y": 159,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 319,
+      "y": 159,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 66,
+      "y": 161,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 66,
+      "y": 287,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 434,
+      "y": 287,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 203,
+      "y": 304,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 323,
+      "y": 422,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 432,
+      "y": 427,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 68,
+      "y": 437,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 72,
+      "y": 564,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 422,
+      "y": 568,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 427,
+      "y": 699,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 201,
+      "y": 814,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 305,
+      "y": 820,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 72,
+      "y": 829,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 435,
+      "y": 949,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 203,
+      "y": 961,
+      "width": 60,
+      "height": 22,
+      "note": "soldier tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 264,
+      "y": 578,
+      "width": 112,
+      "height": 45,
+      "note": "Nebuchadnezzar's command tent (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 176,
+      "y": 487,
+      "width": 33,
+      "height": 23,
+      "note": "ox"
+    },
+    {
+      "x": 1153,
+      "y": 198,
+      "width": 66,
+      "height": 58,
+      "note": "Judean house"
+    },
+    {
+      "x": 1371,
+      "y": 193,
+      "width": 76,
+      "height": 69,
+      "note": "Judean house"
+    },
+    {
+      "x": 1702,
+      "y": 202,
+      "width": 84,
+      "height": 69,
+      "note": "Judean house"
+    },
+    {
+      "x": 1273,
+      "y": 208,
+      "width": 71,
+      "height": 61,
+      "note": "Judean house"
+    },
+    {
+      "x": 1161,
+      "y": 290,
+      "width": 84,
+      "height": 64,
+      "note": "Judean house"
+    },
+    {
+      "x": 1271,
+      "y": 294,
+      "width": 60,
+      "height": 67,
+      "note": "Judean house"
+    },
+    {
+      "x": 1262,
+      "y": 388,
+      "width": 68,
+      "height": 73,
+      "note": "Judean house"
+    },
+    {
+      "x": 1157,
+      "y": 438,
+      "width": 65,
+      "height": 121,
+      "note": "Judean house"
+    },
+    {
+      "x": 1480,
+      "y": 462,
+      "width": 71,
+      "height": 66,
+      "note": "Judean house"
+    },
+    {
+      "x": 1704,
+      "y": 471,
+      "width": 81,
+      "height": 65,
+      "note": "Judean house"
+    },
+    {
+      "x": 1271,
+      "y": 474,
+      "width": 65,
+      "height": 69,
+      "note": "Judean house"
+    },
+    {
+      "x": 1377,
+      "y": 474,
+      "width": 70,
+      "height": 55,
+      "note": "Judean house"
+    },
+    {
+      "x": 1155,
+      "y": 560,
+      "width": 70,
+      "height": 58,
+      "note": "Judean house"
+    },
+    {
+      "x": 1268,
+      "y": 555,
+      "width": 75,
+      "height": 66,
+      "note": "Judean house"
+    },
+    {
+      "x": 1382,
+      "y": 569,
+      "width": 70,
+      "height": 67,
+      "note": "Judean house"
+    },
+    {
+      "x": 1487,
+      "y": 561,
+      "width": 84,
+      "height": 54,
+      "note": "Judean house"
+    },
+    {
+      "x": 1594,
+      "y": 562,
+      "width": 85,
+      "height": 69,
+      "note": "Judean house"
+    },
+    {
+      "x": 1710,
+      "y": 570,
+      "width": 61,
+      "height": 60,
+      "note": "Judean house"
+    },
+    {
+      "x": 1159,
+      "y": 650,
+      "width": 74,
+      "height": 62,
+      "note": "Judean house"
+    },
+    {
+      "x": 1271,
+      "y": 655,
+      "width": 78,
+      "height": 59,
+      "note": "Judean house"
+    },
+    {
+      "x": 1483,
+      "y": 655,
+      "width": 61,
+      "height": 65,
+      "note": "Judean house"
+    },
+    {
+      "x": 1598,
+      "y": 652,
+      "width": 84,
+      "height": 61,
+      "note": "Judean house"
+    },
+    {
+      "x": 1272,
+      "y": 748,
+      "width": 69,
+      "height": 63,
+      "note": "Judean house"
+    },
+    {
+      "x": 1711,
+      "y": 750,
+      "width": 79,
+      "height": 63,
+      "note": "Judean house"
+    },
+    {
+      "x": 1717,
+      "y": 154,
+      "width": 49,
+      "height": 47,
+      "note": "Judean house"
+    },
+    {
+      "x": 1508,
+      "y": 322,
+      "width": 130,
+      "height": 50,
+      "note": "temple building (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1628,
+      "y": 345,
+      "width": 62,
+      "height": 52,
+      "note": "bronze sea"
+    },
+    {
+      "x": 1538,
+      "y": 373,
+      "width": 64,
+      "height": 49,
+      "note": "bronze altar"
+    },
+    {
+      "x": 1497,
+      "y": 757,
+      "width": 140,
+      "height": 100,
+      "note": "cistern"
+    },
+    {
+      "x": 1204,
+      "y": 828,
+      "width": 32,
+      "height": 20,
+      "note": "olive tree trunk"
+    },
+    {
+      "x": 1704,
+      "y": 868,
+      "width": 32,
+      "height": 20,
+      "note": "olive tree trunk"
+    }
+  ],
+  "overlays": [
+    {
+      "prop": "soldier_tent",
+      "x": 192,
+      "y": 131,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 319,
+      "y": 131,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 66,
+      "y": 133,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 66,
+      "y": 259,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 434,
+      "y": 259,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 203,
+      "y": 276,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 323,
+      "y": 394,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 432,
+      "y": 399,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 68,
+      "y": 409,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 72,
+      "y": 536,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 422,
+      "y": 540,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 427,
+      "y": 671,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 201,
+      "y": 786,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 305,
+      "y": 792,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 72,
+      "y": 801,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 435,
+      "y": 921,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "soldier_tent",
+      "x": 203,
+      "y": 933,
+      "width": 60,
+      "height": 52
+    },
+    {
+      "prop": "command_tent",
+      "x": 264,
+      "y": 528,
+      "width": 112,
+      "height": 96
+    },
+    {
+      "prop": "house_judean",
+      "x": 1153,
+      "y": 198,
+      "width": 66,
+      "height": 58
+    },
+    {
+      "prop": "house_judean",
+      "x": 1371,
+      "y": 193,
+      "width": 76,
+      "height": 69
+    },
+    {
+      "prop": "house_judean",
+      "x": 1702,
+      "y": 202,
+      "width": 84,
+      "height": 69
+    },
+    {
+      "prop": "house_judean",
+      "x": 1273,
+      "y": 208,
+      "width": 71,
+      "height": 61
+    },
+    {
+      "prop": "house_judean",
+      "x": 1161,
+      "y": 290,
+      "width": 84,
+      "height": 64
+    },
+    {
+      "prop": "house_judean",
+      "x": 1271,
+      "y": 294,
+      "width": 60,
+      "height": 67
+    },
+    {
+      "prop": "house_judean",
+      "x": 1262,
+      "y": 388,
+      "width": 68,
+      "height": 73
+    },
+    {
+      "prop": "house_judean",
+      "x": 1157,
+      "y": 438,
+      "width": 65,
+      "height": 121
+    },
+    {
+      "prop": "house_judean",
+      "x": 1480,
+      "y": 462,
+      "width": 71,
+      "height": 66
+    },
+    {
+      "prop": "house_judean",
+      "x": 1704,
+      "y": 471,
+      "width": 81,
+      "height": 65
+    },
+    {
+      "prop": "house_judean",
+      "x": 1271,
+      "y": 474,
+      "width": 65,
+      "height": 69
+    },
+    {
+      "prop": "house_judean",
+      "x": 1377,
+      "y": 474,
+      "width": 70,
+      "height": 55
+    },
+    {
+      "prop": "house_judean",
+      "x": 1155,
+      "y": 560,
+      "width": 70,
+      "height": 58
+    },
+    {
+      "prop": "house_judean",
+      "x": 1268,
+      "y": 555,
+      "width": 75,
+      "height": 66
+    },
+    {
+      "prop": "house_judean",
+      "x": 1382,
+      "y": 569,
+      "width": 70,
+      "height": 67
+    },
+    {
+      "prop": "house_judean",
+      "x": 1487,
+      "y": 561,
+      "width": 84,
+      "height": 54
+    },
+    {
+      "prop": "house_judean",
+      "x": 1594,
+      "y": 562,
+      "width": 85,
+      "height": 69
+    },
+    {
+      "prop": "house_judean",
+      "x": 1710,
+      "y": 570,
+      "width": 61,
+      "height": 60
+    },
+    {
+      "prop": "house_judean",
+      "x": 1159,
+      "y": 650,
+      "width": 74,
+      "height": 62
+    },
+    {
+      "prop": "house_judean",
+      "x": 1271,
+      "y": 655,
+      "width": 78,
+      "height": 59
+    },
+    {
+      "prop": "house_judean",
+      "x": 1483,
+      "y": 655,
+      "width": 61,
+      "height": 65
+    },
+    {
+      "prop": "house_judean",
+      "x": 1598,
+      "y": 652,
+      "width": 84,
+      "height": 61
+    },
+    {
+      "prop": "house_judean",
+      "x": 1272,
+      "y": 748,
+      "width": 69,
+      "height": 63
+    },
+    {
+      "prop": "house_judean",
+      "x": 1711,
+      "y": 750,
+      "width": 79,
+      "height": 63
+    },
+    {
+      "prop": "house_judean",
+      "x": 1717,
+      "y": 154,
+      "width": 49,
+      "height": 47
+    },
+    {
+      "prop": "tower_limestone",
+      "x": 1049,
+      "y": 46,
+      "width": 66,
+      "height": 72
+    },
+    {
+      "prop": "tower_limestone",
+      "x": 1832,
+      "y": 46,
+      "width": 66,
+      "height": 72
+    },
+    {
+      "prop": "tower_limestone",
+      "x": 1049,
+      "y": 900,
+      "width": 66,
+      "height": 72
+    },
+    {
+      "prop": "tower_limestone",
+      "x": 1832,
+      "y": 900,
+      "width": 66,
+      "height": 72
+    },
+    {
+      "prop": "temple_building",
+      "x": 1508,
+      "y": 248,
+      "width": 130,
+      "height": 124
+    },
+    {
+      "prop": "battering_ram",
+      "x": 973,
+      "y": 543,
+      "width": 58,
+      "height": 36
+    }
+  ]
+}

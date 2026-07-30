@@ -4,7 +4,7 @@ Date: 2026-07-30
 
 ## Status
 
-Proposed, 2026-07-30. Not yet accepted.
+**Accepted!**
 
 Resolves the open question "**Map authoring pipeline**, Tiled vs LDtk. Blocks
 PRD-05." recorded in [ADR-0002](./0002-frontend-and-runtime-stack.md). Everything

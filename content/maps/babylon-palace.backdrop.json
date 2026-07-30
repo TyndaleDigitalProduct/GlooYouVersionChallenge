@@ -1,0 +1,261 @@
+{
+  "backdrop": "babylon-palace",
+  "image": "assets/maps/babylon-palace.webp",
+  "note": "The palace precinct, five staged zones in one picture (ADR-0004): ziggurat and scribal quarter north-west, the dormitory of nine beds west, the processional canal down the middle with a bridge at y 620-648, the terraced garden north-east, and the food pavilion south-east. Scenes 3-7 all use it and differ only by spawn and blocking, so every zone must stay reachable from every other. The bridge gap is authored a little wider than the painted bridge (y 612-658 rather than 622-645) because a 23px gap is narrower than the player can walk through, and the reachability check would then cut the precinct in two. Tall props are blocked at their base only, not over their whole drawn block: the part of a tent or a column that rises up the screen is what the player walks behind, and blocking all of it would make walk-behind unreachable. Flat-topped buildings seen from directly above (the city houses, the burnt sanctuary, the palace front) keep full-block collision, and their overlays are therefore inert by design.",
+  "collision": [
+    {
+      "x": 36,
+      "y": 36,
+      "width": 1848,
+      "height": 36,
+      "note": "north precinct wall"
+    },
+    {
+      "x": 36,
+      "y": 36,
+      "width": 36,
+      "height": 1008,
+      "note": "west precinct wall"
+    },
+    {
+      "x": 1848,
+      "y": 36,
+      "width": 36,
+      "height": 1008,
+      "note": "east precinct wall"
+    },
+    {
+      "x": 36,
+      "y": 1008,
+      "width": 1848,
+      "height": 36,
+      "note": "south precinct wall"
+    },
+    {
+      "x": 698,
+      "y": 118,
+      "width": 240,
+      "height": 162,
+      "note": "palace facade, west of the doorway"
+    },
+    {
+      "x": 978,
+      "y": 118,
+      "width": 244,
+      "height": 162,
+      "note": "palace facade, east of the doorway"
+    },
+    {
+      "x": 208,
+      "y": 176,
+      "width": 224,
+      "height": 126,
+      "note": "ziggurat of Etemenanki"
+    },
+    {
+      "x": 1417,
+      "y": 295,
+      "width": 345,
+      "height": 97,
+      "note": "terraced garden"
+    },
+    {
+      "x": 618,
+      "y": 478,
+      "width": 232,
+      "height": 140,
+      "note": "reflecting pool, west"
+    },
+    {
+      "x": 1073,
+      "y": 478,
+      "width": 232,
+      "height": 140,
+      "note": "reflecting pool, east"
+    },
+    {
+      "x": 898,
+      "y": 415,
+      "width": 124,
+      "height": 197,
+      "note": "processional canal, north of the bridge"
+    },
+    {
+      "x": 898,
+      "y": 658,
+      "width": 124,
+      "height": 352,
+      "note": "processional canal, south of the bridge"
+    },
+    {
+      "x": 200,
+      "y": 560,
+      "width": 103,
+      "height": 85,
+      "note": "trainee bed"
+    },
+    {
+      "x": 200,
+      "y": 690,
+      "width": 103,
+      "height": 85,
+      "note": "trainee bed"
+    },
+    {
+      "x": 200,
+      "y": 820,
+      "width": 103,
+      "height": 85,
+      "note": "trainee bed"
+    },
+    {
+      "x": 330,
+      "y": 560,
+      "width": 103,
+      "height": 85,
+      "note": "trainee bed"
+    },
+    {
+      "x": 330,
+      "y": 690,
+      "width": 103,
+      "height": 85,
+      "note": "trainee bed"
+    },
+    {
+      "x": 330,
+      "y": 820,
+      "width": 103,
+      "height": 85,
+      "note": "trainee bed"
+    },
+    {
+      "x": 460,
+      "y": 560,
+      "width": 103,
+      "height": 85,
+      "note": "trainee bed"
+    },
+    {
+      "x": 460,
+      "y": 690,
+      "width": 103,
+      "height": 85,
+      "note": "trainee bed"
+    },
+    {
+      "x": 460,
+      "y": 820,
+      "width": 103,
+      "height": 85,
+      "note": "trainee bed"
+    },
+    {
+      "x": 1360,
+      "y": 620,
+      "width": 330,
+      "height": 275,
+      "note": "food pavilion"
+    },
+    {
+      "x": 822,
+      "y": 978,
+      "width": 74,
+      "height": 32,
+      "note": "gate tower, west (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 1022,
+      "y": 978,
+      "width": 74,
+      "height": 32,
+      "note": "gate tower, east (base only: the drawn top is walk-behind)"
+    },
+    {
+      "x": 624,
+      "y": 683,
+      "width": 36,
+      "height": 20,
+      "note": "date palm trunk"
+    },
+    {
+      "x": 1264,
+      "y": 683,
+      "width": 36,
+      "height": 20,
+      "note": "date palm trunk"
+    }
+  ],
+  "overlays": [
+    {
+      "prop": "palace_facade",
+      "x": 698,
+      "y": 118,
+      "width": 524,
+      "height": 162
+    },
+    {
+      "prop": "ziggurat_etemenanki",
+      "x": 208,
+      "y": 176,
+      "width": 224,
+      "height": 126
+    },
+    {
+      "prop": "garden_terrace",
+      "x": 1417,
+      "y": 295,
+      "width": 345,
+      "height": 97
+    },
+    {
+      "prop": "date_palm",
+      "x": 624,
+      "y": 683,
+      "width": 36,
+      "height": 44
+    },
+    {
+      "prop": "date_palm",
+      "x": 1264,
+      "y": 683,
+      "width": 36,
+      "height": 44
+    },
+    {
+      "prop": "date_palm",
+      "x": 1384,
+      "y": 603,
+      "width": 36,
+      "height": 44
+    },
+    {
+      "prop": "date_palm",
+      "x": 1504,
+      "y": 603,
+      "width": 36,
+      "height": 44
+    },
+    {
+      "prop": "date_palm",
+      "x": 1604,
+      "y": 603,
+      "width": 36,
+      "height": 44
+    },
+    {
+      "prop": "tower_glazed",
+      "x": 822,
+      "y": 936,
+      "width": 74,
+      "height": 74
+    },
+    {
+      "prop": "tower_glazed",
+      "x": 1022,
+      "y": 936,
+      "width": 74,
+      "height": 74
+    }
+  ]
+}

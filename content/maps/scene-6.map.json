@@ -1,0 +1,78 @@
+{
+  "scene": 6,
+  "status": "authored",
+  "backdrop": "babylon-palace",
+  "note": "DAN.1.11-16, the ten-day test. The terraced garden, north-east of the precinct: a stepped, planted structure whose lower ground (south of the terrace) hosts the vegetable-and-water test, and whose upper ground (north of the terrace) hosts the rich table the four refuse. Using the garden rather than the food pavilion keeps this scene visually distinct from scene 5's food pavilion, the other eating beat. Daniel, Hananiah, Mishael and Azariah cluster loosely on the lower terrace with the attendant he persuaded and the cook who plates their vegetables; the trainee at the rich table sits alone on the upper terrace, eating the king's fare, so the two diets read as two separate groups rather than one crowd. Three guides (the joint-most of any scene) are spread across both terraces, kept apart from the cast so they stay easy to click.",
+  "spawn": {
+    "x": 1335,
+    "y": 500
+  },
+  "placements": [
+    {
+      "reference": "lamplighter:scene-6",
+      "x": 1320,
+      "y": 575,
+      "note": "a few steps south of the arrival point, clear of the reflecting pool and of the player spawn, facing the vegetable-test group on the terrace"
+    },
+    {
+      "reference": "character:scene-6:daniel",
+      "x": 1470,
+      "y": 430,
+      "note": "at the front of the lower terrace, having proposed the test"
+    },
+    {
+      "reference": "character:scene-6:mishael",
+      "x": 1420,
+      "y": 520,
+      "note": "west of Daniel, standing apart rather than in line with him"
+    },
+    {
+      "reference": "character:scene-6:hananiah",
+      "x": 1560,
+      "y": 480,
+      "note": "east of Daniel, a step further into the terrace"
+    },
+    {
+      "reference": "character:scene-6:azariah",
+      "x": 1650,
+      "y": 555,
+      "note": "the one who stands apart from the other three, nearest the cook and the food"
+    },
+    {
+      "reference": "character:scene-6:the-attendant",
+      "x": 1560,
+      "y": 590,
+      "note": "south of the four, close enough to be clearly checking on them, not off to one side"
+    },
+    {
+      "reference": "character:scene-6:cook",
+      "x": 1720,
+      "y": 440,
+      "note": "by the vegetable plates at the terrace's east edge"
+    },
+    {
+      "reference": "character:scene-6:trainee-at-the-rich-table",
+      "x": 1550,
+      "y": 200,
+      "note": "alone on the upper terrace with the roast and wine, the visual contrast the scene rests on"
+    },
+    {
+      "reference": "DEU.8.2-4",
+      "x": 1420,
+      "y": 150,
+      "note": "Torah guide, upper terrace west, findable near the rich table without crowding it"
+    },
+    {
+      "reference": "HEB.11.24-26",
+      "x": 1700,
+      "y": 230,
+      "note": "NT Letters guide, upper terrace east, on the other side of the rich table"
+    },
+    {
+      "reference": "MAT.4.1-4",
+      "x": 1325,
+      "y": 435,
+      "note": "Gospels/Acts guide (bread in the wilderness), lower terrace west, by the spawn"
+    }
+  ]
+}

@@ -54,6 +54,62 @@ function boot() {
   return result.value;
 }
 
+describe("the playable gate (PRD-13 phase 5)", () => {
+  // The trap PRD-12 flagged and PRD-13 phase 5 fixed: the component used to open
+  // with `if (!scene?.playable)` and render an "End of the vertical slice" panel,
+  // which only ever fired because completing scene 1 advanced `currentSceneId()`
+  // onto an unplayable scene 2. With every scene playable that negation can never
+  // fire, so the panel would silently never appear again.
+  function bootReal() {
+    const result = createAppRuntime({
+      storage: createInMemoryStorage(),
+      saveKey: "test:dialogue-gate",
+      bus: createEventBus(),
+    });
+    if (!result.ok) throw new Error(`runtime failed to boot: ${result.reason}`);
+    return result.value;
+  }
+
+  function renderBox(runtime: ReturnType<typeof bootReal>) {
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <DialogueBox />
+      </RuntimeProvider>,
+    );
+  }
+
+  it("shows the opening of the room the player is in, not of the store's current scene", () => {
+    const runtime = bootReal();
+    // Completing scene 1 advances `currentSceneId()` to scene 2 immediately,
+    // while the player is still standing in scene 1's room being congratulated.
+    runtime.store.getState().completeScene("scene-1");
+    runtime.view.getState().enterRoom("scene-2");
+    renderBox(runtime);
+
+    expect(screen.getByTestId("dialogue-text")).toHaveTextContent(
+      "So the siege ended the way sieges usually do",
+    );
+  });
+
+  it("never presents an end-of-content panel: that is the end state's job", () => {
+    const runtime = bootReal();
+    for (const scene of runtime.content.scenes) runtime.store.getState().completeScene(scene.id);
+    renderBox(runtime);
+
+    expect(screen.queryByTestId("scene-complete")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("dialogue-box")).not.toBeInTheDocument();
+  });
+
+  it("plays no forced opening in a revisited scene, since its passage was presented already", () => {
+    const runtime = bootReal();
+    runtime.store.getState().completeScene("scene-1");
+    runtime.view.getState().enterRoom("scene-1");
+    renderBox(runtime);
+
+    expect(screen.queryByTestId("dialogue-box")).not.toBeInTheDocument();
+  });
+});
+
 describe("DialogueBox {name} substitution (PRD-11)", () => {
   it("substitutes every {name} occurrence with the saved player name", () => {
     const runtime = boot();

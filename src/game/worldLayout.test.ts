@@ -1,102 +1,109 @@
 import { describe, expect, it } from "vitest";
 import {
   CHARACTER_CLICK_RADIUS,
-  CHARACTER_ROW_FRACTION,
   clampToWorld,
+  FOOT_MARKER_HEIGHT,
+  FOOT_MARKER_OFFSET_Y,
+  FOOT_MARKER_WIDTH,
   INTERACT_RADIUS,
-  LAMPLIGHTER_ROW_FRACTION,
-  markerPlacements,
-  markerRowPlacements,
+  LANTERN_OFFSET_X,
+  LANTERN_OFFSET_Y,
+  LANTERN_RADIUS,
   nearestMarker,
+  nearestUnblockedPoint,
   PLAYER_SIZE,
-  PLAYER_SPAWN,
-  REGION_HEIGHT,
-  REGION_WIDTH,
-  regionRects,
   resolveClick,
+  SPRITE_FOOTPRINT_HEIGHT,
+  SPRITE_FOOTPRINT_WIDTH,
+  SPRITE_SCALE,
   WORLD_HEIGHT,
   WORLD_WIDTH,
+  walkTargetMarker,
 } from "./worldLayout";
 
-const NINE_REGIONS = Array.from({ length: 9 }, (_, index) => `region-${index + 1}`);
+// PRD-13 deletes the 3x3 region grid (`regionRects`, the four REGION_*
+// constants) and the three arithmetic character rows (`markerRowPlacements`,
+// GUIDE_/LAMPLIGHTER_/CHARACTER_ROW_FRACTION), so their tests go with them:
+// placement is authored in content/maps/scene-N.map.json now and is covered by
+// sceneValidation.test.ts and loadContent.test.ts instead. Collision and
+// collision-aware walking are in collision.test.ts. What is left here is the
+// click-resolution path, which PRD-13 leaves untouched on purpose.
 
-describe("regionRects", () => {
-  it("tiles the nine Daniel 1 regions into a 3x3 grid that fills the world", () => {
-    const rects = regionRects(NINE_REGIONS);
-
-    expect(rects).toHaveLength(9);
-    expect(rects[0]).toMatchObject({ regionId: "region-1", x: 0, y: 0 });
-    expect(rects[1]).toMatchObject({ regionId: "region-2", x: REGION_WIDTH, y: 0 });
-    expect(rects[3]).toMatchObject({ regionId: "region-4", x: 0, y: REGION_HEIGHT });
-    expect(rects[8]).toMatchObject({ x: REGION_WIDTH * 2, y: REGION_HEIGHT * 2 });
+// Operator review of scene 1, 2026-07-30: characters read as too large against
+// the authored rooms, which made a 1920x1080 map feel small. The art is 24x32
+// and `house_judean` is 109x81, so at scale 2 a person stood 64 tall beside an
+// 81-tall house. Scale 1 puts a person at 32 against that house, and because
+// `pixelArt` is on, 1 and 2 are the only choices: a fractional scale blurs.
+//
+// These assertions exist because the sprite is not the only thing that has to
+// shrink. The foot marker and the lantern are positioned in absolute world
+// pixels against the *drawn* figure, so leaving them would float a lantern well
+// above a smaller head and ring a smaller character with an oversized disc.
+describe("character scale (PRD-13 operator review)", () => {
+  it("draws characters at scale 1, so a person is shorter than a house", () => {
+    expect(SPRITE_SCALE).toBe(1);
+    expect(SPRITE_FOOTPRINT_WIDTH).toBe(24);
+    expect(SPRITE_FOOTPRINT_HEIGHT).toBe(32);
   });
 
-  it("leaves no gap and no overlap along either axis", () => {
-    const rects = regionRects(NINE_REGIONS);
-    const right = Math.max(...rects.map((rect) => rect.x + rect.width));
-    const bottom = Math.max(...rects.map((rect) => rect.y + rect.height));
+  it("keeps the foot marker and lantern proportional to the drawn figure", () => {
+    // Each was tuned by eye against a 48x64 figure; halving preserves the exact
+    // relationship rather than re-tuning it, so only the world-to-character
+    // ratio changes.
+    expect(FOOT_MARKER_WIDTH).toBe(22);
+    expect(FOOT_MARKER_HEIGHT).toBe(7);
+    expect(FOOT_MARKER_OFFSET_Y).toBe(4);
+    expect(LANTERN_OFFSET_X).toBe(8);
+    expect(LANTERN_RADIUS).toBe(3);
+  });
 
-    expect(right).toBe(WORLD_WIDTH);
-    expect(bottom).toBe(WORLD_HEIGHT);
+  it("keeps the lantern above the head, not floating over it", () => {
+    // Origin is near the feet, so the drawn top edge sits this far above the
+    // standing point. The lantern must clear the shoulders without detaching.
+    const topEdge = -SPRITE_FOOTPRINT_HEIGHT * 0.9;
+    expect(LANTERN_OFFSET_Y).toBeLessThan(0);
+    expect(LANTERN_OFFSET_Y).toBeGreaterThan(topEdge);
+  });
+
+  it("leaves interaction distances alone, because they are input tuning not art", () => {
+    // Halving these would force the player to stand implausibly close and would
+    // change the separation rule every authored placement was validated against.
+    expect(CHARACTER_CLICK_RADIUS).toBe(40);
+    expect(INTERACT_RADIUS).toBe(68);
+    expect(PLAYER_SIZE).toBe(22);
   });
 });
 
-describe("markerPlacements", () => {
-  it("spreads guides evenly across the region's midline", () => {
-    const [region] = regionRects(["region-1"]);
+// Operator review of scene 1, 2026-07-30: a ground click gave no feedback at
+// all, so there was nothing to show where the player was heading. The rule is
+// derived from `moveTarget` rather than set alongside it, because WorldScene
+// clears that target in three separate places (arrival, blocked-in-every-
+// direction, and a fresh click) and a marker shown imperatively would be left
+// behind by whichever path someone forgets.
+describe("walkTargetMarker", () => {
+  it("marks the destination of a plain ground click", () => {
+    expect(walkTargetMarker({ x: 400, y: 700, reference: null })).toEqual({ x: 400, y: 700 });
+  });
 
-    expect(markerPlacements(region, ["A", "B"])).toEqual([
-      { reference: "A", x: REGION_WIDTH / 3, y: REGION_HEIGHT / 2 },
-      { reference: "B", x: (REGION_WIDTH * 2) / 3, y: REGION_HEIGHT / 2 },
+  it("shows nothing when the player is not walking", () => {
+    expect(walkTargetMarker(null)).toBeNull();
+  });
+
+  it("shows nothing when walking to a character", () => {
+    // The character is its own destination cue, and a ring under their feet
+    // would collide with the section-coloured disc that carries encounter state.
+    expect(walkTargetMarker({ x: 400, y: 700, reference: "DAN.1.1" })).toBeNull();
+  });
+
+  it("marks the resolved destination, not the raw click", () => {
+    // WorldScene pulls a click inside a collision rectangle out to the nearest
+    // walkable point before building the target, so the marker lands where the
+    // player will actually stop. Passing the resolved target through unchanged is
+    // what makes that hold.
+    const resolved = nearestUnblockedPoint(500, 500, PLAYER_SIZE, [
+      { x: 450, y: 450, width: 100, height: 100 },
     ]);
-  });
-
-  it("places the player spawn on the same line as region 1's guides", () => {
-    // The walkthrough e2e test walks right from the spawn to the first guide.
-    const [region] = regionRects(["region-1"]);
-    const markers = markerPlacements(region, ["A", "B"]);
-
-    expect(PLAYER_SPAWN.y).toBe(markers[0].y);
-    expect(PLAYER_SPAWN.x).toBeLessThan(markers[0].x);
-  });
-
-  it("returns nothing for a scene with no cross-references", () => {
-    const [region] = regionRects(["region-1"]);
-
-    expect(markerPlacements(region, [])).toEqual([]);
-  });
-});
-
-describe("markerRowPlacements (PRD-12: a row per character kind)", () => {
-  it("markerPlacements is the midline row, unchanged", () => {
-    const [region] = regionRects(["region-1"]);
-
-    expect(markerRowPlacements(region, ["A", "B"], 0.5)).toEqual(
-      markerPlacements(region, ["A", "B"]),
-    );
-  });
-
-  it("places a row at an arbitrary fraction of the region's height", () => {
-    const [region] = regionRects(["region-1"]);
-
-    expect(markerRowPlacements(region, ["A"], LAMPLIGHTER_ROW_FRACTION)).toEqual([
-      {
-        reference: "A",
-        x: REGION_WIDTH / 2,
-        y: region.y + REGION_HEIGHT * LAMPLIGHTER_ROW_FRACTION,
-      },
-    ]);
-  });
-
-  it("keeps the Lamplighter row, the guide row, and the character row clear of each other", () => {
-    const [region] = regionRects(["region-1"]);
-
-    const lamplighterY = markerRowPlacements(region, ["A"], LAMPLIGHTER_ROW_FRACTION)[0].y;
-    const guideY = markerPlacements(region, ["A"])[0].y;
-    const characterY = markerRowPlacements(region, ["A"], CHARACTER_ROW_FRACTION)[0].y;
-
-    expect(guideY - lamplighterY).toBeGreaterThan(INTERACT_RADIUS);
-    expect(characterY - guideY).toBeGreaterThan(INTERACT_RADIUS);
+    expect(walkTargetMarker({ ...resolved, reference: null })).toEqual(resolved);
   });
 });
 

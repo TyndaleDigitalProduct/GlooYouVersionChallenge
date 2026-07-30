@@ -9,6 +9,7 @@ came from and under what licence — see `AGENTS.md` §6.
 | `art/characters/**` (432 files, 16 characters) | Created for this project | Tyndale Digital Product team | GPL-3.0, as part of this repository | n/a — not retrieved | n/a — original work |
 | `art/incoming/extras/**` (351 files) | Created for this project | Tyndale Digital Product team | GPL-3.0, as part of this repository | n/a — not retrieved | n/a — original work |
 | `art/environments/**`, `art/objects/**`, `art/tiles/**`, `art/plots/**`, `art/dialog_boxes/**`, `art/start_screen/**`, `art/fonts/**` (201 files) | Created for this project | Kevin Rose | GPL-3.0, as part of this repository | n/a — not retrieved | n/a — original work |
+| `art/environments/Daniel 1 Environments/**` (66 files: 4 full-map 1920x1080 backdrops + 62 transparent environment elements) | Created for this project | Kevin Rose | GPL-3.0, as part of this repository | n/a — not retrieved | 2026-07-30 — original work |
 
 ## Provenance resolved
 
@@ -29,4 +30,19 @@ into `art/environments/`, `art/objects/`, `art/tiles/`, `art/plots/`, `art/dialo
 `art/start_screen/`, and `art/fonts/`. Its author is credited by name below rather than
 as "team".
 
+The fourth row is a second delivery from Kevin Rose, received 2026-07-30: the four
+finished Daniel 1 environments and the 62 individual props composited into them. Same
+author and same terms as the row above it; it is listed separately only because it
+arrived on a different date and because it is the delivery PRD-13 stages into
+`public/assets/maps/`.
+
 Nothing here blocks use. `AGENTS.md` §6 is satisfied: the licence is named.
+
+## Staged names differ from master names
+
+`public/assets/` is generated from `art/` by `pnpm stage:assets`
+(`scripts/stage-assets.mjs`), which normalises file names on the way through. The
+masters keep whatever the artist sent, including `Jerusalem Seige.png`, whose
+misspelling is preserved here on purpose: the master is the delivered file, and
+correcting it in `art/` would make the repository disagree with the artist's own
+copy. The staging script writes it out as `jerusalem-siege.png`.

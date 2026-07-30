@@ -68,6 +68,40 @@ describe("createAppRuntime", () => {
     expect(second.store.getState().revealedRegionIds()).toEqual(["region-1", "region-2"]);
   });
 
+  it("puts the player in the first unfinished scene's room at boot", () => {
+    // PRD-13 phase 5: the room on screen is explicit view state, so somebody has
+    // to set it before the world draws. Leaving it null would make WorldScene
+    // fall back to `currentSceneId()`, which is the derivation the phase
+    // replaced: it advances the moment a scene completes, while the Lamplighter's
+    // panel is still open.
+    const runtime = boot();
+
+    expect(runtime.view.getState().roomSceneId).toBe("scene-1");
+  });
+
+  it("resumes in the room the save left off in, not back at scene 1", () => {
+    const storage = createInMemoryStorage();
+    const first = boot(storage);
+    first.store.getState().completeScene("scene-1");
+
+    const second = boot(storage);
+
+    expect(second.view.getState().roomSceneId).toBe("scene-2");
+  });
+
+  it("resumes a finished chapter in its last room rather than nowhere", () => {
+    const storage = createInMemoryStorage();
+    const first = boot(storage);
+    for (const scene of first.content.scenes) first.store.getState().completeScene(scene.id);
+    expect(first.store.getState().isGameComplete()).toBe(true);
+
+    const second = boot(storage);
+
+    // `currentSceneId()` is null once everything is complete, so without a
+    // fallback the world would have no room to draw at all.
+    expect(second.view.getState().roomSceneId).toBe("scene-9");
+  });
+
   it("wires the remaining stub and labels it as one", () => {
     const runtime = boot();
 

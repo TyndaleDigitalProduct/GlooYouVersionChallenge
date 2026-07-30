@@ -35,9 +35,8 @@ negotiable, and for what may and may not be fanned out.
 ## Prerequisites
 
 - **[ADR-0004](../decisions/0004-scene-rooms-and-map-authoring.md) accepted.**
-  It is `Proposed` as of this drafting. Do not start against a proposed ADR;
-  its "nine rooms, not one world" decision is the load-bearing one here and
-  every acceptance criterion below assumes it.
+  Accepted by the operator 2026-07-30. Its "nine rooms, not one world" decision
+  is the load-bearing one here and every acceptance criterion below assumes it.
 - [PRD-12](./completed/12_lamplighter_scene_closing.md) merged. This PRD replaces
   its three arithmetic placement rows with authored coordinates, so it needs
   them to exist first.
@@ -195,20 +194,28 @@ the exit case, though not for free walking between rooms mid-scene.
 
 - [ ] Completing a scene through the Lamplighter **opens an exit** rather than
       moving the player. Today `completeScene` fires and the world does not
-      change at all.
+      change at all. The exit is **shut until the Lamplighter closes the scene**
+      (operator, 2026-07-30): the Lamplighter stays the gate, the walk is a
+      confirmation beat, and the existing scene-complete stone award is
+      untouched.
 - [ ] Walking to the exit loads the next scene at its own spawn point.
-- [ ] **The exit is findable.** The map is 1920x1080 and the camera shows
-      960x540, so an exit is off-screen three quarters of the time. It needs a
-      visible marker at the exit itself plus an off-screen indicator, or the
-      player wanders a quarter-visible map looking for a door. Treat "the player
-      can always tell where the exit is" as the criterion, not any particular
-      widget. See open question 1 on whether the Lamplighter's lantern is the
-      right vocabulary for this, given it already means something else.
+- [ ] **The exit is findable, and what marks it is the Lamplighter itself.**
+      On scene close the Lamplighter **walks to the door** and the player
+      follows (operator, 2026-07-30). The map is 1920x1080 and the camera shows
+      960x540, so a static marker would be off-screen three quarters of the
+      time; a moving guide the player is already looking at solves that without
+      overloading the lantern, which already means "this guide has a scored
+      encounter". Treat "the player can always tell where the exit is" as the
+      criterion. The Lamplighter's walk needs the same collision-aware pathing
+      as the player (phase 3), so it cannot cut through a wall on its way.
 - [ ] **Same-backdrop transitions read correctly.** Scenes 3-7 share
       `babylon-palace` and 8-9 share `throne-room`, so for five of the eight
       transitions the player walks out of a door and arrives back on the same
       picture. Walking out of the palace to arrive at the palace is the failure
-      mode. Resolve per open question 2 before building the exit, not after.
+      mode. Resolution (operator, 2026-07-30): **fade out, then fade back in
+      with a caption naming the time change.** The picture repeating is fine
+      once the text has said time passed. Applies to all eight transitions, not
+      just the five same-backdrop ones, so the vocabulary stays consistent.
 - [ ] A chapter map screen shows the nine scenes of Daniel 1 and which are
       unlocked, complete, and current, driven by `revealedRegionIds` and
       `isSceneRevisitable`.
@@ -313,29 +320,17 @@ operator passed on, not an argument for skipping the checks.
 - **Coordinates are hand-authored with a visual review pass.** No editor tool.
   Phase 4, scene 1 first.
 - **Scope is all nine scenes and the full loop.** Not a scene-1 slice.
+- **ADR-0004 accepted.** Prerequisite cleared.
+- **The exit is shut until the Lamplighter closes the scene**, and the
+  Lamplighter marks it by **walking to the door**. The lantern is not reused.
+  Phase 5.
+- **Same-backdrop transitions fade out and fade back in with a caption naming
+  the time change.** Phase 5.
 
 ## Open questions
 
-Blocking. Both were created by the decisions above and neither existed when this
-was drafted. `AGENTS.md` §7 puts them with the operator.
-
-1. **Is the exit open before the scene is complete, and what marks it?** If the
-   door is always open, a player can walk out having engaged nothing, which
-   makes the Lamplighter's three-way exit copy (`all`/`some`/`none`, PRD-12)
-   reachable but also makes the Lamplighter skippable, and something must still
-   award the scene-complete stones. If it opens only once the Lamplighter has
-   closed the scene, the Lamplighter stays the gate and the walk is a
-   confirmation beat. Separately, the exit needs a visual vocabulary, and the
-   obvious candidate is a lantern, which already means "this guide has a scored
-   encounter" (`worldLayout.ts` `LANTERN_*`). Reusing it would overload a symbol
-   the game explicitly teaches.
-2. **What does walking out of the palace into the palace look like?** Five of
-   the eight transitions (3→4, 4→5, 5→6, 6→7, 8→9) share a backdrop with their
-   destination. Options: an interior threshold rather than an exterior gate, so
-   scene 4's exit is the dormitory doorway and scene 5 spawns inside it; a brief
-   fade or time-of-day shift so the same picture reads as later; or accept the
-   repeat. This is the sharp edge of "roam the whole palace" and needs answering
-   before the exit is built, not after.
+Both blocking questions were answered by the operator on 2026-07-30 and are
+recorded in the section above and in the phase 5 criteria. None remain blocking.
 
 Non-blocking. Answers change details; the work can start without them.
 

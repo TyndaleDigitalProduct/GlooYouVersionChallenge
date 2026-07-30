@@ -6,6 +6,7 @@ import {
   currentSceneId,
   isGameComplete,
   isSceneComplete,
+  isSceneRevisitable,
   isSceneUnlocked,
 } from "./progression";
 
@@ -65,6 +66,34 @@ describe("progression rules (three-scene fixture, no Daniel content)", () => {
   it("marks the game complete when the final scene completes, with zero encounters engaged", () => {
     expect(isGameComplete(threeSceneManifest, ["scene-1", "scene-2", "scene-3"])).toBe(true);
     expect(isGameComplete(threeSceneManifest, ["scene-1", "scene-2"])).toBe(false);
+  });
+
+  describe("isSceneRevisitable (PRD-12 scene revisit: storyboard-v2.md open decision 1)", () => {
+    it("agrees with isSceneUnlocked for a scene never yet unlocked", () => {
+      expect(isSceneRevisitable(threeSceneManifest, [], "scene-2")).toBe(false);
+      expect(isSceneUnlocked(threeSceneManifest, [], "scene-2")).toBe(false);
+    });
+
+    it("agrees with isSceneUnlocked for the always-unlocked first scene", () => {
+      expect(isSceneRevisitable(threeSceneManifest, [], "scene-1")).toBe(true);
+    });
+
+    it("stays true for a scene that has since been completed: a completed scene can be re-entered", () => {
+      const completed = ["scene-1"];
+      expect(isSceneComplete(completed, "scene-1")).toBe(true);
+      expect(isSceneRevisitable(threeSceneManifest, completed, "scene-1")).toBe(true);
+    });
+
+    it("stays true even once progression has moved past a scene entirely", () => {
+      const completed = ["scene-1", "scene-2", "scene-3"];
+      expect(currentSceneId(threeSceneManifest, completed)).toBeNull();
+      expect(isSceneRevisitable(threeSceneManifest, completed, "scene-1")).toBe(true);
+      expect(isSceneRevisitable(threeSceneManifest, completed, "scene-2")).toBe(true);
+    });
+
+    it("reports an unknown scene id as not revisitable rather than throwing", () => {
+      expect(isSceneRevisitable(threeSceneManifest, [], "no-such-scene")).toBe(false);
+    });
   });
 
   it("the final scene completing requires no cross-reference encounter", () => {

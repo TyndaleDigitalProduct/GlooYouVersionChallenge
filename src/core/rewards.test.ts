@@ -8,7 +8,12 @@ import {
   SCENE_COMPLETE_STONE_AWARD,
 } from "./ledger";
 import { realManifest } from "./realManifestFixture";
-import { awardAllReferencesBonus, completeSceneWithAward, isSceneFullyResolved } from "./rewards";
+import {
+  awardAllReferencesBonus,
+  completeSceneWithAward,
+  isSceneFullyResolved,
+  lamplighterExitBranch,
+} from "./rewards";
 
 const VALID_CARDS = [
   { id: "c1", text: "Card one", value: 5 },
@@ -164,6 +169,49 @@ describe("all-references bonus (fires when every reference the manifest assigns 
 
     const bonus = awardAllReferencesBonus(realManifest, { encounters, ledger: [] }, "scene-1");
     expect(bonus.awarded).toBe(true);
+  });
+});
+
+describe("lamplighterExitBranch (PRD-12: which of the three exit lines to show)", () => {
+  it("is 'none' when neither of a scene's references has been touched", () => {
+    expect(lamplighterExitBranch(threeSceneManifest, {}, "scene-1")).toBe("none");
+  });
+
+  it("is 'some' when one reference is engaged and the other is untouched", () => {
+    const encounters: EncountersState = { "scene-1::FIX.1.1": { state: "engaged" } };
+    expect(lamplighterExitBranch(threeSceneManifest, encounters, "scene-1")).toBe("some");
+  });
+
+  it("is 'some' when one reference is resolved and the other is untouched, not 'all'", () => {
+    const encounters: EncountersState = resolvedEncounters("scene-1", "FIX.1.1");
+    expect(lamplighterExitBranch(threeSceneManifest, encounters, "scene-1")).toBe("some");
+  });
+
+  it("is 'some' even when every reference is engaged but none is resolved yet", () => {
+    const encounters: EncountersState = {
+      "scene-1::FIX.1.1": { state: "engaged" },
+      "scene-1::FIX.1.2": { state: "engaged" },
+    };
+    expect(lamplighterExitBranch(threeSceneManifest, encounters, "scene-1")).toBe("some");
+  });
+
+  it("is 'all' only once every reference is resolved, matching the all-references bonus condition", () => {
+    const encounters: EncountersState = {
+      ...resolvedEncounters("scene-1", "FIX.1.1"),
+      ...resolvedEncounters("scene-1", "FIX.1.2"),
+    };
+    expect(lamplighterExitBranch(threeSceneManifest, encounters, "scene-1")).toBe("all");
+    expect(isSceneFullyResolved(threeSceneManifest, encounters, "scene-1")).toBe(true);
+  });
+
+  it("is 'none' for a scene the manifest assigns zero cross-references, not 'all'", () => {
+    expect(lamplighterExitBranch(threeSceneManifest, {}, "scene-3")).toBe("none");
+  });
+
+  it("holds against the real manifest and scene 1's actual two references", () => {
+    expect(lamplighterExitBranch(realManifest, {}, "scene-1")).toBe("none");
+    const oneResolved = resolvedEncounters("scene-1", "2KI.24.1-4");
+    expect(lamplighterExitBranch(realManifest, oneResolved, "scene-1")).toBe("some");
   });
 });
 

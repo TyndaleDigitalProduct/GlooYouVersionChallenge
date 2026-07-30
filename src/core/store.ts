@@ -29,19 +29,29 @@ import {
   currentSceneId as currentSceneIdRule,
   isGameComplete as isGameCompleteRule,
   isSceneComplete as isSceneCompleteRule,
+  isSceneRevisitable as isSceneRevisitableRule,
   isSceneUnlocked as isSceneUnlockedRule,
 } from "./progression";
 import type { Result } from "./result";
-import { awardAllReferencesBonus, completeSceneWithAward } from "./rewards";
+import {
+  awardAllReferencesBonus,
+  completeSceneWithAward,
+  type LamplighterExitBranch,
+  lamplighterExitBranch as lamplighterExitBranchRule,
+} from "./rewards";
 import { createFreshState, type GameState } from "./save";
 
 export interface GameStoreState extends GameState {
   isSceneUnlocked(sceneId: string): boolean;
   isSceneComplete(sceneId: string): boolean;
+  /** PRD-12: true for a scene that is unlocked, whether or not it has since completed. */
+  isSceneRevisitable(sceneId: string): boolean;
   currentSceneId(): string | null;
   isGameComplete(): boolean;
   revealedRegionIds(): string[];
   balance(): number;
+  /** PRD-12: which of the Lamplighter's three exit lines to show for a scene. */
+  lamplighterExitBranch(sceneId: string): LamplighterExitBranch;
 
   completeScene(sceneId: string): Result<{ changed: boolean }>;
   engageEncounter(sceneId: string, reference: string): Result<{ changed: boolean }>;
@@ -85,10 +95,14 @@ export function createGameStore(config: CreateGameStoreConfig) {
 
     isSceneUnlocked: (sceneId) => isSceneUnlockedRule(manifest, get().completedSceneIds, sceneId),
     isSceneComplete: (sceneId) => isSceneCompleteRule(get().completedSceneIds, sceneId),
+    isSceneRevisitable: (sceneId) =>
+      isSceneRevisitableRule(manifest, get().completedSceneIds, sceneId),
     currentSceneId: () => currentSceneIdRule(manifest, get().completedSceneIds),
     isGameComplete: () => isGameCompleteRule(manifest, get().completedSceneIds),
     revealedRegionIds: () => revealedRegionIds(manifest, get().completedSceneIds),
     balance: () => balanceFromLedger(get().ledger),
+    lamplighterExitBranch: (sceneId) =>
+      lamplighterExitBranchRule(manifest, get().encounters, sceneId),
 
     completeScene(sceneId) {
       const before = get();

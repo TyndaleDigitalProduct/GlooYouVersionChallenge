@@ -46,10 +46,17 @@ export const FOOT_MARKER_HEIGHT = 14;
 export const FOOT_MARKER_OFFSET_Y = 7;
 
 // The lantern affordance (PRD-08 phase 4, storyboard-v2.md item 9 and §4 step
-// 2): personas carry a lantern, and a lit lantern is the *only* signal
-// telling a touch player a character is interactable, since there is no
-// hover and movement is click-driven. Positioned above and beside the head,
-// clear of the foot marker.
+// 2): personas carry a lantern, meaning "this character has a scored
+// cross-reference encounter for you," since there is no hover and movement is
+// click-driven. PRD-12 places the Lamplighter and every story character/NPC
+// in the world too, and all of those are clickable without carrying a
+// lantern (storyboard-v2.md's scene-01-flow.md sprite table: "Story
+// characters and NPCs carry none"; the opening dialogue says the same thing
+// in-fiction — "a few of them carry lanterns", not all of them). So the
+// lantern no longer means "this character is interactable" in general (every
+// placed character now is); it means "this one has a scripture-card encounter
+// with a read gate and stones," which only a guide has. Positioned above and
+// beside the head, clear of the foot marker.
 export const LANTERN_OFFSET_X = 16;
 export const LANTERN_OFFSET_Y = -46;
 export const LANTERN_RADIUS = 5;
@@ -99,16 +106,44 @@ export interface MarkerPlacement {
   y: number;
 }
 
+/**
+ * Fraction of the region's height each character "row" sits on. PRD-12 adds
+ * two more rows of placed characters (the Lamplighter, and every story
+ * character/NPC) alongside the guides' existing midline, so all three kinds
+ * of character have somewhere to stand without overlapping. The gap between
+ * rows (about a third of the region's height) comfortably clears
+ * `INTERACT_RADIUS` and `CHARACTER_CLICK_RADIUS`, so a click meant for one
+ * row never resolves against a marker in another.
+ */
+export const GUIDE_ROW_FRACTION = 0.5;
+export const LAMPLIGHTER_ROW_FRACTION = 0.22;
+export const CHARACTER_ROW_FRACTION = 0.78;
+
+/**
+ * Spreads a list of references evenly across a horizontal row of a region, at
+ * `yFraction` of the way down it. The shared layout primitive behind every
+ * placed-character row (guides, the Lamplighter, story characters/NPCs):
+ * generic over what the references name, exactly like `resolveClick` and
+ * `nearestMarker` below are generic over what a marker represents.
+ */
+export function markerRowPlacements(
+  region: RegionRect,
+  references: readonly string[],
+  yFraction: number,
+): MarkerPlacement[] {
+  return references.map((reference, index) => ({
+    reference,
+    x: region.x + (region.width * (index + 1)) / (references.length + 1),
+    y: region.y + region.height * yFraction,
+  }));
+}
+
 /** Spreads a scene's guides evenly across the horizontal midline of its region. */
 export function markerPlacements(
   region: RegionRect,
   references: readonly string[],
 ): MarkerPlacement[] {
-  return references.map((reference, index) => ({
-    reference,
-    x: region.x + (region.width * (index + 1)) / (references.length + 1),
-    y: region.centerY,
-  }));
+  return markerRowPlacements(region, references, GUIDE_ROW_FRACTION);
 }
 
 /** Keeps the player fully inside the world. Nothing else constrains movement. */

@@ -15,7 +15,15 @@
 // no scroll at all.
 import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
-import { markerPlacements, regionRects } from "../src/game/worldLayout";
+import { characterIdFor } from "../src/content/loadContent";
+import {
+  CHARACTER_ROW_FRACTION,
+  LAMPLIGHTER_ROW_FRACTION,
+  markerPlacements,
+  markerRowPlacements,
+  regionRects,
+} from "../src/game/worldLayout";
+import { characterReference, lamplighterReference } from "../src/game/worldMarkers";
 
 const VIEW_WIDTH = 960;
 const VIEW_HEIGHT = 540;
@@ -27,6 +35,15 @@ const VIEW_HEIGHT = 540;
 const refsDocument = JSON.parse(
   readFileSync(new URL("../content/daniel-1.refs.json", import.meta.url), "utf-8"),
 ) as { scenes: Array<{ id: number; cross_references: Array<{ ref: string }> }> };
+
+// PRD-12: the Lamplighter and every story character/NPC are placed markers
+// too now, on their own rows (worldLayout.ts's LAMPLIGHTER_ROW_FRACTION /
+// CHARACTER_ROW_FRACTION). This mirrors scene1GuidePositions() below, reading
+// the same content the game itself loads rather than hard-coding a count or
+// an order.
+const dialogueDocument = JSON.parse(
+  readFileSync(new URL("../content/daniel-1.dialogue.json", import.meta.url), "utf-8"),
+) as { scenes: Array<{ id: number; characters: Array<{ speaker: string }> }> };
 
 export interface WorldPoint {
   reference: string;
@@ -44,6 +61,34 @@ export function scene1GuidePositions(): WorldPoint[] {
     region,
     sceneOne.cross_references.map((crossRef) => crossRef.ref),
   );
+}
+
+/** Scene 1's Lamplighter marker position, reachable at scene exit (PRD-12). */
+export function lamplighterPosition(): WorldPoint {
+  const [region] = regionRects(["region-1"]);
+  const [placement] = markerRowPlacements(
+    region,
+    [lamplighterReference("scene-1")],
+    LAMPLIGHTER_ROW_FRACTION,
+  );
+  return placement;
+}
+
+/** One of scene 1's story character/NPC marker positions, looked up by its speaker name. */
+export function scene1CharacterPosition(speaker: string): WorldPoint {
+  const [region] = regionRects(["region-1"]);
+  const sceneOne = dialogueDocument.scenes.find((scene) => scene.id === 1);
+  if (!sceneOne) throw new Error("scene 1 is missing from content/daniel-1.dialogue.json");
+
+  const references = sceneOne.characters.map((character) =>
+    characterReference("scene-1", characterIdFor(character.speaker)),
+  );
+  const placements = markerRowPlacements(region, references, CHARACTER_ROW_FRACTION);
+
+  const index = sceneOne.characters.findIndex((character) => character.speaker === speaker);
+  if (index === -1) throw new Error(`no character named "${speaker}" in scene 1`);
+
+  return placements[index];
 }
 
 /** Clicks a point given in world space by converting it to the canvas's rendered pixel box. */

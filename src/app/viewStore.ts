@@ -47,6 +47,25 @@ export interface ViewState {
   /** Reference of the open encounter panel, or null when nothing is open. */
   openEncounterReference: string | null;
   /**
+   * PRD-12: scene id of an open Lamplighter exit panel, or null. There is no
+   * beat index for it (unlike `dialogueIndex` and `characterBeatIndex`
+   * below): the Lamplighter's exit is a single branch-tagged line
+   * (`SceneContent.lamplighterExit`), not a beat sequence, so the panel
+   * always shows the one line the current encounter state selects.
+   */
+  openLamplighterSceneId: string | null;
+  /**
+   * PRD-12: which story character/NPC dialogue panel is open, or null.
+   * Unlike an encounter, nothing about this is stateful or one-time — the
+   * same character can be opened, closed, and reopened indefinitely, and
+   * `openCharacter` always resets `characterBeatIndex` to 0, so reopening
+   * always replays the lines from the start rather than resuming or doing
+   * nothing.
+   */
+  openCharacterReference: { sceneId: string; characterId: string } | null;
+  /** PRD-12: index into the open character's beats. Reset to 0 on every `openCharacter`. */
+  characterBeatIndex: number;
+  /**
    * The read gate (PRD-08 phase 3, storyboard-v2.md line 21): which Scripture
    * passages have been opened, per encounter. Keyed by the encounter's own
    * reference; the value is every passage reference opened for it (its
@@ -73,6 +92,13 @@ export interface ViewState {
   setNearbyReference(reference: string | null): void;
   openEncounter(reference: string): void;
   closeEncounter(): void;
+  /** PRD-12: opens the Lamplighter's exit panel for a scene. */
+  openLamplighter(sceneId: string): void;
+  closeLamplighter(): void;
+  /** PRD-12: opens (or replays, if already seen) one story character/NPC's lines. */
+  openCharacter(sceneId: string, characterId: string): void;
+  closeCharacter(): void;
+  advanceCharacterDialogue(): void;
   markPassageRead(encounterReference: string, passageReference: string): void;
   pushNotice(notice: Notice): void;
   dismissNotice(id: string): void;
@@ -104,6 +130,9 @@ export function createViewStore() {
     dialogueIndex: 0,
     nearbyReference: null,
     openEncounterReference: null,
+    openLamplighterSceneId: null,
+    openCharacterReference: null,
+    characterBeatIndex: 0,
     readPassages: {},
     notices: [],
     phase: "home",
@@ -135,6 +164,41 @@ export function createViewStore() {
       set((state) =>
         state.openEncounterReference === null ? state : { ...state, openEncounterReference: null },
       );
+    },
+
+    openLamplighter(sceneId) {
+      set((state) =>
+        state.openLamplighterSceneId === sceneId
+          ? state
+          : { ...state, openLamplighterSceneId: sceneId },
+      );
+    },
+
+    closeLamplighter() {
+      set((state) =>
+        state.openLamplighterSceneId === null ? state : { ...state, openLamplighterSceneId: null },
+      );
+    },
+
+    openCharacter(sceneId, characterId) {
+      // Always resets the beat index, even if this exact character is
+      // already open: re-clicking a story character replays its lines
+      // rather than resuming or doing nothing (PRD-12 acceptance criteria).
+      set((state) => ({
+        ...state,
+        openCharacterReference: { sceneId, characterId },
+        characterBeatIndex: 0,
+      }));
+    },
+
+    closeCharacter() {
+      set((state) =>
+        state.openCharacterReference === null ? state : { ...state, openCharacterReference: null },
+      );
+    },
+
+    advanceCharacterDialogue() {
+      set((state) => ({ ...state, characterBeatIndex: state.characterBeatIndex + 1 }));
     },
 
     markPassageRead(encounterReference, passageReference) {
@@ -214,6 +278,27 @@ export function createViewStore() {
 }
 
 export type ViewStoreApi = ReturnType<typeof createViewStore>;
+
+/**
+ * True while any of the three world-driven panels is open: an encounter, the
+ * Lamplighter's exit, or a story character/NPC's lines. PRD-12's WorldScene
+ * uses this as the single guard on new pointer input — extending the
+ * existing "an encounter panel is open" check rather than adding a second,
+ * parallel one per panel kind, the same generalisation this PRD applies to
+ * `resolveClick`/`nearestMarker`.
+ */
+export function isAnyPanelOpen(
+  state: Pick<
+    ViewState,
+    "openEncounterReference" | "openLamplighterSceneId" | "openCharacterReference"
+  >,
+): boolean {
+  return (
+    state.openEncounterReference !== null ||
+    state.openLamplighterSceneId !== null ||
+    state.openCharacterReference !== null
+  );
+}
 
 /** True once a given passage has been opened for a given encounter. */
 export function hasReadPassage(

@@ -20,6 +20,38 @@ export function isSceneUnlocked(
   return isSceneComplete(completedSceneIds, previousScene.id);
 }
 
+/**
+ * True once a scene has ever been unlocked — including a scene that has
+ * since been completed. `isSceneUnlocked` already never turns false once
+ * true (unlocking has no expiry: it depends only on the *previous* scene
+ * being complete, never on whether this scene is still "current"), so this
+ * is an alias, not a new rule.
+ *
+ * It exists under its own name for PRD-12 (storyboard-v2.md open decision 1:
+ * "scene revisit"). Before this PRD, nothing in the game ever asked whether a
+ * *completed* scene could still be interacted with, because nothing placed a
+ * walk-to-able, clickable character in one — `currentSceneId` picking the
+ * first incomplete scene only ever affected what a single global dialogue
+ * sequence displayed, never what the world would let you click. PRD-12
+ * places the Lamplighter and every story character/NPC as markers in the
+ * world instead, and those must stay walk-to-able and clickable after their
+ * scene completes — otherwise leaving one cross-reference encounter unengaged
+ * loses it permanently, which the operator rejected in favour of revisit
+ * (safe by construction: the ledger's deterministic entry ids already block
+ * re-awarding no matter how many times a completed scene is revisited — see
+ * rewards.test.ts and store.test.ts for the proof, not just this comment).
+ * Callers reasoning about "can the player still walk in here and interact
+ * with what's inside" read that intent directly through this name instead of
+ * re-deriving it from "unlocked" every time.
+ */
+export function isSceneRevisitable(
+  manifest: GameManifest,
+  completedSceneIds: readonly string[],
+  sceneId: string,
+): boolean {
+  return isSceneUnlocked(manifest, completedSceneIds, sceneId);
+}
+
 /** The scene the player is currently working on, or null once every scene is complete. */
 export function currentSceneId(
   manifest: GameManifest,

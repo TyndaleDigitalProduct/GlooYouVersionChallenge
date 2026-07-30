@@ -433,6 +433,38 @@ body {
 
 .vv-dialogue {
   max-width: 52rem;
+  display: flex;
+  align-items: stretch;
+  gap: 0.85rem;
+}
+
+/* The Lamplighter's sprite as a speaker portrait, cropped from his 96x256 walk
+   sheet (4 cols x 8 rows of 24x32) to the front idle frame at the top-left.
+   Scaled a whole 3x so the pixels stay crisp (image-rendering), with the sheet
+   sized to match (96x256 * 3 = 288x768) and pinned to 0 0 for that one frame.
+   Only the sheet URL is set inline, from the cast — everything geometric is
+   here. The wood edge and parchment mount make him a framed portrait rather than
+   a sprite floating on the panel, matching .vv-portrait in the encounter panel. */
+.vv-dialogue__portrait {
+  flex: none;
+  align-self: flex-end;
+  width: 72px;
+  height: 96px;
+  margin: 0;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 288px 768px;
+  image-rendering: pixelated;
+  border: 3px solid var(--vv-wood-dark);
+  background-color: var(--vv-parchment);
+  box-shadow: inset 0 0 0 2px var(--vv-gold);
+}
+
+/* Takes the space the portrait leaves, so the header/text/footer keep their
+   old column layout beside him rather than under him. */
+.vv-dialogue__body {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .vv-dialogue__header {

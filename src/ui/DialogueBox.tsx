@@ -71,33 +71,49 @@ export function DialogueBox() {
 
   return (
     <section className="vv-panel vv-dialogue" data-testid="dialogue-box">
-      <header className="vv-dialogue__header">
-        <p className="vv-dialogue__speaker">The Lamplighter</p>
-        <p className="vv-dialogue__setting">
-          {scene.verses} · {scene.setting}
-        </p>
-      </header>
+      {/* The Lamplighter's own sprite, cropped from his walk sheet to the
+          front-facing idle frame (row 0, column 0 — see spriteDirections.ts), so
+          he reads as leaning in to speak. No painted bust exists for him yet
+          (blocked art, PRD-13 out-of-scope), and an ex_* stand-in would be a
+          different character's face; his real sprite is the honest choice. The
+          crop and scale live in CSS; only the sheet URL is dynamic, keyed off the
+          cast so a tone swap cannot leave it pointing at the wrong file. */}
+      <figure
+        className="vv-dialogue__portrait"
+        data-testid="lamplighter-portrait"
+        aria-hidden="true"
+        style={{ backgroundImage: `url(assets/sprites/${runtime.cast.lamplighterSpriteKey}.png)` }}
+      />
 
-      {runtime.content.dialogueStatus === "placeholder" && (
-        <p className="vv-placeholder-tag">Placeholder copy, not authored dialogue</p>
-      )}
-      <p className="vv-dialogue__text" data-testid="dialogue-text">
-        {substituteName(beat.text, playerName)}
-      </p>
+      <div className="vv-dialogue__body">
+        <header className="vv-dialogue__header">
+          <p className="vv-dialogue__speaker">The Lamplighter</p>
+          <p className="vv-dialogue__setting">
+            {scene.verses} · {scene.setting}
+          </p>
+        </header>
 
-      <footer className="vv-dialogue__footer">
-        <p className="vv-dialogue__progress">
-          Beat {dialogueIndex + 1} of {openingBeats.length}
+        {runtime.content.dialogueStatus === "placeholder" && (
+          <p className="vv-placeholder-tag">Placeholder copy, not authored dialogue</p>
+        )}
+        <p className="vv-dialogue__text" data-testid="dialogue-text">
+          {substituteName(beat.text, playerName)}
         </p>
-        <button
-          type="button"
-          className="vv-button"
-          data-testid="dialogue-advance"
-          onClick={() => runtime.view.getState().advanceDialogue()}
-        >
-          {isLastBeat ? "Into the streets" : "Continue"}
-        </button>
-      </footer>
+
+        <footer className="vv-dialogue__footer">
+          <p className="vv-dialogue__progress">
+            Beat {dialogueIndex + 1} of {openingBeats.length}
+          </p>
+          <button
+            type="button"
+            className="vv-button"
+            data-testid="dialogue-advance"
+            onClick={() => runtime.view.getState().advanceDialogue()}
+          >
+            {isLastBeat ? "Into the streets" : "Continue"}
+          </button>
+        </footer>
+      </div>
     </section>
   );
 }

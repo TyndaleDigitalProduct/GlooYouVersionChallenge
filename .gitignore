@@ -36,3 +36,4 @@ test-results/
 # ─── OS cruft ────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+.vercel

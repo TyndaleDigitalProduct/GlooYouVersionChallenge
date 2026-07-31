@@ -19,6 +19,8 @@
     "validate:scene": "vitest run tests/validateScene.test.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.18",
+    "ai": "^7.0.43",
     "phaser": "4.2.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -37,7 +39,7 @@
     "@vitejs/plugin-react": "6.0.4",
     "@vitest/coverage-v8": "4.1.10",
     "jsdom": "27.4.0",
-    "typescript": "7.0.2",
+    "typescript": "5.9.3",
     "vite": "8.0.16",
     "vitest": "4.1.10"
   }

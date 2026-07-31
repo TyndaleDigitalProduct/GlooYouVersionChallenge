@@ -5,6 +5,7 @@ import { ENGAGEMENT_STONE_AWARD } from "@/core/ledger";
 import type { Storage as CoreStorage } from "@/core/storage";
 import { openEncounter } from "./encounterController";
 import { createAppRuntime } from "./runtime";
+import { cardsAreFallback } from "./viewStore";
 
 const KEY = "test:runtime-save";
 
@@ -55,10 +56,10 @@ describe("createAppRuntime", () => {
     expect(runtime.view.getState().notices).toEqual([]);
   });
 
-  it("restores completion, encounters, and balance from a prior session", () => {
+  it("restores completion, encounters, and balance from a prior session", async () => {
     const storage = createInMemoryStorage();
     const first = boot(storage);
-    openEncounter(first, "2KI.24.1-4");
+    await openEncounter(first, "2KI.24.1-4");
     first.store.getState().completeScene("scene-1");
 
     const second = boot(storage);
@@ -109,6 +110,28 @@ describe("createAppRuntime", () => {
     expect(runtime.session.current()).toBeNull();
   });
 
+  it("wires the real card provider by default, not a stub (PRD-09)", () => {
+    const runtime = boot();
+
+    // The browser cannot see the server-only Gloo credential, so it can never
+    // decide whether one is configured: the real, route-calling provider is
+    // always wired, and the route degrades when unconfigured.
+    expect(runtime.cards.isStub).toBe(false);
+  });
+
+  it("degrades a no-credential generation to a playable, honestly-labelled fallback", async () => {
+    const runtime = boot();
+
+    // With no server answering the route, the real provider resolves to
+    // unavailable and the controller degrades to the reviewed fallback rather
+    // than throwing or leaving the encounter unplayable.
+    await openEncounter(runtime, "2KI.24.1-4");
+
+    const record = runtime.store.getState().encounters["scene-1::2KI.24.1-4"];
+    expect(record?.cards).toHaveLength(6);
+    expect(cardsAreFallback(runtime.view.getState(), "2KI.24.1-4")).toBe(true);
+  });
+
   it("wires the real Scripture provider, not a stub, since PRD-08 phase 2", async () => {
     const runtime = boot();
 
@@ -137,19 +160,19 @@ describe("encounter controller", () => {
     runtime = boot();
   });
 
-  it("engages the encounter and awards the engagement stone once", () => {
-    openEncounter(runtime, "2KI.24.1-4");
+  it("engages the encounter and awards the engagement stone once", async () => {
+    await openEncounter(runtime, "2KI.24.1-4");
     expect(runtime.store.getState().balance()).toBe(ENGAGEMENT_STONE_AWARD);
 
     runtime.view.getState().closeEncounter();
-    openEncounter(runtime, "2KI.24.1-4");
+    await openEncounter(runtime, "2KI.24.1-4");
 
     expect(runtime.store.getState().balance()).toBe(ENGAGEMENT_STONE_AWARD);
     expect(runtime.view.getState().openEncounterReference).toBe("2KI.24.1-4");
   });
 
-  it("notices, rather than throws, when a reference is not loaded content", () => {
-    openEncounter(runtime, "GEN.1.1");
+  it("notices, rather than throws, when a reference is not loaded content", async () => {
+    await openEncounter(runtime, "GEN.1.1");
 
     expect(runtime.view.getState().openEncounterReference).toBeNull();
     expect(runtime.view.getState().notices).toEqual([
@@ -157,8 +180,8 @@ describe("encounter controller", () => {
     ]);
   });
 
-  it("leaves progression untouched: engaging never unlocks a scene", () => {
-    openEncounter(runtime, "2KI.24.1-4");
+  it("leaves progression untouched: engaging never unlocks a scene", async () => {
+    await openEncounter(runtime, "2KI.24.1-4");
 
     expect(runtime.store.getState().isSceneComplete("scene-1")).toBe(false);
     expect(runtime.store.getState().isSceneUnlocked("scene-2")).toBe(false);

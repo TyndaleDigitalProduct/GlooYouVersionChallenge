@@ -8,6 +8,7 @@
   "files": {
     "includes": [
       "src/**",
+      "api/**",
       "tests/**",
       "e2e/**",
       "*.ts",

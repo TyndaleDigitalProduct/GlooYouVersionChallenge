@@ -28,5 +28,8 @@ export function openWorldInteraction(runtime: AppRuntime, reference: string): vo
     return;
   }
 
-  openEncounter(runtime, reference);
+  // Fire-and-forget: opening the panel and awarding the engagement stone are
+  // synchronous inside `openEncounter`; only the card generation is async, and
+  // a world click has nothing to wait on it for.
+  void openEncounter(runtime, reference);
 }

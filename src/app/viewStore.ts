@@ -117,6 +117,15 @@ export interface ViewState {
    * costing nothing if it resets.
    */
   readPassages: Record<string, readonly string[]>;
+  /**
+   * PRD-09: references whose insight cards came from the reviewed fallback set
+   * rather than a live Gloo generation — because no credential is configured
+   * (the stub provider) or a live generation degraded to unavailable. The
+   * encounter panel reads this so the UI never pretends fallback cards are
+   * model output. It is session state, not persisted: provenance is not part
+   * of the save format, and a reload with no credential re-marks it anyway.
+   */
+  fallbackCardReferences: readonly string[];
   notices: Notice[];
 
   /** PRD-11: which full-screen flow is showing. Starts at "home" always. */
@@ -158,6 +167,8 @@ export interface ViewState {
   closeCharacter(): void;
   advanceCharacterDialogue(): void;
   markPassageRead(encounterReference: string, passageReference: string): void;
+  /** PRD-09: records that an encounter's cards are the reviewed fallback, not model output. */
+  markCardsFromFallback(reference: string): void;
   pushNotice(notice: Notice): void;
   dismissNotice(id: string): void;
 
@@ -213,6 +224,7 @@ export function createViewStore() {
     openCharacterReference: null,
     characterBeatIndex: 0,
     readPassages: {},
+    fallbackCardReferences: [],
     notices: [],
     phase: "home",
     newGameConfirmOpen: false,
@@ -295,6 +307,14 @@ export function createViewStore() {
           },
         };
       });
+    },
+
+    markCardsFromFallback(reference) {
+      set((state) =>
+        state.fallbackCardReferences.includes(reference)
+          ? state
+          : { ...state, fallbackCardReferences: [...state.fallbackCardReferences, reference] },
+      );
     },
 
     pushNotice(notice) {
@@ -484,6 +504,18 @@ export function isWorldInputBlocked(
   >,
 ): boolean {
   return isAnyPanelOpen(state) || state.sceneTransition !== null || state.chapterMapOpen;
+}
+
+/**
+ * PRD-09: true when an encounter's cards are the reviewed fallback set rather
+ * than a live Gloo generation, so the panel can say the cards are not model
+ * output.
+ */
+export function cardsAreFallback(
+  state: Pick<ViewState, "fallbackCardReferences">,
+  reference: string,
+): boolean {
+  return state.fallbackCardReferences.includes(reference);
 }
 
 /** True once a given passage has been opened for a given encounter. */

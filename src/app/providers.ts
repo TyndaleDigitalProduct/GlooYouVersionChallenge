@@ -17,6 +17,7 @@
 // Every stub carries `isStub: true` so the UI can label itself honestly. That
 // flag is not decoration: an AI guide that looks real but is not would be a
 // worse failure in this product than a visibly missing one.
+import type { EncounterCard } from "@/core/encounters";
 import type { Result } from "@/core/result";
 import { err } from "@/core/result";
 import type { YouVersionSession } from "@/core/save";
@@ -58,4 +59,55 @@ export function createStubSessionProvider(): SessionProvider {
     signIn: () => Promise.resolve(err("youversion-sign-in-not-implemented")),
     signOut: () => undefined,
   };
+}
+
+// --- Insight card generation (PRD-09) -------------------------------------
+// The card-generation seam. ADR-0003 makes a cross-reference encounter's six
+// insight cards runtime output of Gloo, grounded in the curated note; PRD-09
+// is the integration that produces them. This interface is the boundary the
+// rest of the app sees, so the real Gloo-backed implementation
+// (./cardProvider.ts, calling the /api route) and the reviewed-fallback stub
+// are interchangeable without a signature change — the same discipline the
+// Scripture seam above follows.
+//
+// There is no separate verdict seam: ADR-0003 rejected the free-text verdict
+// mechanic outright, so PRD-04's `VerdictProvider` stub is gone rather than
+// implemented, and this is the one seam the Gloo credential is spent on.
+
+/**
+ * The authority material a generation is grounded in, posted to the route as
+ * the encounter's identity plus its Daniel passage, its cross-referenced
+ * passage, and its curated note. The note is the authority (ADR-0003): the
+ * model distributes a human-written claim across the cards and never decides
+ * what is true of Scripture, so nothing here lets it override the note.
+ */
+export interface CardGenerationRequest {
+  /** The cross-reference's USFM reference, e.g. "2KI.24.1-4". */
+  reference: string;
+  /** The Daniel verse this reference illuminates, e.g. "DAN.1.1". */
+  anchor: string;
+  /** Biblical section / guide persona grouping, e.g. "OT History". */
+  section: string;
+  /** The curated plain-language note — the authority for the correct cards. */
+  note: string;
+  /** The Daniel passage text, when the Scripture provider had it. */
+  danielPassage?: string;
+  /** The cross-referenced passage text, when the Scripture provider had it. */
+  crossReferencePassage?: string;
+}
+
+/**
+ * The client↔route contract, a discriminated union mirroring `PassageResult`:
+ * a degraded generation is a value the caller handles, never an exception it
+ * catches. `generated` cards have already passed `validateCardSet`; on
+ * `unavailable` the caller degrades to the reviewed fallback set and the UI
+ * says so.
+ */
+export type CardSetResult =
+  | { status: "generated"; reference: string; cards: readonly EncounterCard[] }
+  | { status: "unavailable"; reference: string; reason: string };
+
+export interface CardProvider {
+  readonly isStub: boolean;
+  generateCards(request: CardGenerationRequest): Promise<CardSetResult>;
 }

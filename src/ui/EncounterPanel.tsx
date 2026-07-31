@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { PassageResult } from "@/app/providers";
 import type { AppRuntime } from "@/app/runtime";
-import { hasReadBothPassages, hasReadPassage } from "@/app/viewStore";
+import { cardsAreFallback, hasReadBothPassages, hasReadPassage } from "@/app/viewStore";
 import { fallbackCardSetFor } from "@/content/cardSets";
 import { guideArtFor } from "@/content/cast";
 import { findCrossReferenceContent } from "@/content/loadContent";
@@ -29,6 +29,10 @@ function EncounterPanelBody({ reference }: { reference: string }) {
 
   const record = useGameState((store) => encounterRecord(store.encounters, sceneId, reference));
   const bothRead = useViewState((state) => hasReadBothPassages(state, reference, anchor));
+  // PRD-09: when the cards are the reviewed fallback (no Gloo credential, or a
+  // live generation degraded), the panel says so rather than presenting them
+  // as model output.
+  const isFallback = useViewState((state) => cardsAreFallback(state, reference));
 
   const [selections, setSelections] = useState<string[]>([]);
   // A missing portrait degrades to a panel without one, never to a broken
@@ -120,13 +124,20 @@ function EncounterPanelBody({ reference }: { reference: string }) {
             </div>
 
             {record.cards ? (
-              <InsightCardGrid
-                cards={record.cards}
-                unlocked={bothRead}
-                selections={selections}
-                onToggle={toggleSelection}
-                onLock={lockIn}
-              />
+              <>
+                {isFallback ? (
+                  <p className="vv-placeholder-tag" data-testid="cards-fallback-notice">
+                    These insight cards are a reviewed fallback set, not generated live.
+                  </p>
+                ) : null}
+                <InsightCardGrid
+                  cards={record.cards}
+                  unlocked={bothRead}
+                  selections={selections}
+                  onToggle={toggleSelection}
+                  onLock={lockIn}
+                />
+              </>
             ) : null}
 
             <p className="vv-encounter__state" data-testid="encounter-state">

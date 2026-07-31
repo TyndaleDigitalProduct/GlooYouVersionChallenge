@@ -38,8 +38,10 @@ import rawCardsDocument from "../../content/daniel-1.cards.json";
 import rawDialogueDocument from "../../content/daniel-1.dialogue.json";
 import rawRefsDocument from "../../content/daniel-1.refs.json";
 import { createBrowserStorage, SAVE_KEY } from "./browserStorage";
+import { createCardProvider } from "./cardProvider";
 import { attachPersistence } from "./persistence";
 import {
+  type CardProvider,
   createStubSessionProvider,
   type ScriptureProvider,
   type SessionProvider,
@@ -59,6 +61,8 @@ export interface AppRuntime {
   cardSets: CardSets;
   scripture: ScriptureProvider;
   session: SessionProvider;
+  /** The card-generation seam (PRD-09): real Gloo route, or the fallback stub. */
+  cards: CardProvider;
 }
 
 export interface CreateAppRuntimeOptions {
@@ -73,6 +77,7 @@ export interface CreateAppRuntimeOptions {
   saveKey?: string;
   scripture?: ScriptureProvider;
   session?: SessionProvider;
+  cards?: CardProvider;
 }
 
 export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<AppRuntime> {
@@ -90,6 +95,13 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     saveKey = SAVE_KEY,
     scripture = createScriptureProvider(),
     session = createStubSessionProvider(),
+    // The real, Gloo-backed provider is the honest default: the browser cannot
+    // see the server-only Gloo credential (AGENTS.md §6), so it can never
+    // decide whether one is configured — it always calls the route, and the
+    // route returns unavailable when it is not. That degradation is the same
+    // one a Gloo outage takes, and the encounter controller turns it into the
+    // reviewed fallback. A test that wants determinism injects the stub.
+    cards = createCardProvider(),
   } = options;
 
   const content = buildGameContent(refsDocument, dialogueDocument);
@@ -155,5 +167,6 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     cardSets: cardSets.value,
     scripture,
     session,
+    cards,
   });
 }

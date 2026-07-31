@@ -6,27 +6,38 @@
 // verdict) with card-selection encounters (engaged -> resolved by generating
 // six cards and locking up to three selections). This module used to also
 // export `requestVerdict` for the old mechanic; the selection-locking half of
-// the replacement is the card UI's job (PRD-08 phase 3). Card *generation*
-// happens here, at open time, against the reviewed fallback sets in
-// content/daniel-1.cards.json — there is no Gloo call anywhere in this path
-// (that is PRD-09).
+// the replacement is the card UI's job (PRD-08 phase 3).
+//
+// Card *generation* is PRD-09: it no longer reads the fallback content
+// directly but asks the CardProvider seam, which is either the real Gloo-backed
+// implementation (the /api route) or the reviewed-fallback stub. A generated
+// set is persisted; an unavailable one degrades to the reviewed fallback for
+// that reference and is marked so the UI does not pretend it is model output.
+// Either way the set is written once per encounter per save via
+// `generateEncounterCards` and never regenerated.
 import { fallbackCardSetFor } from "@/content/cardSets";
 import { findCrossReferenceContent } from "@/content/loadContent";
+import { encounterRecord } from "@/core/encounters";
+import type { CardGenerationRequest } from "./providers";
 import type { AppRuntime } from "./runtime";
 
 /**
  * Opens an encounter panel, engages the encounter, and generates its card set
- * from the fallback content if one exists and none has been generated yet.
+ * through the CardProvider if none has been generated yet.
  *
- * Engagement is idempotent in src/core, so re-opening an already-engaged
- * encounter awards nothing further. Card generation is idempotent too, for
- * the same reason phase 1 built it that way: `generateEncounterCards`
- * rejects a second generation for an encounter that already has cards rather
- * than overwriting it, so calling this on every open is exactly what stops a
- * reload from re-rolling an easier set — the rejection is expected and
- * silent, not a failure to surface.
+ * The panel opens and the engagement stone is awarded synchronously, before
+ * the (possibly networked) generation resolves: an encounter with no cards yet
+ * is a legal, fully playable state — the read gate has to be cleared first
+ * anyway — so the player never waits on Gloo to see the passages. Card
+ * generation then completes in the returned promise, which is what a test
+ * awaits.
+ *
+ * Both engagement and generation are idempotent in src/core, so re-opening an
+ * already-engaged encounter awards nothing further and never re-rolls its
+ * cards: this function skips the provider entirely once a set is persisted,
+ * which also means a re-open spends no Gloo call.
  */
-export function openEncounter(runtime: AppRuntime, reference: string): void {
+export async function openEncounter(runtime: AppRuntime, reference: string): Promise<void> {
   const crossRef = findCrossReferenceContent(runtime.content, reference);
   if (!crossRef) {
     runtime.view.getState().pushNotice({
@@ -47,19 +58,76 @@ export function openEncounter(runtime: AppRuntime, reference: string): void {
     return;
   }
 
-  const fallback = fallbackCardSetFor(runtime.cardSets, reference);
-  if (fallback) {
-    const generation = runtime.store
-      .getState()
-      .generateEncounterCards(crossRef.sceneId, reference, fallback.cards);
-    if (!generation.ok && generation.reason !== "cards-already-generated") {
-      runtime.view.getState().pushNotice({
-        id: `encounter-cards-rejected-${reference}`,
-        tone: "error",
-        message: `The insight cards for this encounter could not be prepared (${generation.reason}).`,
-      });
-    }
+  // Open the panel immediately; the cards fill in when generation resolves.
+  runtime.view.getState().openEncounter(reference);
+
+  // Cards are written once per encounter per save. If this encounter already
+  // has a persisted set (a revisit, or a resumed save), there is nothing to
+  // generate and no Gloo call to spend.
+  const existing = encounterRecord(
+    runtime.store.getState().encounters,
+    crossRef.sceneId,
+    reference,
+  );
+  if (existing.cards) return;
+
+  await generateAndPersistCards(runtime, reference, crossRef.sceneId, crossRef.anchor, {
+    reference,
+    anchor: crossRef.anchor,
+    section: crossRef.section,
+    note: crossRef.note,
+  });
+}
+
+/**
+ * Asks the provider for a set, degrading to the reviewed fallback on
+ * unavailable, and persists whichever it gets. Split out so the async tail
+ * reads as one step and `openEncounter`'s synchronous half stays legible.
+ */
+async function generateAndPersistCards(
+  runtime: AppRuntime,
+  reference: string,
+  sceneId: string,
+  anchor: string,
+  request: CardGenerationRequest,
+): Promise<void> {
+  // Carry the passage text as authority when the Scripture provider has it;
+  // an unavailable passage simply travels as its reference (the route names it
+  // in the prompt), never as a thrown error.
+  const [danielPassage, crossReferencePassage] = await Promise.all([
+    runtime.scripture.getPassage(anchor),
+    runtime.scripture.getPassage(reference),
+  ]);
+  const generation = await runtime.cards.generateCards({
+    ...request,
+    danielPassage: danielPassage.status === "available" ? danielPassage.text : undefined,
+    crossReferencePassage:
+      crossReferencePassage.status === "available" ? crossReferencePassage.text : undefined,
+  });
+
+  // A stub provider always serves fallback content; a real provider that
+  // reports unavailable degrades to it here. Either way the cards are not
+  // model output and must be marked as such.
+  const isFallback = runtime.cards.isStub || generation.status === "unavailable";
+  const cards =
+    generation.status === "generated"
+      ? generation.cards
+      : fallbackCardSetFor(runtime.cardSets, reference)?.cards;
+
+  // No generated set and no reviewed fallback for this reference: the panel
+  // stays open and playable with no card grid, which is a legal state, rather
+  // than surfacing an error for content that simply does not exist yet.
+  if (!cards) return;
+
+  const persisted = runtime.store.getState().generateEncounterCards(sceneId, reference, cards);
+  if (!persisted.ok && persisted.reason !== "cards-already-generated") {
+    runtime.view.getState().pushNotice({
+      id: `encounter-cards-rejected-${reference}`,
+      tone: "error",
+      message: `The insight cards for this encounter could not be prepared (${persisted.reason}).`,
+    });
+    return;
   }
 
-  runtime.view.getState().openEncounter(reference);
+  if (isFallback) runtime.view.getState().markCardsFromFallback(reference);
 }

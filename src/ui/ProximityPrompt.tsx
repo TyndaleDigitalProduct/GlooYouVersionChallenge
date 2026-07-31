@@ -35,7 +35,9 @@ export function ProximityPrompt() {
       type="button"
       className="vv-button vv-prompt"
       data-testid="proximity-prompt"
-      onClick={() => openEncounter(runtime, nearbyReference)}
+      onClick={() => {
+        void openEncounter(runtime, nearbyReference);
+      }}
     >
       Speak with the {crossRef.section} guide about {crossRef.reference}
     </button>

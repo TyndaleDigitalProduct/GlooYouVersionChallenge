@@ -26,8 +26,9 @@ Supersedes PRD-09 workstream B, unchanged in substance.
   `@youversion/usfm-references` (ADR-0002, "Scripture text"). No client is
   hand-rolled.
 - **One seam to agree before either side writes it:** [PRD-08](./08_playable_demo.md)
-  phase 3 owns the read gate, and highlight-on-read below is triggered by it.
-  Capture belongs here, the trigger comes from there.
+  phase 3 builds the Scripture card the "Highlight verse" button sits on. The button
+  is this PRD's; the card is theirs. Agree where it sits and what reference it
+  carries.
 - One shared surface to expect conflicts in if this runs alongside
   [PRD-09](./09_gloo_card_generation.md): `runtime.ts`, the single composition
   point. Both PRDs add a real provider there; neither touches the other's.
@@ -57,8 +58,8 @@ first, the Gloo generation route, is [PRD-09](./09_gloo_card_generation.md).
 as the `X-YVP-App-Key` header, and it is safe in the browser bundle — it is the one
 credential `AGENTS.md` §6 permits there. Sign-in is OAuth 2.0 with PKCE and **no
 client secret**, so there is no server-side secret to guard for the sign-in flow
-itself. What is *not* settled is where any refresh token lives; that is the open
-security question below, not an implementation detail to decide in passing.
+itself. The refresh token stays in the browser and never leaves the device (see
+Decisions below); it is never written to the save blob and never sent to a server.
 
 **Sign-in.** OAuth 2.0 with PKCE. The real `SessionProvider` replaces
 `createStubSessionProvider`: `signIn()` runs the PKCE flow through the platform
@@ -81,8 +82,9 @@ no session parameter and that must not change. Sync is the opt-in layer on top:
 after consent, local highlights are written to the player's YouVersion account
 through the Platform API, and signing in mid-game pushes everything already
 accumulated rather than only capturing from that point forward. A sync failure is
-recoverable and never loses the local highlight. Highlight-on-read is triggered by
-the PRD-08 phase 3 read gate; capture lives here, the trigger comes from there.
+recoverable and never loses the local highlight. Capture is triggered by the
+player tapping the "Highlight verse" button on the Scripture card, not by the read
+gate; the button lives here, the card it sits on is PRD-08 phase 3.
 
 **The seams.** Two real providers land in `runtime.ts` alongside the Gloo one:
 `SessionProvider` (real, replacing the stub) and `ScriptureProvider` (swapped from
@@ -126,18 +128,19 @@ flag is honest. This is the same degradation an outage or a signed-out player ta
 - [ ] Highlights are recorded **locally always**. YouVersion opt-in controls sync,
       not capture. `highlights.ts` takes no session parameter by design and that
       must not change.
-- [ ] Every reference read in a Scripture card gets a highlight, per
-      `storyboard-v2.md` item 7 and §4 step 7. **Depends on PRD-08 phase 3**, which
-      builds the Scripture card and its read gate; that gate is what defines "read".
-      Capture belongs here, the trigger comes from there, so agree the seam before
-      either side writes it.
-- [ ] **Blocked on a decision: the highlight colour scheme.** Open decision 3 in
-      `storyboard-v2.md`. `highlights.ts` stores one colour per reference and
-      `DAN.1.1` is the anchor for both Scene 1 encounters, so with no decision the
-      anchor flips colour depending on which encounter the player opens first.
-      PRD-08 declares this out of scope, so it lands here by default. One game
-      colour is the cheap answer; anchor-versus-cross-reference needs the
-      one-colour-per-reference model revisited. See Notes.
+- [ ] Each reference in a Scripture card has a **"Highlight verse" button** the
+      player taps to record the highlight. Highlighting is a deliberate player
+      action, not an automatic consequence of reading, revising `storyboard-v2.md`
+      item 7 and §4 step 7 accordingly. **Depends on PRD-08 phase 3** only for the
+      Scripture card the button lives on, not for its read gate: the trigger is the
+      button, so the "read" definition no longer gates capture. Agree the seam
+      (where the button sits on the card, what reference it carries) before either
+      side writes it.
+- [ ] **Highlight colour is the YouVersion default yellow.** One game colour for
+      every highlight. This resolves open decision 3 in `storyboard-v2.md`:
+      `highlights.ts` keeps its one-colour-per-reference model unchanged, and the
+      shared anchor `DAN.1.1` is yellow in both Scene 1 encounters regardless of
+      order. See Notes.
 - [ ] Signing in mid-game syncs the highlights already accumulated locally, rather
       than only capturing from that point on. Sync writes to the account through the
       Platform API.
@@ -145,10 +148,10 @@ flag is honest. This is the same degradation an outage or a signed-out player ta
       happens if they decline, and does not present declining as a lesser path.
 - [ ] A sync failure is recoverable and never loses the local highlight.
 - [ ] The `app_key` is the only credential in the browser bundle, per
-      `AGENTS.md` §6. **Where a refresh token lives is an open security question,
-      not an implementation detail.** PRD-03 deliberately declined to decide it and
-      flagged that it may warrant its own ADR. Do not quietly put one in the save
-      blob. Stop and ask.
+      `AGENTS.md` §6. The refresh token **stays in the browser and never leaves the
+      device** (see Decisions): never in the save blob, never sent to a server. PRD-03
+      flagged this may warrant its own ADR; that ADR, if written, records this
+      decision rather than reopens it.
 
 Note that the optional sign-in *offer* on the home screen belongs to
 [PRD-11](./11_home_screen_and_intro.md), because that is the surface it appears on.
@@ -186,23 +189,27 @@ document, `item n` is a row of the "What changed from v1" table in
 `storyboard-v2.md`, and `line n` is a line reference. Note that the table items and
 the §4 flow steps are separately numbered and both go up to 7, so say which.
 
-Two things to surface rather than decide, per `AGENTS.md` §7. Both block acceptance
-criteria above, so neither can wait until implementation:
+### Decisions
 
-1. **The highlight colour scheme.** Open decision 3 in `storyboard-v2.md`. PRD-08
-   declares it out of scope, so it arrives here whether or not this PRD wants it.
-   One colour unblocks the work immediately; two changes the reference-to-colour
-   model in `highlights.ts`.
-2. **Refresh token storage.** This is a security decision the operator owns and it
-   may need an ADR before code lands. PRD-03 declined it once already, so it has
-   been open across three PRDs now. PKCE removes the client secret but not this
-   question: where a refresh token lives (`localStorage`, `sessionStorage`, memory,
-   or the token-exchange route holding it server-side) is exactly what is undecided.
+Two questions that earlier drafts left open, per `AGENTS.md` §7, are now decided by
+the operator. Both blocked acceptance criteria above, so they are recorded here
+rather than left to implementation:
+
+1. **Highlight colour: the YouVersion default yellow, one colour for every
+   highlight.** This closes open decision 3 in `storyboard-v2.md`. It keeps the
+   existing one-colour-per-reference model in `highlights.ts` unchanged, so the
+   shared anchor `DAN.1.1` is yellow in both Scene 1 encounters no matter which the
+   player opens first.
+2. **Refresh token storage: in the browser, never leaves the device.** The token is
+   held client-side and is never written to the save blob and never sent to a
+   server. PRD-03 declined this once and flagged it might need an ADR; if that ADR
+   is written it records this decision, it does not reopen it. PKCE already removes
+   the client secret, so there is no server-side sign-in secret either.
 
 On ordering: this is the largest risk in the project and the least understood, so
 starting it late is how it ends up cut. Its dependency on PRD-08 phase 3 covers
-only highlight-on-read; sign-in, consent, sync, and live Scripture text can all be
-built before phase 3 exists.
+only the Scripture card the "Highlight verse" button sits on; sign-in, consent,
+sync, and live Scripture text can all be built before phase 3 exists.
 
 On cutting: if this PRD is cut entirely, local highlights still work, because
 capture never depends on sign-in, and Scripture still renders from the bundled WEB

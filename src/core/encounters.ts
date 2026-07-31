@@ -8,9 +8,9 @@
 // terminal state is named "resolved" rather than "insight-recognised" (the
 // old name described a mechanic ADR-0003 deleted); migrateV2ToV3 in save.ts
 // maps the old string onto this one.
-import { INSIGHT_STONE_AWARD_MAX, INSIGHT_STONE_AWARD_MIN } from "./ledger";
-import { findCrossReference, type GameManifest } from "./manifest";
-import { err, ok, type Result } from "./result";
+import { INSIGHT_STONE_AWARD_MAX, INSIGHT_STONE_AWARD_MIN } from "./ledger.js";
+import { findCrossReference, type GameManifest } from "./manifest.js";
+import { err, ok, type Result } from "./result.js";
 
 export type EncounterStateValue = "unvisited" | "engaged" | "resolved";
 

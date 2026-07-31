@@ -6,7 +6,24 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "jsdom",
-      include: ["src/**/*.test.ts", "src/**/*.test.tsx", "tests/**/*.test.ts"],
+      // The suite's baseline is the no-credentials path PRD-10 requires: every
+      // YouVersion-backed seam degraded to its honest stub. Without this, a
+      // real VITE_YOUVERSION_APP_KEY in a developer's own .env.local leaks in
+      // through import.meta.env and fails every spec that asserts that
+      // degradation — green in CI, red on the machine of anyone who has
+      // actually configured sign-in. Specs that want a key inject one
+      // explicitly (`createSessionProvider({ appKey: ... })`).
+      env: { VITE_YOUVERSION_APP_KEY: "" },
+      include: [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "tests/**/*.test.ts",
+        // PRD-10: the second of the two-route server tier (the YouVersion
+        // token exchange) gets a direct handler test, the same as PRD-09's
+        // Gloo route could have but didn't; this is what makes that pattern
+        // actually run under `pnpm test`.
+        "api/**/*.test.ts",
+      ],
       setupFiles: ["./src/testSetup.ts"],
       coverage: {
         provider: "v8",

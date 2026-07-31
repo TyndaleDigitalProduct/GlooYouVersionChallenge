@@ -29,6 +29,7 @@ import {
 import { RAW_BACKDROP_DOCUMENTS, RAW_SCENE_MAP_DOCUMENTS } from "@/content/rawMaps";
 import type { EventBus } from "@/core/eventBus";
 import { eventBus } from "@/core/eventBus";
+import type { Highlights } from "@/core/highlights";
 import { ok, type Result } from "@/core/result";
 import { loadGame } from "@/core/save";
 import type { Storage as CoreStorage } from "@/core/storage";
@@ -39,15 +40,48 @@ import rawDialogueDocument from "../../content/daniel-1.dialogue.json";
 import rawRefsDocument from "../../content/daniel-1.refs.json";
 import { createBrowserStorage, SAVE_KEY } from "./browserStorage";
 import { createCardProvider } from "./cardProvider";
+import { createHighlightSyncProvider } from "./highlightSyncProvider";
 import { attachPersistence } from "./persistence";
-import {
-  type CardProvider,
-  createStubSessionProvider,
-  type ScriptureProvider,
-  type SessionProvider,
+import type {
+  CardProvider,
+  HighlightSyncProvider,
+  ScriptureProvider,
+  SessionProvider,
 } from "./providers";
-import { createScriptureProvider } from "./scriptureProvider";
+import { createDefaultScriptureProvider } from "./scriptureProvider";
+import { createSessionProvider } from "./sessionProvider";
 import { createViewStore, type ViewStoreApi } from "./viewStore";
+
+/**
+ * PRD-10: "sign-in controls sync, not capture" (Design constraint 4) means
+ * signing in mid-game has to push everything already accumulated, not only
+ * capture from that point on. `SessionProvider` itself cannot do that — it
+ * has no reference to the game store — so this wraps the seam at the one
+ * place both exist together: this composition point. `isStub`, `current`,
+ * and `signOut` all pass straight through; only `signIn`'s success path gains
+ * the extra step, and a failed or cancelled sign-in triggers no sync at all.
+ */
+function withHighlightSyncOnSignIn(
+  session: SessionProvider,
+  highlightSync: HighlightSyncProvider,
+  getHighlights: () => Highlights,
+): SessionProvider {
+  return {
+    isStub: session.isStub,
+    current: () => session.current(),
+    signOut: () => session.signOut(),
+    async signIn() {
+      const result = await session.signIn();
+      if (result.ok) {
+        // Fire-and-forget: a sync failure here is exactly what
+        // HighlightSyncProvider already models as a recoverable Result, and
+        // the local highlights it is syncing are unaffected either way.
+        void highlightSync.syncAll(getHighlights());
+      }
+      return result;
+    },
+  };
+}
 
 export interface AppRuntime {
   store: GameStoreApi;
@@ -59,10 +93,14 @@ export interface AppRuntime {
   maps: SceneMaps;
   /** The reviewed fallback card sets (ADR-0003), keyed by reference. */
   cardSets: CardSets;
+  /** PRD-10: real YouVersion fetch, degrading to bundled WEB; see scriptureProvider.ts. */
   scripture: ScriptureProvider;
+  /** PRD-10: real PKCE sign-in, or the stub with no `app_key` configured. */
   session: SessionProvider;
   /** The card-generation seam (PRD-09): real Gloo route, or the fallback stub. */
   cards: CardProvider;
+  /** PRD-10: opt-in sync of local highlights to a signed-in YouVersion account. */
+  highlightSync: HighlightSyncProvider;
 }
 
 export interface CreateAppRuntimeOptions {
@@ -78,6 +116,7 @@ export interface CreateAppRuntimeOptions {
   scripture?: ScriptureProvider;
   session?: SessionProvider;
   cards?: CardProvider;
+  highlightSync?: HighlightSyncProvider;
 }
 
 export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<AppRuntime> {
@@ -93,8 +132,9 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     storage = createBrowserStorage(),
     bus = eventBus,
     saveKey = SAVE_KEY,
-    scripture = createScriptureProvider(),
-    session = createStubSessionProvider(),
+    // PRD-10: the real fetch, degrading to the bundled WEB text with no
+    // app_key configured — see scriptureProvider.ts's createDefaultScriptureProvider.
+    scripture = createDefaultScriptureProvider(),
     // The real, Gloo-backed provider is the honest default: the browser cannot
     // see the server-only Gloo credential (AGENTS.md §6), so it can never
     // decide whether one is configured — it always calls the route, and the
@@ -102,6 +142,12 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     // one a Gloo outage takes, and the encounter controller turns it into the
     // reviewed fallback. A test that wants determinism injects the stub.
     cards = createCardProvider(),
+    // PRD-10: unlike Gloo's credential, `app_key` is a *browser* credential
+    // (AGENTS.md §6), so the browser can and does decide whether one is
+    // configured. With none set, both of these default to their honest
+    // stubs, exactly the no-credentials path ADR-0002 "Consequences" requires.
+    session: rawSession = createSessionProvider(),
+    highlightSync = createHighlightSyncProvider(),
   } = options;
 
   const content = buildGameContent(refsDocument, dialogueDocument);
@@ -140,6 +186,17 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     initialState: loaded.state,
   });
 
+  // PRD-10: signing in mid-game has to push everything already accumulated,
+  // not only capture from that point on. `store` is the first thing above
+  // that both the raw session provider and the highlight-sync seam need
+  // access to at once, which is why the wrap happens here rather than inside
+  // either provider.
+  const session = withHighlightSyncOnSignIn(
+    rawSession,
+    highlightSync,
+    () => store.getState().highlights,
+  );
+
   // PRD-13 phase 5: which room the world draws is explicit view state, so it has
   // to be seeded before Phaser boots. The first unfinished scene on a fresh or
   // resumed save; the last playable scene once the chapter is finished, since
@@ -168,5 +225,6 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     scripture,
     session,
     cards,
+    highlightSync,
   });
 }

@@ -73,4 +73,45 @@ describe("IntroOverlay (PRD-11, storyboard-v2.md §3)", () => {
     await user.click(screen.getByTestId("intro-next"));
     expect(runtime.view.getState().phase).toBe("playing");
   });
+
+  // PRD-10 switched the live path to the NIV, which unlike the public-domain
+  // WEB carries a notice Biblica requires be displayed. The intro is where the
+  // operator placed it, and it covers *all* Scripture the game can render, so
+  // it must not be conditional on which path served a given passage.
+  it("shows the Scripture attribution for every translation the game can render", () => {
+    const runtime = boot();
+    runtime.store.getState().setPlayerName("Ezra");
+
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <IntroOverlay />
+      </RuntimeProvider>,
+    );
+
+    const attribution = screen.getByTestId("intro-scripture-attribution");
+    expect(attribution).toHaveTextContent("New International Version");
+    expect(attribution).toHaveTextContent("Biblica");
+    expect(attribution).toHaveTextContent("World English Bible");
+  });
+
+  it("keeps the attribution on screen for every beat, not just the first", async () => {
+    const user = userEvent.setup();
+    const runtime = boot();
+    runtime.store.getState().setPlayerName("Ezra");
+
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <IntroOverlay />
+      </RuntimeProvider>,
+    );
+
+    let guard = 0;
+    while (screen.getByTestId("intro-next").textContent !== "Start playing" && guard < 20) {
+      await user.click(screen.getByTestId("intro-next"));
+      expect(screen.getByTestId("intro-scripture-attribution")).toBeInTheDocument();
+      guard += 1;
+    }
+
+    expect(screen.getByTestId("intro-scripture-attribution")).toHaveTextContent("Biblica");
+  });
 });

@@ -23,5 +23,12 @@ export default defineConfig({
     url: "http://localhost:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
+    // Pins the run to the no-credentials path these specs were written
+    // against, so a machine that has actually configured sign-in behaves like
+    // CI instead of failing: an empty app key keeps sign-in on the stub the
+    // YouVersion specs assert against, and VV_DEV_API_ROUTES leaves /api/*
+    // unserved (vite-plugin-api-routes.ts) so the routes' clients take their
+    // offline fallbacks rather than making real, billable Gloo calls.
+    env: { VITE_YOUVERSION_APP_KEY: "", VV_DEV_API_ROUTES: "off" },
   },
 });

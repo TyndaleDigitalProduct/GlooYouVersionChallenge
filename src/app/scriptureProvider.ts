@@ -12,11 +12,21 @@
 // the exact range string, but real chapter/verse arithmetic. This also means
 // any sub-range of a bundled passage resolves too, for free.
 //
-// PRD-09 replaces this with a YouVersion fetch behind the same
-// ScriptureProvider signature, so nothing here may change that shape.
+// PRD-10 adds a YouVersion fetch behind the same ScriptureProvider signature
+// (createYouVersionScriptureProvider, createDefaultScriptureProvider,
+// below); createScriptureProvider itself — the bundled WEB implementation —
+// is unchanged, and stays the fallback the live path degrades to.
+import { ApiClient, BibleClient } from "@youversion/platform-core";
+import { USFMRef, USFMRefRange } from "@youversion/usfm-references";
 import { err, ok, type Result } from "@/core/result";
 import rawScriptureDocument from "../../content/daniel-1.scripture.json";
 import type { PassageResult, ScriptureProvider } from "./providers";
+import {
+  type ResolvedBibleVersion,
+  resolvePreferredVersion,
+  type VersionLookupClient,
+} from "./youversionBibleVersion";
+import { getConfiguredYouVersionAppKey } from "./youversionConfig";
 
 export interface ScriptureBundleDocument {
   translation: string;
@@ -104,6 +114,128 @@ export function createScriptureProvider(
         translation: document.translation,
         text: resolved.value,
       });
+    },
+  };
+}
+
+// --- YouVersion-backed ScriptureProvider (PRD-10) --------------------------
+// format=text, X-YVP-App-Key, no hand-rolled HTTP: BibleClient is the
+// official typed client (ADR-0002 "Scripture text"), reading `app_key` off
+// the ApiClient it is constructed with. `@youversion/usfm-references`
+// validates the reference before ever calling the API, the "parsing the USFM
+// references" use ADR-0002 names for that package.
+export const YOUVERSION_SCRIPTURE_UNAVAILABLE_REASON =
+  "The live YouVersion passage is unavailable right now.";
+
+/** The narrow slice of BibleClient this seam calls, so tests can inject a fake. */
+export type BiblePassageLookupClient = Pick<BibleClient, "getPassage">;
+
+function isValidUsfmReference(reference: string): boolean {
+  return USFMRef.parse(reference) !== null || USFMRefRange.parse(reference) !== null;
+}
+
+export interface CreateYouVersionScriptureProviderOptions {
+  appKey: string;
+  bibleClient?: BiblePassageLookupClient & VersionLookupClient;
+  /** Skips version resolution entirely; mainly for tests. */
+  version?: ResolvedBibleVersion;
+}
+
+/**
+ * The real, BibleClient-backed ScriptureProvider. Same async/`unavailable`
+ * shape as the bundled one above, so nothing at the call site changes
+ * (providers.ts's ScriptureProvider interface). Used directly by nothing
+ * outside this module and its tests — `createDefaultScriptureProvider` below
+ * is what runtime.ts actually wires, composing this with the bundled
+ * fallback.
+ */
+export function createYouVersionScriptureProvider(
+  options: CreateYouVersionScriptureProviderOptions,
+): ScriptureProvider {
+  const { appKey, bibleClient = new BibleClient(new ApiClient({ appKey })) } = options;
+
+  let cachedVersion: ResolvedBibleVersion | null = options.version ?? null;
+  let resolving: Promise<ResolvedBibleVersion | null> | null = null;
+
+  async function resolvedVersion(): Promise<ResolvedBibleVersion | null> {
+    if (cachedVersion != null) return cachedVersion;
+    if (!resolving) {
+      resolving = resolvePreferredVersion(bibleClient).then((version) => {
+        cachedVersion = version;
+        return version;
+      });
+    }
+    return resolving;
+  }
+
+  return {
+    isStub: false,
+    async getPassage(reference: string): Promise<PassageResult> {
+      const unavailable: PassageResult = {
+        status: "unavailable",
+        reference,
+        reason: YOUVERSION_SCRIPTURE_UNAVAILABLE_REASON,
+      };
+
+      if (!isValidUsfmReference(reference)) return unavailable;
+
+      const version = await resolvedVersion();
+      if (version == null) return unavailable;
+
+      try {
+        const passage = await bibleClient.getPassage(version.id, reference, "text");
+        if (!passage?.content) return unavailable;
+        return {
+          status: "available",
+          reference,
+          // The name the API published for the version actually fetched, never
+          // a constant: this label was hard-coded to "World English Bible" and
+          // would have mislabelled every live NIV verse.
+          translation: version.title,
+          text: passage.content,
+        };
+      } catch {
+        return unavailable;
+      }
+    },
+  };
+}
+
+export interface CreateDefaultScriptureProviderOptions {
+  appKey?: string;
+  bundled?: ScriptureProvider;
+  youversion?: ScriptureProvider;
+}
+
+/**
+ * What runtime.ts actually wires as `scripture`. With no `app_key`
+ * configured (the no-credentials path PRD-10 requires), this is exactly
+ * `createScriptureProvider()` — the bundled WEB implementation, unwrapped —
+ * so the no-credentials build has zero YouVersion-shaped indirection in its
+ * hot path. With one configured, every passage tries the live fetch first
+ * and falls back to the same bundled WEB text on any `unavailable` outcome.
+ *
+ * The live path reads the NIV (see youversionBibleVersion.ts) while the
+ * bundled path is and must remain public-domain WEB, so a fallback here is a
+ * *visible* translation switch. ADR-0002 "Scripture text" chose WEB on both
+ * paths specifically to avoid that; this is the one place the consequence
+ * lands, and it is the operator's call to record.
+ */
+export function createDefaultScriptureProvider(
+  options: CreateDefaultScriptureProviderOptions = {},
+): ScriptureProvider {
+  const appKey = options.appKey ?? getConfiguredYouVersionAppKey();
+  const bundled = options.bundled ?? createScriptureProvider();
+  if (!appKey) return bundled;
+
+  const youversion = options.youversion ?? createYouVersionScriptureProvider({ appKey });
+
+  return {
+    isStub: false,
+    async getPassage(reference: string): Promise<PassageResult> {
+      const live = await youversion.getPassage(reference);
+      if (live.status === "available") return live;
+      return bundled.getPassage(reference);
     },
   };
 }

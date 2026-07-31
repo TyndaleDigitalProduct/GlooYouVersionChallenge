@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEventBus } from "@/core/eventBus";
 import { createInMemoryStorage } from "@/core/fixtures";
 import { ENGAGEMENT_STONE_AWARD } from "@/core/ledger";
@@ -150,6 +150,78 @@ describe("createAppRuntime", () => {
       status: "unavailable",
       reference: "JHN.3.16",
     });
+  });
+
+  it("wires a highlight sync provider, stubbed by default with no YouVersion credentials (PRD-10)", async () => {
+    const runtime = boot();
+
+    expect(runtime.highlightSync.isStub).toBe(true);
+    await expect(runtime.highlightSync.syncOne("DAN.1.1", "ffeb3b")).resolves.toEqual({
+      ok: true,
+      value: undefined,
+    });
+  });
+
+  it("syncs every locally accumulated highlight once sign-in succeeds, not only new ones (PRD-10)", async () => {
+    const syncAll = vi.fn(async () => ({ ok: true as const, value: { synced: 2 } }));
+    const fakeHighlightSync = {
+      isStub: false,
+      syncAll,
+      syncOne: vi.fn(async () => ({ ok: true as const, value: undefined })),
+    };
+    const fakeSession = {
+      isStub: false,
+      current: () => null,
+      signOut: () => undefined,
+      signIn: vi.fn(async () => ({ ok: true as const, value: { yvpId: "yvp-1" } })),
+    };
+
+    const runtime = boot();
+    // Reconstruct with the fakes injected — boot() above only proves the
+    // default wiring; this proves the sign-in -> sync-all composition itself,
+    // isolated from any real provider.
+    const result = createAppRuntime({
+      storage: createInMemoryStorage(),
+      saveKey: "test:highlight-sync-on-signin",
+      bus: createEventBus(),
+      session: fakeSession,
+      highlightSync: fakeHighlightSync,
+    });
+    if (!result.ok) throw new Error("runtime failed to boot");
+    const wired = result.value;
+
+    wired.store.getState().addHighlight("DAN.1.1", "ffeb3b");
+    wired.store.getState().addHighlight("2KI.24.1-4", "ffeb3b");
+
+    const signInResult = await wired.session.signIn();
+
+    expect(signInResult).toEqual({ ok: true, value: { yvpId: "yvp-1" } });
+    expect(fakeSession.signIn).toHaveBeenCalledTimes(1);
+    expect(syncAll).toHaveBeenCalledWith({ "DAN.1.1": "ffeb3b", "2KI.24.1-4": "ffeb3b" });
+    void runtime;
+  });
+
+  it("does not attempt a highlight sync when sign-in fails", async () => {
+    const syncAll = vi.fn(async () => ({ ok: true as const, value: { synced: 0 } }));
+    const fakeSession = {
+      isStub: false,
+      current: () => null,
+      signOut: () => undefined,
+      signIn: vi.fn(async () => ({ ok: false as const, reason: "sign-in-cancelled" })),
+    };
+
+    const result = createAppRuntime({
+      storage: createInMemoryStorage(),
+      saveKey: "test:highlight-sync-skip-on-failed-signin",
+      bus: createEventBus(),
+      session: fakeSession,
+      highlightSync: { isStub: false, syncAll, syncOne: vi.fn() },
+    });
+    if (!result.ok) throw new Error("runtime failed to boot");
+
+    await result.value.session.signIn();
+
+    expect(syncAll).not.toHaveBeenCalled();
   });
 });
 

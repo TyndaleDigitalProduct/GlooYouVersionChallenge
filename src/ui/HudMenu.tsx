@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
+import { reportSignInFailure, SignInFailureReason } from "./signInFailureReason";
+import { YouVersionProfile, type YouVersionProfileFields } from "./YouVersionProfile";
 
 type SignInStatus = "idle" | "pending" | "failed";
 
@@ -38,14 +40,21 @@ function HudMenuPanel() {
   const runtime = useRuntime();
   const session = useGameState((state) => state.session);
   const [signInStatus, setSignInStatus] = useState<SignInStatus>("idle");
+  const [connectedProfile, setConnectedProfile] = useState<YouVersionProfileFields | null>(null);
+  const [failureReason, setFailureReason] = useState<string | null>(null);
 
   const connect = async () => {
     setSignInStatus("pending");
     const result = await runtime.session.signIn();
     if (result.ok) {
       runtime.store.getState().setSession(result.value.yvpId);
+      setConnectedProfile({
+        displayName: result.value.displayName,
+        avatarUrl: result.value.avatarUrl,
+      });
       setSignInStatus("idle");
     } else {
+      setFailureReason(reportSignInFailure(result.reason));
       setSignInStatus("failed");
     }
   };
@@ -84,11 +93,19 @@ function HudMenuPanel() {
           {session ? (
             <>
               <p data-testid="menu-youversion-status">Connected to YouVersion.</p>
+              <YouVersionProfile
+                profile={connectedProfile}
+                label="Signed in as"
+                testIdPrefix="menu"
+              />
               <button
                 type="button"
                 className="vv-button vv-button--quiet"
                 data-testid="menu-disconnect-youversion"
-                onClick={() => runtime.store.getState().clearSession()}
+                onClick={() => {
+                  runtime.store.getState().clearSession();
+                  setConnectedProfile(null);
+                }}
               >
                 Disconnect
               </button>
@@ -113,9 +130,12 @@ function HudMenuPanel() {
                 Connect YouVersion
               </button>
               {signInStatus === "failed" ? (
-                <p data-testid="menu-signin-message">
-                  Couldn't connect right now. You can try again later — this never blocks play.
-                </p>
+                <>
+                  <p data-testid="menu-signin-message">
+                    Couldn't connect right now. You can try again later — this never blocks play.
+                  </p>
+                  <SignInFailureReason reason={failureReason} />
+                </>
               ) : null}
             </>
           )}

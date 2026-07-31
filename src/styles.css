@@ -1092,6 +1092,32 @@ button.vv-insight-card:disabled {
   margin-top: 1rem;
 }
 
+/* Scripture attribution (PRD-10's NIV switch). Quiet enough not to compete
+   with the beat it sits under, but it is a rights-holder notice, so it is
+   never hidden behind a disclosure and never dimmed past legibility. */
+.vv-intro__attribution {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(90 62 33 / 30%);
+  color: var(--vv-wood);
+  font-size: 0.68em;
+  line-height: 1.45;
+}
+
+.vv-intro__attribution p {
+  margin: 0 0 0.4rem;
+}
+
+.vv-intro__attribution p:last-child {
+  margin-bottom: 0;
+}
+
+.vv-intro__attribution-version {
+  font-family: var(--vv-font-display);
+  letter-spacing: 0.04em;
+  color: var(--vv-ink);
+}
+
 /* --- HUD menu (PRD-11) ----------------------------------------------------- */
 
 .vv-hud-menu {
@@ -1112,6 +1138,67 @@ button.vv-insight-card:disabled {
 
 .vv-hud-menu__youversion p {
   margin: 0 0 0.45rem;
+}
+
+/* --- connected YouVersion account (PRD-10) ---------------------------------
+   The identity row under "Connected to YouVersion", shared by the menu and
+   setup (see YouVersionProfile.tsx).
+
+   The avatar borrows .vv-portrait's framing — wood edge, parchment mount, inset
+   gold ring — because that is already this game's idiom for "a picture of a
+   person", and an unframed photo floating on the parchment read as a web
+   widget dropped into the scene. It does *not* borrow `image-rendering:
+   pixelated`: that treatment exists for 24x24 pixel-art busts scaled by a whole
+   number, and applying it to a photograph off the network only makes it look
+   broken. It is a fixed 32px box with `object-fit: cover`, which is the whole
+   fix for the original bug here: with no rule at all the image painted at
+   YouVersion's own resolution and swamped the panel. */
+.vv-yv-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.45rem;
+  /* Lets the name truncate instead of pushing the row wider than the panel. */
+  min-width: 0;
+}
+
+.vv-yv-profile__avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  /* A non-square avatar fills the frame rather than distorting inside it. */
+  object-fit: cover;
+  border: 2px solid var(--vv-wood-dark);
+  background: var(--vv-parchment);
+  box-shadow: inset 0 0 0 1px var(--vv-gold);
+}
+
+/* Overrides the container's `p` rule above: inside this row the name is one
+   line beside the avatar, not a stacked paragraph. */
+.vv-yv-profile__name {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.9em;
+  line-height: 1.25;
+}
+
+.vv-yv-profile__label {
+  display: block;
+  color: var(--vv-ink-soft);
+  font-size: 0.78em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* A display name is arbitrary user text of any length, so it truncates rather
+   than wrapping the panel out of shape. */
+.vv-yv-profile__value {
+  display: block;
+  overflow: hidden;
+  color: var(--vv-ink);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* --- scene transition (PRD-13 phase 5) ------------------------------------

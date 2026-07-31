@@ -1,9 +1,12 @@
 import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { apiRoutes } from "./vite-plugin-api-routes";
 
 export default defineConfig({
-  plugins: [react()],
+  // apiRoutes is dev-only: it serves the api/ Vercel functions from the Vite
+  // dev server so `pnpm dev` exercises the real routes. See the plugin header.
+  plugins: [react(), apiRoutes()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

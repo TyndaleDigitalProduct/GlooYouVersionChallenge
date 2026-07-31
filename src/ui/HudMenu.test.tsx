@@ -3,9 +3,25 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { createEventBus } from "@/core/eventBus";
 import { createInMemoryStorage } from "@/core/fixtures";
+import { ok } from "@/core/result";
+import type { SessionProvider } from "../app/providers";
 import { createAppRuntime } from "../app/runtime";
 import { HudMenu } from "./HudMenu";
 import { RuntimeProvider } from "./RuntimeContext";
+
+/** A fake real (non-stub) SessionProvider whose signIn() always succeeds, for
+ * exercising the post-connect profile display without a real OAuth round-trip. */
+function fakeConnectedSessionProvider(profile: {
+  displayName?: string;
+  avatarUrl?: string;
+}): SessionProvider {
+  return {
+    isStub: false,
+    current: () => null,
+    signOut: () => undefined,
+    signIn: () => Promise.resolve(ok({ yvpId: "yvp-1", ...profile })),
+  };
+}
 
 function boot() {
   const result = createAppRuntime({
@@ -96,6 +112,25 @@ describe("HudMenu (PRD-11, storyboard-v2.md §3 'behind the HUD menu')", () => {
 
     await user.click(screen.getByTestId("menu-disconnect-youversion"));
     expect(runtime.store.getState().session).toBeNull();
+  });
+
+  it("shows the connected account's name and avatar once sign-in succeeds", async () => {
+    const user = userEvent.setup();
+    const runtime = boot();
+    runtime.session = fakeConnectedSessionProvider({
+      displayName: "Test Player",
+      avatarUrl: "https://example.test/avatar.png",
+    });
+    renderMenu(runtime);
+
+    await user.click(screen.getByTestId("hud-menu-toggle"));
+    await user.click(screen.getByTestId("menu-connect-youversion"));
+
+    expect(await screen.findByTestId("menu-youversion-name")).toHaveTextContent("Test Player");
+    expect(screen.getByTestId("menu-youversion-avatar")).toHaveAttribute(
+      "src",
+      "https://example.test/avatar.png",
+    );
   });
 
   it("Close dismisses the menu without changing phase", async () => {

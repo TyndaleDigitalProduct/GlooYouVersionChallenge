@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { substituteName } from "./nameSubstitution";
 import { useGameState, useRuntime } from "./RuntimeContext";
+import { SCRIPTURE_ATTRIBUTIONS } from "./scriptureAttribution";
 
 interface IntroBeat {
   title: string;
@@ -96,6 +97,19 @@ export function IntroOverlay() {
             {isLast ? "Start playing" : "Next"}
           </button>
         </div>
+
+        {/* Outside the beat, so it is on screen for the whole intro rather
+            than being one beat a player can page past. It covers every
+            translation the game can render, not whichever one happens to be
+            serving at the time — see scriptureAttribution.ts. */}
+        <footer className="vv-intro__attribution" data-testid="intro-scripture-attribution">
+          {SCRIPTURE_ATTRIBUTIONS.map((attribution) => (
+            <p key={attribution.version}>
+              <span className="vv-intro__attribution-version">{attribution.version}</span>{" "}
+              {attribution.notice}
+            </p>
+          ))}
+        </footer>
       </section>
     </div>
   );

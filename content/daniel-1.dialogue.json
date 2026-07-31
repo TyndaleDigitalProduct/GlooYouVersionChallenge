@@ -14,6 +14,9 @@
           "text": "This is where it all begins. See for yourself. I'll hold the light."
         },
         {
+          "scriptureCard": true
+        },
+        {
           "text": "Walk around, talk to people. A few of them carry lanterns; they've been reading this story longer than anyone in the city, and what they know is worth hearing."
         }
       ],
@@ -124,6 +127,9 @@
           "text": "What happened next... well. See for yourself."
         },
         {
+          "scriptureCard": true
+        },
+        {
           "text": "The lantern-carriers in this courtyard have been reading too. If you find yourself asking how this could happen, they've been asking the same question a lot longer."
         }
       ],
@@ -224,6 +230,9 @@
         },
         {
           "text": "So what does an empire want with a crowd of young captives? See for yourself."
+        },
+        {
+          "scriptureCard": true
         },
         {
           "text": "Quite a program, isn't it? The lantern-carriers have been here watching it take shape. If you're wondering what to make of it all, they're the ones to ask."
@@ -328,6 +337,9 @@
           "text": "First, though, there's a line at the registry hall. See what Babylon wants from them before the training even starts."
         },
         {
+          "scriptureCard": true
+        },
+        {
           "text": "Watch the four of them at the front of the line. If you find yourself wondering what's really changing hands with those names, the lantern-carriers have been wondering longer."
         }
       ],
@@ -420,6 +432,9 @@
         },
         {
           "text": "Tonight it's dinner. Smell that? The king's kitchen doesn't do anything halfway. See how the evening goes."
+        },
+        {
+          "scriptureCard": true
         },
         {
           "text": "Keep an eye on Daniel and the official over there. The lantern-carriers are watching the same conversation; ask them what they see in it."
@@ -516,6 +531,9 @@
           "text": "See what Daniel does next."
         },
         {
+          "scriptureCard": true
+        },
+        {
           "text": "The lantern-carriers can take you to other tables like this one: a desert, a palace, and a hungry evening. All three are worth the trip."
         }
       ],
@@ -610,6 +628,9 @@
           "text": "That was dinner. The training itself is another story. See how the three years go."
         },
         {
+          "scriptureCard": true
+        },
+        {
           "text": "Four star students, one question: why these four? Everyone in this library has a theory. The lantern-carriers have theirs; go hear it."
         }
       ],
@@ -699,6 +720,9 @@
         },
         {
           "text": "I'd be nervous too. See how it goes for them."
+        },
+        {
+          "scriptureCard": true
         },
         {
           "text": "Quite a turn: exiles standing at the top of the empire that dragged them here. The lantern-carriers watched the whole audience. Ask them what they saw."
@@ -801,6 +825,9 @@
         },
         {
           "text": "There's one more thing to see in this chapter, and it's worth seeing. Go ahead."
+        },
+        {
+          "scriptureCard": true
         },
         {
           "text": "Ten times. Not a little better. Not competitive. Ten times, against the most celebrated experts the empire has."

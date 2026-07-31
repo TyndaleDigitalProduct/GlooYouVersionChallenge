@@ -152,7 +152,7 @@ describe("buildGameContent", () => {
     const sceneOne = findSceneContent(content, "scene-1");
 
     expect(sceneOne?.lamplighterOpening).toEqual([
-      { speaker: "The Lamplighter", text: "Opening one." },
+      { kind: "line", speaker: "The Lamplighter", text: "Opening one." },
     ]);
     expect(sceneOne?.characters).toEqual([
       { speaker: "A mother", characterId: "a-mother", beats: [{ text: "One line." }] },
@@ -189,6 +189,73 @@ describe("buildGameContent", () => {
     expect(findCharacterDialogue(sceneOne, "A mother")?.beats).toEqual([{ text: "One line." }]);
     expect(findCharacterDialogue(sceneOne, "a-mother")?.speaker).toBe("A mother");
     expect(findCharacterDialogue(sceneOne, "nobody")).toBeUndefined();
+  });
+
+  it("turns a scriptureCard beat into a passage step carrying the scene's own verses", () => {
+    // PRD-14: the card's reference is never authored in the dialogue document.
+    // It is joined from the curated scene's `verses`, so the two files cannot
+    // drift apart about which passage a scene opens with.
+    const dialogue = minimalDialogue({
+      scenes: [
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [
+            { text: "Opening one." },
+            { scriptureCard: true },
+            { text: "Opening two." },
+          ],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+      ],
+    });
+    const content = unwrap(buildGameContent(minimalRefs(), dialogue));
+    const sceneOne = requireScene(content, "scene-1");
+
+    expect(sceneOne.lamplighterOpening).toEqual([
+      { kind: "line", speaker: "The Lamplighter", text: "Opening one." },
+      { kind: "scripture", reference: "DAN.1.1" },
+      { kind: "line", speaker: "The Lamplighter", text: "Opening two." },
+    ]);
+    // The derived flat beats array carries spoken lines only: the card is a
+    // reading step, not a line anyone says.
+    expect(sceneOne.beats).toEqual([
+      { speaker: "The Lamplighter", text: "Opening one." },
+      { speaker: "The Lamplighter", text: "Opening two." },
+    ]);
+  });
+
+  it("rejects an opening beat that is neither a line nor a scripture card", () => {
+    const dialogue = minimalDialogue({
+      scenes: [
+        {
+          id: 1,
+          playable: true,
+          lamplighterOpening: [{ somethingElse: true }],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+        {
+          id: 2,
+          playable: false,
+          lamplighterOpening: [],
+          characters: [],
+          lamplighterExit: undefined,
+        },
+      ],
+    });
+    const result = buildGameContent(minimalRefs(), dialogue);
+
+    expect(result).toMatchObject({ ok: false });
+    expect(result.ok ? "" : result.reason).toContain("dialogue-document-invalid");
   });
 
   it("keeps the curated section and note on each cross-reference", () => {
@@ -448,6 +515,18 @@ describe("the real content files", () => {
     }
   });
 
+  it("give every playable scene exactly one scene passage card in its opening", () => {
+    // PRD-14: every scene-NN.md authors a mandatory [SCRIPTURE CARD: …] inside
+    // the Lamplighter's opening — the scene passage, read before free movement
+    // begins. Like transitionCaption, the schema does not force it (a synthetic
+    // test scene must not have to invent one); this test requires it of the
+    // real files, so it cannot ship missing again.
+    for (const scene of content.scenes.filter((candidate) => candidate.playable)) {
+      const cards = scene.lamplighterOpening.filter((step) => step.kind === "scripture");
+      expect(cards, `scene ${scene.id}`).toEqual([{ kind: "scripture", reference: scene.verses }]);
+    }
+  });
+
   it("give scene 1 its two curated cross-references, with sections", () => {
     const sceneOne = findSceneContent(content, "scene-1");
 
@@ -495,7 +574,9 @@ describe("the real content files", () => {
   it("keeps the derived beats array in exact agreement with the per-speaker fields it was built from", () => {
     for (const scene of content.scenes) {
       const expected = [
-        ...scene.lamplighterOpening,
+        ...scene.lamplighterOpening.flatMap((step) =>
+          step.kind === "line" ? [{ speaker: step.speaker, text: step.text }] : [],
+        ),
         ...scene.characters.flatMap((character) =>
           character.beats.map((beat) => ({ speaker: character.speaker, text: beat.text })),
         ),

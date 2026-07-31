@@ -63,15 +63,23 @@ describe("CharacterDialoguePanel (PRD-12)", () => {
     expect(runtime.store.getState().ledger).toEqual([]);
   });
 
-  it("the Close button dismisses the panel at any point, not only on the last beat", async () => {
-    const user = userEvent.setup();
+  it("has no separate header Close: the beat button is the only exit (PRD-14)", () => {
+    // The persistent top-right Close was removed by operator request: the
+    // bottom-right button (Continue -> Close on the last beat) is the one
+    // exit path, and a mis-click costs at most a couple of short lines.
     const runtime = boot();
     runtime.view.getState().openCharacter("scene-1", "daniel");
     renderPanel(runtime);
 
-    await user.click(screen.getByTestId("character-dialogue-close"));
+    expect(screen.queryByTestId("character-dialogue-close")).not.toBeInTheDocument();
+  });
 
-    expect(screen.queryByTestId("character-dialogue-panel")).not.toBeInTheDocument();
+  it("shows Close immediately for an NPC's single beat", () => {
+    const runtime = boot();
+    runtime.view.getState().openCharacter("scene-1", "a-mother");
+    renderPanel(runtime);
+
+    expect(screen.getByTestId("character-dialogue-advance")).toHaveTextContent("Close");
   });
 
   it("re-opening the same character replays from the first beat rather than resuming or no-oping", async () => {

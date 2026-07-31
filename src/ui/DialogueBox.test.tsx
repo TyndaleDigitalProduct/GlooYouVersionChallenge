@@ -2,7 +2,8 @@
 // PRD-11's {name} substitution. Boots a real runtime (createAppRuntime, in
 // memory storage) rather than a hand-rolled double, following the pattern
 // already established in src/app/runtime.test.ts.
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { createEventBus } from "@/core/eventBus";
 import { createInMemoryStorage } from "@/core/fixtures";
@@ -150,6 +151,96 @@ describe("the Lamplighter portrait", () => {
     );
 
     expect(screen.queryByTestId("lamplighter-portrait")).not.toBeInTheDocument();
+  });
+});
+
+describe("the scene passage card (PRD-14)", () => {
+  function bootReal() {
+    const result = createAppRuntime({
+      storage: createInMemoryStorage(),
+      saveKey: "test:dialogue-passage",
+      bus: createEventBus(),
+    });
+    if (!result.ok) throw new Error(`runtime failed to boot: ${result.reason}`);
+    return result.value;
+  }
+
+  function renderBox(runtime: ReturnType<typeof bootReal>) {
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <DialogueBox />
+      </RuntimeProvider>,
+    );
+  }
+
+  /** Scene 1 authors the card after its second line (docs/notes/authoring/scene-01.md). */
+  function advanceToCard(runtime: ReturnType<typeof bootReal>) {
+    runtime.view.getState().advanceDialogue();
+    runtime.view.getState().advanceDialogue();
+  }
+
+  it("presents the scene passage at its authored position in the opening", () => {
+    const runtime = bootReal();
+    advanceToCard(runtime);
+    renderBox(runtime);
+
+    expect(screen.getByTestId("scene-passage-card")).toHaveTextContent("DAN.1.1");
+  });
+
+  it("keeps the passage behind a deliberate Read action and gates Continue on it", async () => {
+    const runtime = bootReal();
+    advanceToCard(runtime);
+    renderBox(runtime);
+
+    // The same read discipline as the encounter passages: Continue is not
+    // available until the passage has actually been opened.
+    expect(screen.getByTestId("dialogue-advance")).toBeDisabled();
+
+    await userEvent.click(screen.getByTestId("scene-passage-open"));
+
+    expect(await screen.findByTestId("scene-passage-text")).toHaveTextContent(/Jehoiakim/);
+    expect(screen.getByTestId("dialogue-advance")).toBeEnabled();
+  });
+
+  it("counts the card as a step of the opening and continues past it to the next line", async () => {
+    const runtime = bootReal();
+    advanceToCard(runtime);
+    renderBox(runtime);
+
+    expect(screen.getByText("Beat 3 of 4")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("scene-passage-open"));
+    await screen.findByTestId("scene-passage-text");
+    await userEvent.click(screen.getByTestId("dialogue-advance"));
+
+    expect(screen.getByTestId("dialogue-text")).toHaveTextContent("Walk around, talk to people");
+  });
+
+  it("gates the next scene's card even when it lands on the same step index as the last one", async () => {
+    // Scene 1 and scene 2 both author their card after the second line, so
+    // both sit at step index 2. Keying the "opened" state by index alone let
+    // scene 2's card arrive already open, inheriting scene 1's read — the
+    // component stays mounted across the room change, so nothing reset it.
+    const runtime = bootReal();
+    advanceToCard(runtime);
+    renderBox(runtime);
+
+    await userEvent.click(screen.getByTestId("scene-passage-open"));
+    await screen.findByTestId("scene-passage-text");
+    // Finish scene 1's opening, close the scene, and enter scene 2. Wrapped
+    // in act(): these land after the initial render, unlike the store setup
+    // every other test does beforehand.
+    act(() => {
+      runtime.view.getState().advanceDialogue();
+      runtime.view.getState().advanceDialogue();
+      runtime.store.getState().completeScene("scene-1");
+      runtime.view.getState().enterRoom("scene-2");
+      advanceToCard(runtime);
+    });
+
+    expect(screen.getByTestId("scene-passage-card")).toHaveTextContent("DAN.1.2");
+    expect(screen.getByTestId("scene-passage-open")).toBeInTheDocument();
+    expect(screen.getByTestId("dialogue-advance")).toBeDisabled();
   });
 });
 

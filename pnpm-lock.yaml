@@ -11,6 +11,15 @@ importers:
       '@ai-sdk/openai-compatible':
         specifier: ^3.0.18
         version: 3.0.18(zod@4.4.3)
+      '@youversion/platform-core':
+        specifier: 2.4.0
+        version: 2.4.0
+      '@youversion/platform-react-hooks':
+        specifier: 2.4.0
+        version: 2.4.0(react@19.2.8)
+      '@youversion/usfm-references':
+        specifier: 0.2.0
+        version: 0.2.0
       ai:
         specifier: ^7.0.43
         version: 7.0.43(zod@4.4.3)
@@ -479,6 +488,22 @@ packages:
 
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
+
+  '@youversion/platform-core@2.4.0':
+    resolution: {integrity: sha512-2TV7rFxCKbigbnxt4TMcsOX+iQjWAyG2EClGpCqdmgTHAJbS/m454JVjvAINKd2uYxfVVnTHYX1BYyOPiSjfQg==}
+    peerDependencies:
+      linkedom: ^0.18.12
+    peerDependenciesMeta:
+      linkedom:
+        optional: true
+
+  '@youversion/platform-react-hooks@2.4.0':
+    resolution: {integrity: sha512-DNFOxTBtNoeOP6BlwPf7RhmruizSa/oNB9NVKexaNSUpXpFML+X0wjM4US2VLYPa28YQ0i2kdy2AOg6w/y8R+Q==}
+    peerDependencies:
+      react: '>=19.1.0 <20.0.0'
+
+  '@youversion/usfm-references@0.2.0':
+    resolution: {integrity: sha512-0eZHlgDcB6LqvAfHEJ+f65cP+WgIWivT5erR16Juz70tfVk/RVnx5sFOv22Qf8qHirRWA49tYe+4KvDd5Z8BCQ==}
 
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
@@ -1059,6 +1084,9 @@ packages:
   xmlchars@2.2.0:
     resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
 
+  zod@4.1.12:
+    resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
+
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
@@ -1431,6 +1459,19 @@ snapshots:
       tinyrainbow: 3.1.0
 
   '@workflow/serde@4.1.0': {}
+
+  '@youversion/platform-core@2.4.0':
+    dependencies:
+      zod: 4.1.12
+
+  '@youversion/platform-react-hooks@2.4.0(react@19.2.8)':
+    dependencies:
+      '@youversion/platform-core': 2.4.0
+      react: 19.2.8
+    transitivePeerDependencies:
+      - linkedom
+
+  '@youversion/usfm-references@0.2.0': {}
 
   agent-base@7.1.4: {}
 
@@ -1893,6 +1934,8 @@ snapshots:
   xml-name-validator@5.0.0: {}
 
   xmlchars@2.2.0: {}
+
+  zod@4.1.12: {}
 
   zod@4.4.3: {}
 

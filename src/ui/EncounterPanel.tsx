@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { highlightPassage } from "@/app/highlightController";
 import type { PassageResult } from "@/app/providers";
 import type { AppRuntime } from "@/app/runtime";
 import { cardsAreFallback, hasReadBothPassages, hasReadPassage } from "@/app/viewStore";
@@ -171,6 +172,7 @@ function ScripturePassageCard({
   testId: string;
 }) {
   const isRead = useViewState((state) => hasReadPassage(state, encounterReference, reference));
+  const isHighlighted = useGameState((state) => reference in state.highlights);
   const [isOpen, setIsOpen] = useState(false);
   const [passage, setPassage] = useState<PassageResult | null>(null);
 
@@ -202,9 +204,33 @@ function ScripturePassageCard({
         ) : null}
       </div>
       {isOpen ? (
-        <p className="vv-encounter__stub" data-testid={`${testId}-text`}>
-          {passage?.status === "available" ? passage.text : (passage?.reason ?? "Loading passage…")}
-        </p>
+        <>
+          <p className="vv-encounter__stub" data-testid={`${testId}-text`}>
+            {passage?.status === "available"
+              ? passage.text
+              : (passage?.reason ?? "Loading passage…")}
+          </p>
+          {/* PRD-10: a deliberate player action, not an automatic consequence
+              of reading — the read gate above unlocks the card grid; this
+              button is the only thing that ever records a highlight. */}
+          {isHighlighted ? (
+            <span
+              className="vv-scripture-card__highlight-tag"
+              data-testid={`${testId}-highlighted`}
+            >
+              Highlighted
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="vv-button vv-button--quiet"
+              data-testid={`${testId}-highlight`}
+              onClick={() => highlightPassage(runtime, reference)}
+            >
+              Highlight verse
+            </button>
+          )}
+        </>
       ) : (
         <button type="button" className="vv-button" data-testid={`${testId}-open`} onClick={open}>
           Read {label}

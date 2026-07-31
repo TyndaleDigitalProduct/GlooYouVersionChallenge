@@ -18,6 +18,7 @@
 // flag is not decoration: an AI guide that looks real but is not would be a
 // worse failure in this product than a visibly missing one.
 import type { EncounterCard } from "@/core/encounters";
+import type { Highlights } from "@/core/highlights";
 import type { Result } from "@/core/result";
 import { err } from "@/core/result";
 import type { YouVersionSession } from "@/core/save";
@@ -28,7 +29,7 @@ import type { YouVersionSession } from "@/core/save";
 // commits the bundled WEB fallback and replaces the stub that used to live
 // here with the real implementation in ./scriptureProvider.ts. The interface
 // stays here and stays exactly this shape (async, an explicit `unavailable`
-// status) so PRD-09 can swap in a YouVersion fetch without a signature
+// status) so PRD-10 can swap in a YouVersion fetch without a signature
 // change.
 
 export type PassageResult =
@@ -110,4 +111,20 @@ export type CardSetResult =
 export interface CardProvider {
   readonly isStub: boolean;
   generateCards(request: CardGenerationRequest): Promise<CardSetResult>;
+}
+
+// --- Highlight sync (PRD-10) -----------------------------------------------
+// Capture is unconditional and local-only: src/core/highlights.ts takes no
+// session parameter, by design, and that does not change here (Design
+// constraint 4). This seam is the opt-in layer on top of capture, never a
+// replacement for it — by the time either method below is called, the
+// highlight this PRD cares about has already been written locally, so a sync
+// failure is recoverable and never loses it. `syncAll` is what a mid-game
+// sign-in calls, to push everything already accumulated rather than only
+// capturing from that point on; `syncOne` is the common case, a single new
+// "Highlight verse" tap while already signed in.
+export interface HighlightSyncProvider {
+  readonly isStub: boolean;
+  syncAll(highlights: Highlights): Promise<Result<{ synced: number }>>;
+  syncOne(reference: string, color: string): Promise<Result<void>>;
 }

@@ -1,11 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import rawRefsDocument from "../../content/daniel-1.refs.json";
 import {
+  type BiblePassageLookupClient,
+  createDefaultScriptureProvider,
   createScriptureProvider,
+  createYouVersionScriptureProvider,
   parseUsfmReference,
   SCRIPTURE_UNAVAILABLE_REASON,
   type ScriptureBundleDocument,
 } from "./scriptureProvider";
+import type { VersionLookupClient } from "./youversionBibleVersion";
 
 // A small, hand-built fixture bundle so range-resolution edge cases (a gap in
 // the middle of a range, a range that partially overlaps the bundle) can be
@@ -181,5 +185,170 @@ describe("the real bundled provider against the real curated content", () => {
     for (const reference of allReferences) {
       expect(parseUsfmReference(reference)).not.toBeNull();
     }
+  });
+});
+
+function fakePassageClient(
+  overrides: {
+    getVersions?: VersionLookupClient["getVersions"];
+    getPassage?: BiblePassageLookupClient["getPassage"];
+  } = {},
+): BiblePassageLookupClient & VersionLookupClient {
+  return {
+    getVersions:
+      overrides.getVersions ??
+      (async () => ({ data: [{ id: 206, abbreviation: "WEB" }], next_page_token: null }) as never),
+    getPassage:
+      overrides.getPassage ??
+      (async (_versionId, usfm) => ({
+        id: usfm,
+        content: `live text for ${usfm}`,
+        reference: usfm,
+      })),
+  };
+}
+
+describe("createYouVersionScriptureProvider (PRD-10)", () => {
+  it("reports isStub: false", () => {
+    const provider = createYouVersionScriptureProvider({
+      appKey: "test-app-key",
+      bibleClient: fakePassageClient(),
+    });
+    expect(provider.isStub).toBe(false);
+  });
+
+  it("resolves the WEB version id once and fetches format=text passages against it", async () => {
+    const getVersions = vi.fn(async () => ({
+      data: [{ id: 206, abbreviation: "WEB" }],
+      next_page_token: null,
+    })) as unknown as VersionLookupClient["getVersions"];
+    const getPassage = vi.fn(async (versionId: number, usfm: string) => ({
+      id: usfm,
+      content: `text for ${usfm} @ ${versionId}`,
+      reference: usfm,
+    })) as unknown as BiblePassageLookupClient["getPassage"];
+
+    const provider = createYouVersionScriptureProvider({
+      appKey: "test-app-key",
+      bibleClient: fakePassageClient({ getVersions, getPassage }),
+    });
+
+    const first = await provider.getPassage("DAN.1.1");
+    expect(first).toEqual({
+      status: "available",
+      reference: "DAN.1.1",
+      translation: "World English Bible",
+      text: "text for DAN.1.1 @ 206",
+    });
+
+    await provider.getPassage("2KI.24.1-4");
+
+    // Version lookup happens once, not once per passage fetched.
+    expect(getVersions).toHaveBeenCalledTimes(1);
+    expect(getPassage).toHaveBeenNthCalledWith(1, 206, "DAN.1.1", "text");
+    expect(getPassage).toHaveBeenNthCalledWith(2, 206, "2KI.24.1-4", "text");
+  });
+
+  it("returns unavailable, without ever calling the API, for a malformed reference", async () => {
+    const getPassage = vi.fn();
+    const provider = createYouVersionScriptureProvider({
+      appKey: "test-app-key",
+      bibleClient: fakePassageClient({ getPassage: getPassage as never }),
+    });
+
+    const result = await provider.getPassage("not a reference");
+
+    expect(result.status).toBe("unavailable");
+    expect(getPassage).not.toHaveBeenCalled();
+  });
+
+  it("returns unavailable, never throws, when the WEB version cannot be resolved", async () => {
+    const provider = createYouVersionScriptureProvider({
+      appKey: "test-app-key",
+      bibleClient: fakePassageClient({
+        getVersions: async () => ({ data: [], next_page_token: null }) as never,
+      }),
+    });
+
+    await expect(provider.getPassage("DAN.1.1")).resolves.toMatchObject({ status: "unavailable" });
+  });
+
+  it("returns unavailable, never throws, when the API call rejects", async () => {
+    const provider = createYouVersionScriptureProvider({
+      appKey: "test-app-key",
+      bibleClient: fakePassageClient({
+        getPassage: async () => {
+          throw new Error("network down");
+        },
+      }),
+    });
+
+    await expect(provider.getPassage("DAN.1.1")).resolves.toMatchObject({ status: "unavailable" });
+  });
+
+  it("returns unavailable when the passage has no content", async () => {
+    const provider = createYouVersionScriptureProvider({
+      appKey: "test-app-key",
+      bibleClient: fakePassageClient({
+        getPassage: async (_versionId, usfm) => ({ id: usfm, content: "", reference: usfm }),
+      }),
+    });
+
+    await expect(provider.getPassage("DAN.1.1")).resolves.toMatchObject({ status: "unavailable" });
+  });
+});
+
+describe("createDefaultScriptureProvider (PRD-10)", () => {
+  it("with no app key configured, is exactly the bundled provider (the no-credentials path)", async () => {
+    const bundled = createScriptureProvider();
+    const provider = createDefaultScriptureProvider({ appKey: undefined, bundled });
+
+    expect(provider.isStub).toBe(false);
+    await expect(provider.getPassage("DAN.1.1")).resolves.toEqual(
+      await bundled.getPassage("DAN.1.1"),
+    );
+  });
+
+  it("prefers a live YouVersion passage when one is available", async () => {
+    const bundled = createScriptureProvider();
+    const youversion = createYouVersionScriptureProvider({
+      appKey: "test-app-key",
+      bibleClient: fakePassageClient(),
+    });
+
+    const provider = createDefaultScriptureProvider({
+      appKey: "test-app-key",
+      bundled,
+      youversion,
+    });
+
+    const result = await provider.getPassage("DAN.1.1");
+    expect(result).toMatchObject({ status: "available", text: "live text for DAN.1.1" });
+  });
+
+  it("degrades to the bundled WEB text with no visible translation switch when the live fetch is unavailable", async () => {
+    const bundled = createScriptureProvider();
+    const youversion = createYouVersionScriptureProvider({
+      appKey: "test-app-key",
+      bibleClient: fakePassageClient({
+        getPassage: async () => {
+          throw new Error("outage");
+        },
+      }),
+    });
+
+    const provider = createDefaultScriptureProvider({
+      appKey: "test-app-key",
+      bundled,
+      youversion,
+    });
+
+    const [liveDegraded, bundledDirect] = await Promise.all([
+      provider.getPassage("DAN.1.1"),
+      bundled.getPassage("DAN.1.1"),
+    ]);
+
+    expect(liveDegraded).toEqual(bundledDirect);
+    expect(liveDegraded).toMatchObject({ translation: "World English Bible" });
   });
 });

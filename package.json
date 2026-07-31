@@ -20,6 +20,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.18",
+    "@youversion/platform-core": "2.4.0",
+    "@youversion/platform-react-hooks": "2.4.0",
+    "@youversion/usfm-references": "0.2.0",
     "ai": "^7.0.43",
     "phaser": "4.2.1",
     "react": "19.2.8",

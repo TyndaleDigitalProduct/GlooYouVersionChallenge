@@ -6,7 +6,16 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "jsdom",
-      include: ["src/**/*.test.ts", "src/**/*.test.tsx", "tests/**/*.test.ts"],
+      include: [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "tests/**/*.test.ts",
+        // PRD-10: the second of the two-route server tier (the YouVersion
+        // token exchange) gets a direct handler test, the same as PRD-09's
+        // Gloo route could have but didn't; this is what makes that pattern
+        // actually run under `pnpm test`.
+        "api/**/*.test.ts",
+      ],
       setupFiles: ["./src/testSetup.ts"],
       coverage: {
         provider: "v8",

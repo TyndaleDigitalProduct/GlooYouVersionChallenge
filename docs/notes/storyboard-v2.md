@@ -18,7 +18,7 @@ Deadline: **2026-07-31 23:59.**
 | 4 | — | **Reveal beat**: after lock, all six values shown, selected vs unselected distinguished | Turns scoring into teaching; this is where the curated note pays off |
 | 5 | "Generate 6 cards from Gloo AI Studio" | Runtime generation, **grounded in the curated note as authority**, schema-validated, dev fallback set in `content/` | Note-grounding shrinks the model's job from deciding truth to redistributing a human-written claim |
 | 6 | (ADR-0002 specified conversational encounters) | **No free-text input anywhere.** Rejected, not deferred | Doesn't fit the deadline; a half-calibrated verdict model is worse than none |
-| 7 | "Read them both and then pick" | **Read gate** — card UI unlocks only after both Scripture cards are opened | Nothing enforced it, and the YouVersion highlight would otherwise record unread verses |
+| 7 | "Read them both and then pick" | **Read gate** — card UI unlocks only after both Scripture cards are opened | Nothing enforced it. (PRD-10 revises this row's own rationale: the read gate still unlocks the cards, but no longer implies a highlight — see item 10 and §4 step 7) |
 | 8 | Lamplighter leaves the screen | Must be **reachable** at scene exit; exit copy for engaged-all / some / none | As written, the only character who can end the scene was unfindable |
 | 9 | — | **Personas carry a lantern** | Doubles as the interaction affordance, which touch devices need and hover can't provide |
 | 10 | Highlights if user opted in | Recorded **locally always**; YouVersion opt-in controls *sync*, not capture | `highlights.ts` takes no session parameter by design |
@@ -134,8 +134,10 @@ who skips has no route to the rules. Put it behind the HUD menu.
 6. **Scene exit.** Lamplighter asks whether the player is ready to move on.
    Leaving early is allowed — encounters never gate progress. Stones for
    completion, plus the bonus if every reference in the scene was engaged.
-7. **Highlights.** Every reference read in a Scripture card gets a highlight in
-   the game colour, recorded locally, synced to YouVersion if connected.
+7. **Highlights.** Revised by PRD-10: a Scripture card's "Highlight verse"
+   button, tapped deliberately, records a highlight in the game colour —
+   never an automatic consequence of opening the card or clearing the read
+   gate. Recorded locally always; synced to YouVersion if connected.
 
 ## 5. Scene 1 — Daniel 1:1, Jerusalem under siege
 

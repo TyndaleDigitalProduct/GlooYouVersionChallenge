@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { highlightPassage } from "@/app/highlightController";
 import type { PassageResult } from "@/app/providers";
 import type { AppRuntime } from "@/app/runtime";
@@ -7,6 +7,7 @@ import { fallbackCardSetFor } from "@/content/cardSets";
 import { guideArtFor } from "@/content/cast";
 import { findCrossReferenceContent } from "@/content/loadContent";
 import { type EncounterCard, type EncounterRecord, encounterRecord } from "@/core/encounters";
+import { shuffledCards } from "./cardOrder";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
 
 export function EncounterPanel() {
@@ -39,6 +40,17 @@ function EncounterPanelBody({ reference }: { reference: string }) {
   // A missing portrait degrades to a panel without one, never to a broken
   // image icon.
   const [portraitBroken, setPortraitBroken] = useState(false);
+
+  // PRD-14: the deck is dealt in shuffled display order — the stored order is
+  // value-descending, which let a player lock the top three without reading.
+  // Memoised on the cards array (whose reference survives locking) so the
+  // order holds steady from selection through the reveal within one open;
+  // every fresh open of the panel remounts the body (keyed on the reference
+  // above) and deals anew.
+  const displayCards = useMemo(
+    () => (record.cards ? shuffledCards(record.cards) : undefined),
+    [record.cards],
+  );
 
   if (!crossRef) return null;
 
@@ -92,18 +104,10 @@ function EncounterPanelBody({ reference }: { reference: string }) {
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="vv-button vv-button--quiet"
-            data-testid="encounter-close"
-            onClick={() => runtime.view.getState().closeEncounter()}
-          >
-            Close
-          </button>
         </header>
 
         {isResolved ? (
-          <EncounterSummary record={record} note={crossRef.note} />
+          <EncounterSummary record={record} cards={displayCards} note={crossRef.note} />
         ) : (
           <>
             <div className="vv-encounter__passages">
@@ -124,7 +128,7 @@ function EncounterPanelBody({ reference }: { reference: string }) {
               />
             </div>
 
-            {record.cards ? (
+            {displayCards ? (
               <>
                 {isFallback ? (
                   <p className="vv-placeholder-tag" data-testid="cards-fallback-notice">
@@ -132,7 +136,7 @@ function EncounterPanelBody({ reference }: { reference: string }) {
                   </p>
                 ) : null}
                 <InsightCardGrid
-                  cards={record.cards}
+                  cards={displayCards}
                   unlocked={bothRead}
                   selections={selections}
                   onToggle={toggleSelection}
@@ -146,6 +150,22 @@ function EncounterPanelBody({ reference }: { reference: string }) {
             </p>
           </>
         )}
+
+        {/* The one Close (PRD-14, operator request): a footer at the panel's
+            bottom-right, clickable in every state, replacing the persistent
+            top-right button. Quiet during selection so "Lock in your picks"
+            stays the primary action; yellow once resolved, when Close is the
+            only action left. */}
+        <footer className="vv-encounter__footer">
+          <button
+            type="button"
+            className={`vv-button${isResolved ? "" : " vv-button--quiet"}`}
+            data-testid="encounter-close"
+            onClick={() => runtime.view.getState().closeEncounter()}
+          >
+            Close
+          </button>
+        </footer>
       </section>
     </div>
   );
@@ -325,16 +345,25 @@ function InsightCardGrid({
  * at all (`record.cards` absent); that is a legal state (PRD-08 phase 1) and
  * renders as resolved with the curated note only, never a crash.
  */
-function EncounterSummary({ record, note }: { record: EncounterRecord; note: string }) {
+function EncounterSummary({
+  record,
+  cards,
+  note,
+}: {
+  record: EncounterRecord;
+  /** The shuffled display order (PRD-14) — same deck as `record.cards`. */
+  cards: readonly EncounterCard[] | undefined;
+  note: string;
+}) {
   return (
     <div className="vv-encounter__summary" data-testid="encounter-summary">
       <p className="vv-encounter__state" data-testid="encounter-state">
         Resolved
       </p>
 
-      {record.cards ? (
+      {cards ? (
         <ul className="vv-card-grid" data-testid="insight-card-grid">
-          {record.cards.map((card, index) => {
+          {cards.map((card, index) => {
             const selected = (record.selections ?? []).includes(card.id);
             // A high-value card the player did not choose is framed as what
             // else was worth seeing, never as a miss (ADR-0003 "never

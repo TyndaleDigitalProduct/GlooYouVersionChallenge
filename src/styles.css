@@ -653,10 +653,11 @@ body {
   font-style: italic;
 }
 
+/* The panel's one Close (PRD-14), bottom-right in every state. This class
+   predates that button but had no remaining consumer; realigned for it. */
 .vv-encounter__footer {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 0.9rem;
   padding-top: 0.7rem;

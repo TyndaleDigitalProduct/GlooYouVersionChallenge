@@ -144,12 +144,15 @@ test("walkthrough: engage a guide, talk to a story character, close scene 1 thro
   await expect(page.getByTestId("vale-stones-balance")).toHaveText(balanceBeforeTalkingToDaniel);
 
   // Re-clicking replays the lines from the start rather than doing nothing —
-  // nothing about a story character/NPC is stateful or one-time.
+  // nothing about a story character/NPC is stateful or one-time. Stepping
+  // back through the beats is the only exit (PRD-14): the separate header
+  // Close is gone by operator request.
   await clickWorldPoint(page, daniel.x, daniel.y);
   await expect(page.getByTestId("character-dialogue-text")).toContainText(
     "The watchmen say the army stretches",
   );
-  await page.getByTestId("character-dialogue-close").click();
+  await page.getByTestId("character-dialogue-advance").click();
+  await page.getByTestId("character-dialogue-advance").click();
   await expect(page.getByTestId("character-dialogue-panel")).toHaveCount(0);
 
   // The Lamplighter is reachable for the rest of the scene (storyboard-v2.md

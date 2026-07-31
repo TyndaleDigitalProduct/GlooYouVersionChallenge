@@ -1,12 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { openEncounter } from "@/app/encounterController";
 import { type AppRuntime, type CreateAppRuntimeOptions, createAppRuntime } from "@/app/runtime";
+import type { EncounterCard } from "@/core/encounters";
 import { createEventBus } from "@/core/eventBus";
 import { createInMemoryStorage } from "@/core/fixtures";
+import { shuffledCards } from "./cardOrder";
 import { EncounterPanel } from "./EncounterPanel";
 import { RuntimeProvider } from "./RuntimeContext";
+
+const REFERENCE = "2KI.24.1-4";
+const SCENE = "scene-1";
 
 function boot(overrides: CreateAppRuntimeOptions = {}) {
   const result = createAppRuntime({
@@ -19,7 +24,7 @@ function boot(overrides: CreateAppRuntimeOptions = {}) {
   return result.value;
 }
 
-async function renderOpenEncounter(runtime: AppRuntime, reference = "2KI.24.1-4") {
+async function renderOpenEncounter(runtime: AppRuntime, reference = REFERENCE) {
   await openEncounter(runtime, reference);
   render(
     <RuntimeProvider runtime={runtime}>
@@ -27,6 +32,47 @@ async function renderOpenEncounter(runtime: AppRuntime, reference = "2KI.24.1-4"
     </RuntimeProvider>,
   );
 }
+
+function orderedCards(): EncounterCard[] {
+  return [
+    { id: "c1", text: "Five.", value: 5 },
+    { id: "c2", text: "Four.", value: 4 },
+    { id: "c3", text: "Three.", value: 3 },
+    { id: "c4", text: "Zero a.", value: 0 },
+    { id: "c5", text: "Zero b.", value: 0 },
+    { id: "c6", text: "Zero c.", value: 0 },
+  ];
+}
+
+/**
+ * A runtime whose encounter is already engaged with a known, value-descending
+ * card set and opened on the panel — the state the PRD-14 suites assert
+ * against, without going through the passage read gate.
+ */
+function bootWithCards() {
+  const runtime = boot();
+
+  const engaged = runtime.store.getState().engageEncounter(SCENE, REFERENCE);
+  if (!engaged.ok) throw new Error(`engage failed: ${engaged.reason}`);
+  const generated = runtime.store
+    .getState()
+    .generateEncounterCards(SCENE, REFERENCE, orderedCards());
+  if (!generated.ok) throw new Error(`generate failed: ${generated.reason}`);
+  runtime.view.getState().openEncounter(REFERENCE);
+
+  return runtime;
+}
+
+function renderedCardTexts(count: number): string[] {
+  return Array.from({ length: count }, (_, index) => {
+    const card = screen.getByTestId(`insight-card-${index}`);
+    return card.textContent ?? "";
+  });
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("EncounterPanel — the 'Highlight verse' button (PRD-10)", () => {
   it("shows no highlight control until the passage has been opened", async () => {
@@ -110,5 +156,88 @@ describe("EncounterPanel — the 'Highlight verse' button (PRD-10)", () => {
         expect.objectContaining({ tone: "warning" }),
       );
     });
+  });
+});
+
+describe("the insight card display order (PRD-14)", () => {
+  // The authored fallback sets (and the Gloo generation) list cards
+  // value-descending, so rendering them as stored let a player pick the top
+  // three without reading anything — which defeats the encounter.
+  it("deals the grid in shuffled order, not the stored value-descending order", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const runtime = bootWithCards();
+    const expected = shuffledCards(orderedCards(), () => 0).map((card) => card.text);
+
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <EncounterPanel />
+      </RuntimeProvider>,
+    );
+
+    const texts = renderedCardTexts(6);
+    expect(texts.map((text) => text.trim())).toEqual(expected);
+    expect(texts.map((text) => text.trim())).not.toEqual(orderedCards().map((card) => card.text));
+  });
+
+  it("reveals the resolved summary in the same shuffled order, never value-first", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const runtime = bootWithCards();
+    const locked = runtime.store
+      .getState()
+      .lockEncounterSelections(SCENE, REFERENCE, ["c1", "c2", "c3"]);
+    if (!locked.ok) throw new Error(`lock failed: ${locked.reason}`);
+    const expected = shuffledCards(orderedCards(), () => 0).map((card) => card.text);
+
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <EncounterPanel />
+      </RuntimeProvider>,
+    );
+
+    expect(screen.getByTestId("encounter-summary")).toBeInTheDocument();
+    const texts = renderedCardTexts(6);
+    for (const [index, text] of texts.entries()) {
+      expect(text).toContain(expected[index]);
+    }
+  });
+});
+
+describe("the Close button (PRD-14)", () => {
+  // Operator request: no persistent top-right Close. The one Close lives in a
+  // footer at the panel's bottom-right, clickable in every state — quiet
+  // (white) during selection so "Lock in your picks" stays the primary
+  // action, yellow once the encounter is resolved and Close is all there is.
+  it("lives in the footer, quiet during selection, and still closes the panel", async () => {
+    const runtime = bootWithCards();
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <EncounterPanel />
+      </RuntimeProvider>,
+    );
+
+    const close = screen.getByTestId("encounter-close");
+    expect(close.className).toContain("vv-button--quiet");
+    expect(close.closest("footer")).not.toBeNull();
+
+    await userEvent.click(close);
+    expect(screen.queryByTestId("encounter-panel")).not.toBeInTheDocument();
+  });
+
+  it("turns yellow once the encounter is resolved", () => {
+    const runtime = bootWithCards();
+    const locked = runtime.store
+      .getState()
+      .lockEncounterSelections(SCENE, REFERENCE, ["c1", "c2", "c3"]);
+    if (!locked.ok) throw new Error(`lock failed: ${locked.reason}`);
+
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <EncounterPanel />
+      </RuntimeProvider>,
+    );
+
+    const close = screen.getByTestId("encounter-close");
+    expect(close.className).not.toContain("vv-button--quiet");
+    expect(close.closest("footer")).not.toBeNull();
   });
 });

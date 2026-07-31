@@ -63,18 +63,14 @@ function CharacterDialoguePanelBody({
         aria-label={character.speaker}
         data-testid="character-dialogue-panel"
       >
+        {/* No separate header Close (PRD-14, operator request): the footer
+            button below (Continue -> Close on the last beat) is the only
+            exit. A mis-click costs at most a couple of short lines, and
+            re-clicking a character replays from the start anyway. */}
         <header className="vv-dialogue__header">
           <p className="vv-dialogue__speaker" data-testid="character-dialogue-speaker">
             {character.speaker}
           </p>
-          <button
-            type="button"
-            className="vv-button vv-button--quiet"
-            data-testid="character-dialogue-close"
-            onClick={() => runtime.view.getState().closeCharacter()}
-          >
-            Close
-          </button>
         </header>
 
         <p className="vv-dialogue__text" data-testid="character-dialogue-text">

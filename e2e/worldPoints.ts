@@ -171,7 +171,7 @@ async function playerIsWithin(page: Page, worldX: number, worldY: number): Promi
 async function aPanelIsOpen(page: Page): Promise<boolean> {
   const count = await page
     .locator(
-      "[data-testid='encounter-panel'], [data-testid='lamplighter-panel'], [data-testid='character-dialogue-panel']",
+      "[data-testid='encounter-panel'], [data-testid='guide-stage'], [data-testid='lamplighter-panel'], [data-testid='character-dialogue-panel']",
     )
     .count();
   return count > 0;

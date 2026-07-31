@@ -1,5 +1,6 @@
-// PRD-09 / AGENTS.md §6: the Gloo API key, base URL, and model id are
-// server-side only and must never reach the browser bundle. This test proves
+// PRD-09 / AGENTS.md §6: the Gloo OAuth2 client credentials, base URL, and
+// model id are server-side only and must never reach the browser bundle. This
+// test proves
 // the boundary by construction — it walks every client source file Vite
 // bundles and asserts none of them so much as name the Gloo environment
 // variables or import the Gloo SDK — and, when a build has produced dist/, it
@@ -10,7 +11,13 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /** The Gloo credential material. None of this may appear in bundled client code. */
-const FORBIDDEN_TOKENS = ["GLOO_API_KEY", "GLOO_BASE_URL", "GLOO_MODEL_ID", "process.env.GLOO"];
+const FORBIDDEN_TOKENS = [
+  "GLOO_CLIENT_ID",
+  "GLOO_CLIENT_SECRET",
+  "GLOO_BASE_URL",
+  "GLOO_MODEL_ID",
+  "process.env.GLOO",
+];
 
 /** The Gloo SDK. It runs only inside the server route, never in the bundle. */
 const FORBIDDEN_IMPORTS = [/from\s+["']@ai-sdk\/openai-compatible["']/, /from\s+["']ai["']/];
@@ -63,9 +70,10 @@ describe("the Gloo credential boundary (AGENTS.md §6)", () => {
 
   it("keeps the credential read on the server side, inside the /api route", () => {
     const route = readFileSync(join(process.cwd(), "api", "generate-cards.ts"), "utf8");
-    // The one place the key is read, confirming the boundary has a server side
-    // and the test above is not passing because nothing reads the key at all.
-    expect(route.includes("process.env.GLOO_API_KEY")).toBe(true);
+    // The one place the credential is read, confirming the boundary has a
+    // server side and the test above is not passing because nothing reads the
+    // credential at all.
+    expect(route.includes("process.env.GLOO_CLIENT_SECRET")).toBe(true);
   });
 
   it("has no Gloo credential in the built bundle, when dist/ has been produced", () => {

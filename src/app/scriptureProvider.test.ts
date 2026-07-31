@@ -199,7 +199,14 @@ function fakePassageClient(
       overrides.getVersions ??
       (async () =>
         ({
-          data: [{ id: 206, abbreviation: "engWEBUS", localized_abbreviation: "WEBUS" }],
+          data: [
+            {
+              id: 111,
+              abbreviation: "NIV11",
+              localized_abbreviation: "NIV",
+              localized_title: "New International Version",
+            },
+          ],
           next_page_token: null,
         }) as never),
     getPassage:
@@ -221,9 +228,16 @@ describe("createYouVersionScriptureProvider (PRD-10)", () => {
     expect(provider.isStub).toBe(false);
   });
 
-  it("resolves the WEB version id once and fetches format=text passages against it", async () => {
+  it("resolves the NIV version once and fetches format=text passages against it", async () => {
     const getVersions = vi.fn(async () => ({
-      data: [{ id: 206, abbreviation: "engWEBUS", localized_abbreviation: "WEBUS" }],
+      data: [
+        {
+          id: 111,
+          abbreviation: "NIV11",
+          localized_abbreviation: "NIV",
+          localized_title: "New International Version",
+        },
+      ],
       next_page_token: null,
     })) as unknown as VersionLookupClient["getVersions"];
     const getPassage = vi.fn(async (versionId: number, usfm: string) => ({
@@ -238,19 +252,21 @@ describe("createYouVersionScriptureProvider (PRD-10)", () => {
     });
 
     const first = await provider.getPassage("DAN.1.1");
+    // The translation label is the name the API published for the version
+    // actually fetched, not a constant the module carries.
     expect(first).toEqual({
       status: "available",
       reference: "DAN.1.1",
-      translation: "World English Bible",
-      text: "text for DAN.1.1 @ 206",
+      translation: "New International Version",
+      text: "text for DAN.1.1 @ 111",
     });
 
     await provider.getPassage("2KI.24.1-4");
 
     // Version lookup happens once, not once per passage fetched.
     expect(getVersions).toHaveBeenCalledTimes(1);
-    expect(getPassage).toHaveBeenNthCalledWith(1, 206, "DAN.1.1", "text");
-    expect(getPassage).toHaveBeenNthCalledWith(2, 206, "2KI.24.1-4", "text");
+    expect(getPassage).toHaveBeenNthCalledWith(1, 111, "DAN.1.1", "text");
+    expect(getPassage).toHaveBeenNthCalledWith(2, 111, "2KI.24.1-4", "text");
   });
 
   it("returns unavailable, without ever calling the API, for a malformed reference", async () => {
@@ -330,7 +346,13 @@ describe("createDefaultScriptureProvider (PRD-10)", () => {
     expect(result).toMatchObject({ status: "available", text: "live text for DAN.1.1" });
   });
 
-  it("degrades to the bundled WEB text with no visible translation switch when the live fetch is unavailable", async () => {
+  // ADR-0002 "Scripture text" chose WEB on both paths so this degrade was
+  // invisible. The live path now reads the NIV, and the bundled path cannot
+  // legally be anything but public-domain WEB, so the degrade is a visible
+  // translation switch. That is pinned here rather than left implicit: the
+  // fallback must still be complete and correct, it is simply no longer
+  // silent.
+  it("degrades to the bundled WEB text when the live fetch is unavailable, a now-visible translation switch", async () => {
     const bundled = createScriptureProvider();
     const youversion = createYouVersionScriptureProvider({
       appKey: "test-app-key",
@@ -354,5 +376,13 @@ describe("createDefaultScriptureProvider (PRD-10)", () => {
 
     expect(liveDegraded).toEqual(bundledDirect);
     expect(liveDegraded).toMatchObject({ translation: "World English Bible" });
+
+    // The other half of the switch: a live passage is labelled NIV, so the two
+    // paths no longer agree on the translation the player is reading.
+    const live = await createYouVersionScriptureProvider({
+      appKey: "test-app-key",
+      bibleClient: fakePassageClient(),
+    }).getPassage("DAN.1.1");
+    expect(live).toMatchObject({ translation: "New International Version" });
   });
 });

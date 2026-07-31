@@ -21,7 +21,11 @@ import { USFMRef, USFMRefRange } from "@youversion/usfm-references";
 import { err, ok, type Result } from "@/core/result";
 import rawScriptureDocument from "../../content/daniel-1.scripture.json";
 import type { PassageResult, ScriptureProvider } from "./providers";
-import { resolveWebVersionId, type VersionLookupClient } from "./youversionBibleVersion";
+import {
+  type ResolvedBibleVersion,
+  resolvePreferredVersion,
+  type VersionLookupClient,
+} from "./youversionBibleVersion";
 import { getConfiguredYouVersionAppKey } from "./youversionConfig";
 
 export interface ScriptureBundleDocument {
@@ -134,7 +138,7 @@ export interface CreateYouVersionScriptureProviderOptions {
   appKey: string;
   bibleClient?: BiblePassageLookupClient & VersionLookupClient;
   /** Skips version resolution entirely; mainly for tests. */
-  versionId?: number;
+  version?: ResolvedBibleVersion;
 }
 
 /**
@@ -150,15 +154,15 @@ export function createYouVersionScriptureProvider(
 ): ScriptureProvider {
   const { appKey, bibleClient = new BibleClient(new ApiClient({ appKey })) } = options;
 
-  let cachedVersionId: number | null = options.versionId ?? null;
-  let resolving: Promise<number | null> | null = null;
+  let cachedVersion: ResolvedBibleVersion | null = options.version ?? null;
+  let resolving: Promise<ResolvedBibleVersion | null> | null = null;
 
-  async function resolvedVersionId(): Promise<number | null> {
-    if (cachedVersionId != null) return cachedVersionId;
+  async function resolvedVersion(): Promise<ResolvedBibleVersion | null> {
+    if (cachedVersion != null) return cachedVersion;
     if (!resolving) {
-      resolving = resolveWebVersionId(bibleClient).then((id) => {
-        cachedVersionId = id;
-        return id;
+      resolving = resolvePreferredVersion(bibleClient).then((version) => {
+        cachedVersion = version;
+        return version;
       });
     }
     return resolving;
@@ -175,16 +179,19 @@ export function createYouVersionScriptureProvider(
 
       if (!isValidUsfmReference(reference)) return unavailable;
 
-      const versionId = await resolvedVersionId();
-      if (versionId == null) return unavailable;
+      const version = await resolvedVersion();
+      if (version == null) return unavailable;
 
       try {
-        const passage = await bibleClient.getPassage(versionId, reference, "text");
+        const passage = await bibleClient.getPassage(version.id, reference, "text");
         if (!passage?.content) return unavailable;
         return {
           status: "available",
           reference,
-          translation: "World English Bible",
+          // The name the API published for the version actually fetched, never
+          // a constant: this label was hard-coded to "World English Bible" and
+          // would have mislabelled every live NIV verse.
+          translation: version.title,
           text: passage.content,
         };
       } catch {
@@ -207,8 +214,12 @@ export interface CreateDefaultScriptureProviderOptions {
  * so the no-credentials build has zero YouVersion-shaped indirection in its
  * hot path. With one configured, every passage tries the live fetch first
  * and falls back to the same bundled WEB text on any `unavailable` outcome.
- * Both paths default to WEB, so the fallback is invisible as a translation
- * switch (ADR-0002 "Scripture text").
+ *
+ * The live path reads the NIV (see youversionBibleVersion.ts) while the
+ * bundled path is and must remain public-domain WEB, so a fallback here is a
+ * *visible* translation switch. ADR-0002 "Scripture text" chose WEB on both
+ * paths specifically to avoid that; this is the one place the consequence
+ * lands, and it is the operator's call to record.
  */
 export function createDefaultScriptureProvider(
   options: CreateDefaultScriptureProviderOptions = {},

@@ -1092,6 +1092,32 @@ button.vv-insight-card:disabled {
   margin-top: 1rem;
 }
 
+/* Scripture attribution (PRD-10's NIV switch). Quiet enough not to compete
+   with the beat it sits under, but it is a rights-holder notice, so it is
+   never hidden behind a disclosure and never dimmed past legibility. */
+.vv-intro__attribution {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(90 62 33 / 30%);
+  color: var(--vv-wood);
+  font-size: 0.68em;
+  line-height: 1.45;
+}
+
+.vv-intro__attribution p {
+  margin: 0 0 0.4rem;
+}
+
+.vv-intro__attribution p:last-child {
+  margin-bottom: 0;
+}
+
+.vv-intro__attribution-version {
+  font-family: var(--vv-font-display);
+  letter-spacing: 0.04em;
+  color: var(--vv-ink);
+}
+
 /* --- HUD menu (PRD-11) ----------------------------------------------------- */
 
 .vv-hud-menu {

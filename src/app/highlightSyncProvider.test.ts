@@ -26,11 +26,20 @@ function fakeHighlightsClient(
   };
 }
 
-function fakeVersionLookupClient(id: number | null = 206): VersionLookupClient & {
+function fakeVersionLookupClient(id: number | null = 111): VersionLookupClient & {
   getVersions: ReturnType<typeof vi.fn>;
 } {
   const versions =
-    id == null ? [] : [{ id, abbreviation: "engWEBUS", localized_abbreviation: "WEBUS" }];
+    id == null
+      ? []
+      : [
+          {
+            id,
+            abbreviation: "NIV11",
+            localized_abbreviation: "NIV",
+            localized_title: "New International Version",
+          },
+        ];
   return {
     getVersions: vi.fn(async () => ({ data: versions, next_page_token: null })),
   } as unknown as VersionLookupClient & { getVersions: ReturnType<typeof vi.fn> };
@@ -69,13 +78,13 @@ describe("createHighlightSyncProvider (PRD-10)", () => {
     expect(result).toEqual({ ok: false, reason: "not-signed-in" });
   });
 
-  it("pushes one highlight through HighlightsClient using the resolved WEB version id and the stored access token", async () => {
+  it("pushes one highlight through HighlightsClient using the resolved NIV version id and the stored access token", async () => {
     const storage = signedInStorage("token-abc");
     const highlightsClient = fakeHighlightsClient();
     const provider = createHighlightSyncProvider({
       appKey: "test-app-key",
       storage,
-      versionLookupClient: fakeVersionLookupClient(206),
+      versionLookupClient: fakeVersionLookupClient(111),
       highlightsClient,
     });
 
@@ -83,14 +92,14 @@ describe("createHighlightSyncProvider (PRD-10)", () => {
 
     expect(result).toEqual({ ok: true, value: undefined });
     expect(highlightsClient.createHighlight).toHaveBeenCalledWith(
-      { version_id: 206, passage_id: "DAN.1.1", color: "ffeb3b" },
+      { version_id: 111, passage_id: "DAN.1.1", color: "ffeb3b" },
       "token-abc",
     );
   });
 
   it("caches the resolved version id across calls rather than looking it up every time", async () => {
     const storage = signedInStorage();
-    const versionLookupClient = fakeVersionLookupClient(206);
+    const versionLookupClient = fakeVersionLookupClient(111);
     const provider = createHighlightSyncProvider({
       appKey: "test-app-key",
       storage,
@@ -110,7 +119,7 @@ describe("createHighlightSyncProvider (PRD-10)", () => {
     const provider = createHighlightSyncProvider({
       appKey: "test-app-key",
       storage,
-      versionLookupClient: fakeVersionLookupClient(206),
+      versionLookupClient: fakeVersionLookupClient(111),
       highlightsClient,
     });
 
@@ -128,7 +137,7 @@ describe("createHighlightSyncProvider (PRD-10)", () => {
     const provider = createHighlightSyncProvider({
       appKey: "test-app-key",
       storage: signedInStorage(),
-      versionLookupClient: fakeVersionLookupClient(206),
+      versionLookupClient: fakeVersionLookupClient(111),
       highlightsClient: fakeHighlightsClient(),
     });
 
@@ -139,7 +148,7 @@ describe("createHighlightSyncProvider (PRD-10)", () => {
     const provider = createHighlightSyncProvider({
       appKey: "test-app-key",
       storage: signedInStorage(),
-      versionLookupClient: fakeVersionLookupClient(206),
+      versionLookupClient: fakeVersionLookupClient(111),
       highlightsClient: fakeHighlightsClient({
         createHighlight: async () => {
           throw new Error("network down");
@@ -172,7 +181,7 @@ describe("createHighlightSyncProvider (PRD-10)", () => {
     const provider = createHighlightSyncProvider({
       appKey: "test-app-key",
       storage: signedInStorage(),
-      versionLookupClient: fakeVersionLookupClient(206),
+      versionLookupClient: fakeVersionLookupClient(111),
       highlightsClient: fakeHighlightsClient({
         createHighlight: async (data) => {
           call += 1;
@@ -201,7 +210,14 @@ describe("createHighlightSyncProvider (PRD-10)", () => {
       async () =>
         new Response(
           JSON.stringify({
-            data: [{ id: 206, abbreviation: "engWEBUS", localized_abbreviation: "WEBUS" }],
+            data: [
+              {
+                id: 111,
+                abbreviation: "NIV11",
+                localized_abbreviation: "NIV",
+                localized_title: "New International Version",
+              },
+            ],
           }),
           {
             status: 200,
@@ -222,7 +238,7 @@ describe("createHighlightSyncProvider (PRD-10)", () => {
 
     expect(result).toEqual({ ok: true, value: undefined });
     expect(highlightsClient.createHighlight).toHaveBeenCalledWith(
-      { version_id: 206, passage_id: "DAN.1.1", color: "ffeb3b" },
+      { version_id: 111, passage_id: "DAN.1.1", color: "ffeb3b" },
       "access-123",
     );
 

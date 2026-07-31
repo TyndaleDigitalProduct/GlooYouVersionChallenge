@@ -14,7 +14,7 @@ import { err, ok, type Result } from "@/core/result";
 import type { Storage as CoreStorage } from "@/core/storage";
 import type { HighlightSyncProvider } from "./providers";
 import { readStoredAuth } from "./youversionAuthStorage";
-import { resolveWebVersionId, type VersionLookupClient } from "./youversionBibleVersion";
+import { resolvePreferredVersion, type VersionLookupClient } from "./youversionBibleVersion";
 import { getConfiguredYouVersionAppKey } from "./youversionConfig";
 
 /** The narrow slice of HighlightsClient this seam calls, so tests can inject a fake. */
@@ -69,9 +69,9 @@ export function createHighlightSyncProvider(
     if (cachedVersionId != null) return cachedVersionId;
     if (!versionLookupClient) return null;
     if (!resolving) {
-      resolving = resolveWebVersionId(versionLookupClient).then((id) => {
-        cachedVersionId = id;
-        return id;
+      resolving = resolvePreferredVersion(versionLookupClient).then((version) => {
+        cachedVersionId = version?.id ?? null;
+        return cachedVersionId;
       });
     }
     return resolving;

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { resolveWebVersionId, type VersionLookupClient } from "./youversionBibleVersion";
+import { resolvePreferredVersion, type VersionLookupClient } from "./youversionBibleVersion";
 
 /**
  * The English versions `GET /v1/bibles?language_ranges[]=eng` actually returns,
@@ -9,11 +9,30 @@ import { resolveWebVersionId, type VersionLookupClient } from "./youversionBible
  * the code instead of with YouVersion is exactly what must not be asserted.
  */
 const LIVE_ENGLISH_VERSIONS = [
-  { id: 12, abbreviation: "ASV", localized_abbreviation: "ASV" },
-  { id: 3034, abbreviation: "BSB", localized_abbreviation: "BSB" },
-  { id: 206, abbreviation: "engWEBUS", localized_abbreviation: "WEBUS" },
-  { id: 1209, abbreviation: "WMB", localized_abbreviation: "WMB" },
-  { id: 1207, abbreviation: "WMBBE", localized_abbreviation: "WMBBE" },
+  {
+    id: 12,
+    abbreviation: "ASV",
+    localized_abbreviation: "ASV",
+    localized_title: "American Standard Version",
+  },
+  {
+    id: 111,
+    abbreviation: "NIV11",
+    localized_abbreviation: "NIV",
+    localized_title: "New International Version",
+  },
+  {
+    id: 113,
+    abbreviation: "NIVUK11",
+    localized_abbreviation: "NIVUK",
+    localized_title: "New International Version (Anglicised)",
+  },
+  {
+    id: 206,
+    abbreviation: "engWEBUS",
+    localized_abbreviation: "WEBUS",
+    localized_title: "World English Bible, American English Edition",
+  },
 ];
 
 function lookupClient(data: unknown[]): VersionLookupClient {
@@ -22,19 +41,33 @@ function lookupClient(data: unknown[]): VersionLookupClient {
   } as unknown as VersionLookupClient;
 }
 
-describe("resolveWebVersionId (PRD-10)", () => {
-  it("finds the WEB in the version list the live API actually returns", async () => {
-    await expect(resolveWebVersionId(lookupClient(LIVE_ENGLISH_VERSIONS))).resolves.toBe(206);
+describe("resolvePreferredVersion (PRD-10)", () => {
+  it("resolves the NIV from the version list the live API actually returns", async () => {
+    await expect(resolvePreferredVersion(lookupClient(LIVE_ENGLISH_VERSIONS))).resolves.toEqual({
+      id: 111,
+      title: "New International Version",
+    });
   });
 
-  it("never mistakes the World Messianic Bible for the World English Bible", async () => {
-    const withoutWeb = LIVE_ENGLISH_VERSIONS.filter((version) => version.id !== 206);
-    await expect(resolveWebVersionId(lookupClient(withoutWeb))).resolves.toBeNull();
+  // The Anglicised edition sits next to the NIV in the same response and
+  // matches on a prefix of the same abbreviation, so this is the near-miss the
+  // preference order exists to rule out.
+  it("never resolves the Anglicised edition in place of the NIV", async () => {
+    const anglicisedOnly = LIVE_ENGLISH_VERSIONS.filter((version) => version.id !== 111);
+    await expect(resolvePreferredVersion(lookupClient(anglicisedOnly))).resolves.toBeNull();
   });
 
-  it("still resolves if YouVersion republishes it under the plain WEB abbreviation", async () => {
-    const republished = [{ id: 206, abbreviation: "WEB", localized_abbreviation: "WEB" }];
-    await expect(resolveWebVersionId(lookupClient(republished))).resolves.toBe(206);
+  it("carries the translation name, so no caller has to hard-code one", async () => {
+    const resolved = await resolvePreferredVersion(lookupClient(LIVE_ENGLISH_VERSIONS));
+    expect(resolved?.title).toBe("New International Version");
+  });
+
+  it("falls back to the abbreviation when a version carries no localized title", async () => {
+    const untitled = [{ id: 111, abbreviation: "NIV11", localized_abbreviation: "NIV" }];
+    await expect(resolvePreferredVersion(lookupClient(untitled))).resolves.toEqual({
+      id: 111,
+      title: "NIV11",
+    });
   });
 
   it("returns null, rather than throwing, when the lookup itself fails", async () => {
@@ -44,10 +77,10 @@ describe("resolveWebVersionId (PRD-10)", () => {
       }),
     } as unknown as VersionLookupClient;
 
-    await expect(resolveWebVersionId(failing)).resolves.toBeNull();
+    await expect(resolvePreferredVersion(failing)).resolves.toBeNull();
   });
 
   it("returns null on an empty version list", async () => {
-    await expect(resolveWebVersionId(lookupClient([]))).resolves.toBeNull();
+    await expect(resolvePreferredVersion(lookupClient([]))).resolves.toBeNull();
   });
 });

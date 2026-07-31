@@ -28,8 +28,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, type LanguageModel } from "ai";
 import { z } from "zod";
-import type { EncounterCard } from "../src/core/encounters";
-import { validateCardSet } from "../src/core/encounters";
+import type { EncounterCard } from "../src/core/encounters.js";
+import { validateCardSet } from "../src/core/encounters.js";
 
 // Node runtime, per ADR-0002 "Hosting": the OpenAI-compatible SDK expects it.
 export const config = { runtime: "nodejs" };

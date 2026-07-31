@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import handler from "./youversion-token";
+import handler from "./youversion-token.js";
 
 /** Minimal fakes for the Node (req, res) handler signature, mirroring what
  * generate-cards.ts's handler expects; there is no existing test for that
@@ -36,7 +36,7 @@ describe("api/youversion-token (PRD-10, the second of the two-route tier)", () =
   });
 
   it("declares the Node runtime, per ADR-0002 Hosting", async () => {
-    const module = await import("./youversion-token");
+    const module = await import("./youversion-token.js");
     expect(module.config).toEqual({ runtime: "nodejs" });
   });
 

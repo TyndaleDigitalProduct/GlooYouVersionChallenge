@@ -2,7 +2,7 @@
 // balance is always a derivation of it (sum of amounts), never a stored
 // field of its own. Nothing in this module can produce a negative balance:
 // there is no deduction path, only awards.
-import { err, ok, type Result } from "./result";
+import { err, ok, type Result } from "./result.js";
 
 // ADR-0003 "Decision" / "Consequences" and storyboard-v2.md's reward-scale
 // item replace the old two-cause, two-magnitude model with four causes and

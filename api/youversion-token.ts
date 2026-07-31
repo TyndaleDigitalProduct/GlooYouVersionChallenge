@@ -109,7 +109,9 @@ export default async function handler(req: NodeRequest, res: ServerResponse): Pr
 
     const tokens = (await response.json()) as Record<string, unknown>;
     if (typeof tokens.access_token !== "string" || typeof tokens.id_token !== "string") {
-      sendJson(res, 200, unavailableBody("token-exchange-malformed"));
+      // Distinct from the client's own malformed-response cases: this one means
+      // YouVersion answered 200 without the tokens. See sessionProvider.ts.
+      sendJson(res, 200, unavailableBody("upstream-missing-tokens"));
       return;
     }
 

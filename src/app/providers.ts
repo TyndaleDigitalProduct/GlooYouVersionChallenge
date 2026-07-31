@@ -46,10 +46,22 @@ export interface ScriptureProvider {
 // interface exists now purely so PRD-09 has a seam to fill; deliberately no
 // token of any kind is modeled here, per the open question PRD-03 surfaced.
 
+/**
+ * What a successful `signIn()` resolves with: the persisted `yvpId` plus
+ * display-only profile claims from the ID token (`name`/`picture`, present
+ * only because the OAuth scope already requests `profile`). Neither field is
+ * part of `YouVersionSession` and neither is ever written to the save blob —
+ * they exist purely so the UI can confirm *whose* account just connected.
+ */
+export interface YouVersionSignInResult extends YouVersionSession {
+  displayName?: string;
+  avatarUrl?: string;
+}
+
 export interface SessionProvider {
   readonly isStub: boolean;
   current(): YouVersionSession | null;
-  signIn(): Promise<Result<YouVersionSession>>;
+  signIn(): Promise<Result<YouVersionSignInResult>>;
   signOut(): void;
 }
 

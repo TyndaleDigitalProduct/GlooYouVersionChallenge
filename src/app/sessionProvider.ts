@@ -89,6 +89,32 @@ function base64UrlEncode(bytes: Uint8Array): string {
   return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+/**
+ * Decodes a base64url segment to a string, in the browser first.
+ *
+ * `atob` before `Buffer`, mirroring `base64UrlEncode`'s guard above and for
+ * the same reason: `Buffer` is a Node global that does not exist in the
+ * browser bundle, so reaching for it unconditionally threw on every real
+ * sign-in while every test passed, because vitest runs under Node/jsdom where
+ * `Buffer` is defined. The thrown error was swallowed by the caller's `catch`
+ * and surfaced only as a generic malformed-token failure.
+ *
+ * `atob` yields one byte per code unit, so the bytes go through `TextDecoder`
+ * rather than being read as text directly — an id token's `name` claim is
+ * UTF-8 and a player whose display name is not pure ASCII would otherwise see
+ * it mangled.
+ */
+function base64UrlDecodeToString(value: string): string {
+  let base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  while (base64.length % 4 !== 0) base64 += "=";
+  if (typeof atob === "function") {
+    const binary = atob(base64);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+  return Buffer.from(base64, "base64").toString("utf8");
+}
+
 function randomUrlSafeString(byteCount: number): string {
   const bytes = new Uint8Array(byteCount);
   crypto.getRandomValues(bytes);
@@ -107,6 +133,20 @@ interface AuthorizationRequest {
   state: string;
 }
 
+/**
+ * Drops a trailing slash, so the value registered in the YouVersion developer
+ * portal (which has none) is what gets sent. Applied once where `redirectUri`
+ * is resolved, never per-request: OAuth 2.0 requires the token request's
+ * `redirect_uri` to be byte-identical to the authorize request's (RFC 6749
+ * §4.1.3), and normalizing in only one of the two places silently broke every
+ * sign-in served from a root path — `origin + "/"` authorized as
+ * `http://host` and then exchanged as `http://host/`, which YouVersion
+ * rejects.
+ */
+function normalizeRedirectUri(redirectUri: string): string {
+  return redirectUri.endsWith("/") ? redirectUri.slice(0, -1) : redirectUri;
+}
+
 /** Builds the PKCE authorize URL and parameters. See the module header. */
 async function buildAuthorizationRequest(
   appKey: string,
@@ -117,12 +157,11 @@ async function buildAuthorizationRequest(
   const state = randomUrlSafeString(24);
   const nonce = randomUrlSafeString(24);
 
-  const normalizedRedirect = redirectUri.endsWith("/") ? redirectUri.slice(0, -1) : redirectUri;
   const url = new URL(`https://${YouVersionPlatformConfiguration.apiHost}/auth/authorize`);
   url.search = new URLSearchParams({
     response_type: "code",
     client_id: appKey,
-    redirect_uri: normalizedRedirect,
+    redirect_uri: redirectUri,
     nonce,
     state,
     code_challenge: codeChallenge,
@@ -152,35 +191,112 @@ function isTokenExchangeResponse(value: unknown): value is TokenExchangeResponse
   );
 }
 
+interface IdTokenClaims {
+  sub: string | null;
+  name?: string;
+  picture?: string;
+}
+
 /**
- * Decodes a JWT's payload and returns its `sub` claim, or null on any
- * malformed input. Display-only decoding (the id token is never persisted,
- * matching @youversion/platform-core's own stated posture): this project
- * never verifies the signature, because the value is only ever used to label
- * a save's `YouVersionSession.yvpId`, not to authorize an API call — every
- * write to YouVersion goes over the bearer access token instead.
+ * Decodes a JWT's payload for its `sub` claim plus the display claims the
+ * `profile` scope already requests, or null on any malformed input.
+ * Display-only decoding (the id token is never persisted, matching
+ * @youversion/platform-core's own stated posture): this project never
+ * verifies the signature, because `sub` is only ever used to label a save's
+ * `YouVersionSession.yvpId` and the rest only ever label the UI right after a
+ * successful sign-in — every write to YouVersion goes over the bearer access
+ * token instead.
+ *
+ * The avatar claim is `profile_picture`, which is what
+ * @youversion/platform-core's own `extractSignInResult` reads; OIDC's standard
+ * `picture` is accepted as a fallback in case that ever changes underneath us.
  */
-function decodeJwtSubject(idToken: string): string | null {
+function decodeIdTokenClaims(idToken: string): IdTokenClaims | null {
   const segments = idToken.split(".");
   if (segments.length !== 3) return null;
   try {
-    let base64 = segments[1].replace(/-/g, "+").replace(/_/g, "/");
-    while (base64.length % 4 !== 0) base64 += "=";
-    const json = Buffer.from(base64, "base64").toString("utf8");
+    const json = base64UrlDecodeToString(segments[1]);
     const claims = JSON.parse(json) as Record<string, unknown>;
-    return typeof claims.sub === "string" ? claims.sub : null;
+    const picture =
+      typeof claims.profile_picture === "string"
+        ? claims.profile_picture
+        : typeof claims.picture === "string"
+          ? claims.picture
+          : undefined;
+    return {
+      sub: typeof claims.sub === "string" ? claims.sub : null,
+      name: typeof claims.name === "string" ? claims.name : undefined,
+      picture,
+    };
   } catch {
     return null;
   }
 }
 
+/** What to do with a URL the authorization window has landed on. */
+export type CallbackStep =
+  | { kind: "success"; code: string; state: string }
+  | { kind: "error"; reason: string }
+  | { kind: "forward-to-server-callback"; url: string }
+  | { kind: "keep-waiting" };
+
+/**
+ * Decides the next step from a URL the authorization window has landed on.
+ *
+ * YouVersion's authorize flow returns to the app **twice**, which is the part
+ * this module originally got wrong (every sign-in failed with
+ * `missing-code-or-state`). Mirroring `handleAuthCallback()` in
+ * @youversion/platform-core:
+ *
+ *  1. `/auth/authorize` returns to the redirect_uri with `state` (plus any
+ *     granted-permission params) and **no `code`**.
+ *  2. The app forwards every one of those params to YouVersion's own
+ *     `/auth/callback`, which is what actually mints the authorization code.
+ *  3. That returns to the redirect_uri again, this time with `code` and
+ *     `state`, and only then can the token exchange run.
+ *
+ * Pure, and separated from the window-polling glue below, precisely because
+ * the glue is the one part ADR-0002 declines to gate under coverage — leaving
+ * this decision inside it is what let a 100%-reproducible bug ship green.
+ * `forwardedFrom` is the URL a forward was already issued from, so a poll that
+ * catches the pre-navigation URL again waits instead of erroring.
+ */
+export function nextCallbackStep(
+  landedUrl: string,
+  forwardedFrom: string | null,
+  apiHost: string = YouVersionPlatformConfiguration.apiHost,
+): CallbackStep {
+  const params = new URL(landedUrl).searchParams;
+  const code = params.get("code");
+  const state = params.get("state");
+  const error = params.get("error");
+
+  if (error) return { kind: "error", reason: error };
+  if (code && state) return { kind: "success", code, state };
+  if (!state) return { kind: "error", reason: "missing-code-or-state" };
+
+  // `state` but no `code`: leg 1 above. Forward everything YouVersion sent,
+  // not just `state` — the granted-permission params ride along here.
+  if (forwardedFrom === null) {
+    const serverCallback = new URL(`https://${apiHost}/auth/callback`);
+    for (const [key, value] of params) {
+      serverCallback.searchParams.set(key, value);
+    }
+    return { kind: "forward-to-server-callback", url: serverCallback.toString() };
+  }
+  // The forward is issued but the window has not navigated yet.
+  if (landedUrl === forwardedFrom) return { kind: "keep-waiting" };
+  return { kind: "error", reason: "no-code-after-server-callback" };
+}
+
 /**
  * The real default: opens a popup to the authorize URL and polls it until it
  * navigates back to this app's own origin (readable cross-window only once
- * same-origin) or the player closes it. Browser/DOM glue in the same vein
- * ADR-0002 declines to gate under coverage; every behavioural test in
+ * same-origin) or the player closes it, driving each landing through
+ * `nextCallbackStep` above. Browser/DOM glue in the same vein ADR-0002
+ * declines to gate under coverage; every behavioural test in
  * sessionProvider.test.ts injects `presentAuthorization` instead of exercising
- * this.
+ * this, and the decision it defers to is unit-tested on its own.
  */
 function presentAuthorizationViaPopup(authorizeUrl: URL): Promise<AuthorizationOutcome> {
   return new Promise((resolve) => {
@@ -195,6 +311,8 @@ function presentAuthorizationViaPopup(authorizeUrl: URL): Promise<AuthorizationO
     }
 
     const origin = window.location.origin;
+    let forwardedFrom: string | null = null;
+
     const poll = window.setInterval(() => {
       if (popup.closed) {
         window.clearInterval(poll);
@@ -211,20 +329,21 @@ function presentAuthorizationViaPopup(authorizeUrl: URL): Promise<AuthorizationO
       }
       if (!href.startsWith(origin)) return;
 
+      const step = nextCallbackStep(href, forwardedFrom);
+      if (step.kind === "keep-waiting") return;
+      if (step.kind === "forward-to-server-callback") {
+        forwardedFrom = href;
+        popup.location.href = step.url;
+        return;
+      }
+
       window.clearInterval(poll);
       popup.close();
-
-      const params = new URL(href).searchParams;
-      const code = params.get("code");
-      const state = params.get("state");
-      const error = params.get("error");
-      if (error) {
-        resolve({ status: "error", reason: error });
-      } else if (code && state) {
-        resolve({ status: "success", code, state });
-      } else {
-        resolve({ status: "error", reason: "missing-code-or-state" });
-      }
+      resolve(
+        step.kind === "success"
+          ? { status: "success", code: step.code, state: step.state }
+          : { status: "error", reason: step.reason },
+      );
     }, 300);
   });
 }
@@ -253,7 +372,7 @@ export function createSessionProvider(options: CreateSessionProviderOptions = {}
   if (!appKey) return createStubSessionProvider();
 
   const {
-    redirectUri = typeof window !== "undefined"
+    redirectUri: configuredRedirectUri = typeof window !== "undefined"
       ? window.location.origin + window.location.pathname
       : "",
     storage = createBrowserStorage(),
@@ -262,6 +381,10 @@ export function createSessionProvider(options: CreateSessionProviderOptions = {}
     tokenEndpoint = YOUVERSION_TOKEN_ENDPOINT,
     now = () => Date.now(),
   } = options;
+
+  // Normalized once, here, so the authorize request, the stored PKCE state,
+  // and the token exchange below all send the identical string.
+  const redirectUri = normalizeRedirectUri(configuredRedirectUri);
 
   return {
     isStub: false,
@@ -322,14 +445,19 @@ export function createSessionProvider(options: CreateSessionProviderOptions = {}
         return err("token-exchange-failed");
       }
 
-      if (!isTokenExchangeResponse(body)) return err("token-exchange-malformed");
+      // Each of these was `token-exchange-malformed` at one point, and so was
+      // the route's own "upstream sent no tokens" case — four distinct
+      // failures behind one string, which made a real failure take several
+      // round trips to place. They stay distinct.
+      if (!isTokenExchangeResponse(body)) return err("token-exchange-unrecognised-shape");
       if (body.status === "unavailable") return err(body.reason ?? "token-exchange-unavailable");
       if (typeof body.accessToken !== "string" || typeof body.idToken !== "string") {
-        return err("token-exchange-malformed");
+        return err("token-exchange-missing-tokens");
       }
 
-      const yvpId = decodeJwtSubject(body.idToken);
-      if (!yvpId) return err("token-exchange-malformed");
+      const claims = decodeIdTokenClaims(body.idToken);
+      if (!claims?.sub) return err("id-token-undecodable-or-no-subject");
+      const yvpId = claims.sub;
 
       const expiresAt = now() + (typeof body.expiresIn === "number" ? body.expiresIn * 1000 : 0);
       writeStoredAuth(storage, {
@@ -339,7 +467,7 @@ export function createSessionProvider(options: CreateSessionProviderOptions = {}
         expiresAt,
       });
 
-      return ok({ yvpId });
+      return ok({ yvpId, displayName: claims.name, avatarUrl: claims.picture });
     },
   };
 }

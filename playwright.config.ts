@@ -23,5 +23,10 @@ export default defineConfig({
     url: "http://localhost:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
+    // Pins the run to the no-credentials path these specs were written
+    // against, so a machine that has actually configured sign-in behaves like
+    // CI instead of failing: an empty app key keeps sign-in on the stub the
+    // YouVersion specs assert against.
+    env: { VITE_YOUVERSION_APP_KEY: "" },
   },
 });

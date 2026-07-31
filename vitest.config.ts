@@ -6,6 +6,14 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "jsdom",
+      // The suite's baseline is the no-credentials path PRD-10 requires: every
+      // YouVersion-backed seam degraded to its honest stub. Without this, a
+      // real VITE_YOUVERSION_APP_KEY in a developer's own .env.local leaks in
+      // through import.meta.env and fails every spec that asserts that
+      // degradation — green in CI, red on the machine of anyone who has
+      // actually configured sign-in. Specs that want a key inject one
+      // explicitly (`createSessionProvider({ appKey: ... })`).
+      env: { VITE_YOUVERSION_APP_KEY: "" },
       include: [
         "src/**/*.test.ts",
         "src/**/*.test.tsx",

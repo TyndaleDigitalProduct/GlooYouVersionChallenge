@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { highlightPassage } from "@/app/highlightController";
 import type { PassageResult } from "@/app/providers";
 import type { AppRuntime } from "@/app/runtime";
 import { findSceneContent } from "@/content/loadContent";
@@ -171,6 +172,7 @@ function ScenePassageCard({
   onOpen: () => void;
 }) {
   const [passage, setPassage] = useState<PassageResult | null>(null);
+  const isHighlighted = useGameState((state) => reference in state.highlights);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,9 +195,33 @@ function ScenePassageCard({
         ) : null}
       </div>
       {isOpen ? (
-        <p className="vv-dialogue__text" data-testid="scene-passage-text">
-          {passage?.status === "available" ? passage.text : (passage?.reason ?? "Loading passage…")}
-        </p>
+        <>
+          <p className="vv-dialogue__text" data-testid="scene-passage-text">
+            {passage?.status === "available"
+              ? passage.text
+              : (passage?.reason ?? "Loading passage…")}
+          </p>
+          {/* PRD-16 (operator request): the same deliberate highlight action
+              the encounter passages carry (PRD-10) — local always, session
+              only controls sync, and it never gates the Continue button. */}
+          {isHighlighted ? (
+            <span
+              className="vv-scripture-card__highlight-tag"
+              data-testid="scene-passage-highlighted"
+            >
+              Highlighted
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="vv-button vv-button--quiet"
+              data-testid="scene-passage-highlight"
+              onClick={() => highlightPassage(runtime, reference)}
+            >
+              Highlight verse
+            </button>
+          )}
+        </>
       ) : (
         <button
           type="button"

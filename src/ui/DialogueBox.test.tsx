@@ -216,6 +216,24 @@ describe("the scene passage card (PRD-14)", () => {
     expect(screen.getByTestId("dialogue-text")).toHaveTextContent("Walk around, talk to people");
   });
 
+  it("offers 'Highlight verse' on the opened passage and records the highlight (PRD-16)", async () => {
+    // The same deliberate-action capture the encounter passages carry
+    // (PRD-10): local always, session only controls sync. Added to the scene
+    // passage card by operator request, 2026-07-31.
+    const runtime = bootReal();
+    advanceToCard(runtime);
+    renderBox(runtime);
+
+    await userEvent.click(screen.getByTestId("scene-passage-open"));
+    await screen.findByTestId("scene-passage-text");
+
+    await userEvent.click(screen.getByTestId("scene-passage-highlight"));
+
+    expect(runtime.store.getState().highlights).toHaveProperty("DAN.1.1");
+    expect(screen.getByTestId("scene-passage-highlighted")).toHaveTextContent("Highlighted");
+    expect(screen.queryByTestId("scene-passage-highlight")).not.toBeInTheDocument();
+  });
+
   it("gates the next scene's card even when it lands on the same step index as the last one", async () => {
     // Scene 1 and scene 2 both author their card after the second line, so
     // both sit at step index 2. Keying the "opened" state by index alone let

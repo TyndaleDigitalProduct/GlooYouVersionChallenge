@@ -6,6 +6,7 @@ import { cardsAreFallback, hasReadBothPassages, hasReadPassage } from "@/app/vie
 import { fallbackCardSetFor } from "@/content/cardSets";
 import { guideArtFor } from "@/content/cast";
 import { findCrossReferenceContent } from "@/content/loadContent";
+import { personaForSection } from "@/content/personas";
 import { type EncounterCard, type EncounterRecord, encounterRecord } from "@/core/encounters";
 import { shuffledCards } from "./cardOrder";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
@@ -37,9 +38,17 @@ function EncounterPanelBody({ reference }: { reference: string }) {
   const isFallback = useViewState((state) => cardsAreFallback(state, reference));
 
   const [selections, setSelections] = useState<string[]>([]);
-  // A missing portrait degrades to a panel without one, never to a broken
-  // image icon.
-  const [portraitBroken, setPortraitBroken] = useState(false);
+
+  // PRD-16: the persona intro and closing bracket the encounter (ADR-0003's
+  // flow, authored in content/personas.json). The stage is component state,
+  // not save state: the intro replays on every open until the encounter is
+  // resolved (this body remounts per open, keyed on the reference above), and
+  // a resolved revisit goes straight to the summary — the guide has gone
+  // inactive. The closing plays exactly once, after a lock in the same open.
+  const [stage, setStage] = useState<"intro" | "panel" | "closing">(() =>
+    record.state === "resolved" ? "panel" : "intro",
+  );
+  const [lockedThisOpen, setLockedThisOpen] = useState(false);
 
   // PRD-14: the deck is dealt in shuffled display order — the stored order is
   // value-descending, which let a player lock the top three without reading.
@@ -55,14 +64,17 @@ function EncounterPanelBody({ reference }: { reference: string }) {
   if (!crossRef) return null;
 
   // The operator's settled call (PRD-08 phase 3 specifics): render the real
-  // persona name when content supplies one (currently "the Chronicler" and
-  // "the Watchman" only) and fall back to the generic section title for the
-  // other four, rather than inventing names characters.json does not have.
-  const persona = fallbackCardSetFor(runtime.cardSets, reference)?.persona;
-  const title = persona ?? `${crossRef.section} guide`;
+  // persona name when content supplies one and fall back to the generic
+  // section title rather than inventing names. PRD-16 loads the full personas
+  // document (all six named), so the authored name is the normal path now and
+  // the cards.json persona and section fallbacks are defensive only.
+  const persona = personaForSection(runtime.personas, crossRef.section);
+  const title =
+    persona?.name ??
+    fallbackCardSetFor(runtime.cardSets, reference)?.persona ??
+    `${crossRef.section} guide`;
 
   const art = guideArtFor(runtime.cast, crossRef.section);
-  const showPortrait = art !== undefined && !portraitBroken;
 
   const isResolved = record.state === "resolved";
 
@@ -75,8 +87,36 @@ function EncounterPanelBody({ reference }: { reference: string }) {
   };
 
   const lockIn = () => {
-    runtime.store.getState().lockEncounterSelections(sceneId, reference, selections);
+    const locked = runtime.store.getState().lockEncounterSelections(sceneId, reference, selections);
+    if (locked.ok) setLockedThisOpen(true);
   };
+
+  const close = () => {
+    // Closing after the reveal in the same open hands off to the farewell
+    // (ADR-0003: "persona closing line, character goes inactive"). Closing
+    // without locking, or a resolved revisit, returns to the world directly.
+    if (lockedThisOpen && stage === "panel") {
+      setStage("closing");
+      return;
+    }
+    runtime.view.getState().closeEncounter();
+  };
+
+  if (stage !== "panel" && persona) {
+    return (
+      <GuideStage
+        speaker={persona.name}
+        line={stage === "intro" ? persona.intro : persona.closing}
+        reference={crossRef.reference}
+        spriteKey={art?.spriteKey}
+        advanceLabel={stage === "intro" ? "Open the scrolls" : "Go well"}
+        onAdvance={() => {
+          if (stage === "intro") setStage("panel");
+          else runtime.view.getState().closeEncounter();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="vv-scrim">
@@ -88,13 +128,17 @@ function EncounterPanelBody({ reference }: { reference: string }) {
       >
         <header className="vv-encounter__header">
           <div className="vv-encounter__identity">
-            {showPortrait ? (
-              <img
-                className="vv-portrait"
-                src={`assets/portraits/${art.portraitKey}.png`}
-                alt=""
+            {/* A crop of the guide's own walk sheet, not the old ex_* stand-in
+                bust: no dedicated bust art exists for the personas
+                (characters.json), and PRD-16's intro/closing show the real
+                sprite, so the panel showing a different character read as a
+                bug. Same crop technique as the stage portrait, bust-sized. */}
+            {art ? (
+              <figure
+                className="vv-portrait vv-portrait--sprite"
                 data-testid="encounter-portrait"
-                onError={() => setPortraitBroken(true)}
+                aria-hidden="true"
+                style={{ backgroundImage: `url(assets/sprites/${art.spriteKey}.png)` }}
               />
             ) : null}
             <div>
@@ -161,12 +205,80 @@ function EncounterPanelBody({ reference }: { reference: string }) {
             type="button"
             className={`vv-button${isResolved ? "" : " vv-button--quiet"}`}
             data-testid="encounter-close"
-            onClick={() => runtime.view.getState().closeEncounter()}
+            onClick={close}
           >
             Close
           </button>
         </footer>
       </section>
+    </div>
+  );
+}
+
+/**
+ * The guide's intro or closing (PRD-16): a dialogue box in the Lamplighter's
+ * stage pattern — the guide's own sprite looming behind the box, the persona
+ * name prominent — but wearing the encounter's gold frame, because these
+ * boxes bracket the encounter and must read as part of it. All character
+ * sheets share the Lamplighter's 96x256 geometry, so the portrait CSS is the
+ * same crop with the guide's sheet URL; a guide with no art degrades to the
+ * box alone.
+ */
+function GuideStage({
+  speaker,
+  line,
+  reference,
+  spriteKey,
+  advanceLabel,
+  onAdvance,
+}: {
+  speaker: string;
+  line: string;
+  reference: string;
+  spriteKey: string | undefined;
+  advanceLabel: string;
+  onAdvance: () => void;
+}) {
+  return (
+    <div className="vv-scrim">
+      <div className="vv-dialogue-stage" data-testid="guide-stage">
+        {spriteKey ? (
+          <figure
+            className="vv-dialogue__portrait vv-dialogue__portrait--gold"
+            data-testid="guide-stage-portrait"
+            aria-hidden="true"
+            style={{ backgroundImage: `url(assets/sprites/${spriteKey}.png)` }}
+          />
+        ) : null}
+
+        <section
+          className="vv-panel vv-dialogue vv-guide-dialogue"
+          role="dialog"
+          aria-label={speaker}
+        >
+          <header className="vv-dialogue__header">
+            <p className="vv-dialogue__speaker" data-testid="guide-stage-speaker">
+              {speaker}
+            </p>
+            <p className="vv-dialogue__setting">{reference}</p>
+          </header>
+
+          <p className="vv-dialogue__text" data-testid="guide-stage-text">
+            {line}
+          </p>
+
+          <footer className="vv-dialogue__footer">
+            <button
+              type="button"
+              className="vv-button"
+              data-testid="guide-stage-advance"
+              onClick={onAdvance}
+            >
+              {advanceLabel}
+            </button>
+          </footer>
+        </section>
+      </div>
     </div>
   );
 }

@@ -483,6 +483,23 @@ body {
   image-rendering: pixelated;
 }
 
+/* A guide's intro/closing box (PRD-16): the Lamplighter's stage pattern in
+   the encounter's dress. The gold frame and light parchment are lifted from
+   .vv-encounter verbatim, because these boxes bracket the encounter panel and
+   must read as the same surface; the sprite looming above supplies the
+   Lamplighter feel. */
+.vv-guide-dialogue {
+  border-width: var(--vv-frame-gold);
+  border-image: url("/assets/ui/frames/frame-gold.png") 27 fill stretch;
+  background: var(--vv-parchment-light);
+}
+
+/* The gold frame is narrower than the wood one (27px vs 30px), so the sprite's
+   flush-left offset is recomputed against it. */
+.vv-dialogue__portrait--gold {
+  left: calc(var(--vv-frame-gold) - 3.15vh);
+}
+
 .vv-dialogue__header {
   display: flex;
   flex-wrap: wrap;
@@ -611,6 +628,20 @@ body {
   background: var(--vv-parchment);
   box-shadow: inset 0 0 0 2px var(--vv-gold);
   image-rendering: pixelated;
+}
+
+/* PRD-16: the guide's own walk sheet cropped to a bust, replacing the ex_*
+   stand-in busts (no dedicated bust art exists for the personas). Frame 0 of
+   the 96x256 sheet at 3x scale — the frame's 24px column fills the box's
+   72px width, and the visible 72px of height is the top 24 of the frame's
+   32, which is the head and torso. Margin zeroed because this is a <figure>
+   where the stand-in was an <img>. */
+.vv-portrait--sprite {
+  margin: 0;
+  background-color: var(--vv-parchment);
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 288px 768px;
 }
 
 /* Body serif: the title is a persona name out of content/, so the pixel

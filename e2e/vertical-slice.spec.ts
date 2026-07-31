@@ -96,6 +96,10 @@ test("walkthrough: engage a guide, talk to a story character, close scene 1 thro
   const [chronicler] = guidePositions(1);
   await clickWorldPoint(page, chronicler.x, chronicler.y);
 
+  // PRD-16: the guide greets the player before the encounter panel opens.
+  await expect(page.getByTestId("guide-stage-speaker")).toHaveText("the Chronicler");
+  await page.getByTestId("guide-stage-advance").click();
+
   await expect(page.getByTestId("encounter-panel")).toBeVisible();
   await expect(page.getByTestId("encounter-reference")).toContainText("2KI.24.1-4");
   // The guide's portrait loaded: onError would have unmounted a broken image.
@@ -115,6 +119,8 @@ test("walkthrough: engage a guide, talk to a story character, close scene 1 thro
   // player never left the interaction radius, so the proximity prompt is
   // still the available click.
   await page.getByTestId("proximity-prompt").click();
+  // The intro replays on every open until the encounter is resolved (PRD-16).
+  await page.getByTestId("guide-stage-advance").click();
   await expect(page.getByTestId("encounter-state")).toContainText("Engaged");
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("1");
   await page.getByTestId("encounter-close").click();
@@ -275,6 +281,8 @@ test("touch: tapping a character walks to them and opens the interaction in one 
   const [chronicler] = guidePositions(1);
   await tapWorldPoint(page, chronicler.x, chronicler.y);
 
+  // PRD-16: the tap lands on the persona intro; advancing opens the panel.
+  await page.getByTestId("guide-stage-advance").click();
   await expect(page.getByTestId("encounter-panel")).toBeVisible();
   await expect(page.getByTestId("encounter-reference")).toContainText(chronicler.reference);
 

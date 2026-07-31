@@ -26,6 +26,7 @@ import {
   type GameContent,
   type SceneMaps,
 } from "@/content/loadContent";
+import { buildPersonas, type Personas } from "@/content/personas";
 import { RAW_BACKDROP_DOCUMENTS, RAW_SCENE_MAP_DOCUMENTS } from "@/content/rawMaps";
 import type { EventBus } from "@/core/eventBus";
 import { eventBus } from "@/core/eventBus";
@@ -38,6 +39,7 @@ import rawCastDocument from "../../content/characters.json";
 import rawCardsDocument from "../../content/daniel-1.cards.json";
 import rawDialogueDocument from "../../content/daniel-1.dialogue.json";
 import rawRefsDocument from "../../content/daniel-1.refs.json";
+import rawPersonasDocument from "../../content/personas.json";
 import { createBrowserStorage, SAVE_KEY } from "./browserStorage";
 import { createCardProvider } from "./cardProvider";
 import { createHighlightSyncProvider } from "./highlightSyncProvider";
@@ -93,6 +95,8 @@ export interface AppRuntime {
   maps: SceneMaps;
   /** The reviewed fallback card sets (ADR-0003), keyed by reference. */
   cardSets: CardSets;
+  /** PRD-16: the guide personas' authored intro/closing copy, keyed by section. */
+  personas: Personas;
   /** PRD-10: real YouVersion fetch, degrading to bundled WEB; see scriptureProvider.ts. */
   scripture: ScriptureProvider;
   /** PRD-10: real PKCE sign-in, or the stub with no `app_key` configured. */
@@ -108,6 +112,7 @@ export interface CreateAppRuntimeOptions {
   dialogueDocument?: unknown;
   castDocument?: unknown;
   cardsDocument?: unknown;
+  personasDocument?: unknown;
   backdropDocuments?: readonly unknown[];
   sceneMapDocuments?: readonly unknown[];
   storage?: CoreStorage;
@@ -125,6 +130,7 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     dialogueDocument = rawDialogueDocument,
     castDocument = rawCastDocument,
     cardsDocument = rawCardsDocument,
+    personasDocument = rawPersonasDocument,
     backdropDocuments = RAW_BACKDROP_DOCUMENTS,
     sceneMapDocuments = RAW_SCENE_MAP_DOCUMENTS,
     // Evaluated lazily by destructuring, so a caller that injects storage
@@ -160,6 +166,12 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
 
   const cardSets = buildCardSets(cardsDocument);
   if (!cardSets.ok) return cardSets;
+
+  // Validated against the content for the same reason buildCast is: a curated
+  // section with no persona, or a persona with unauthored copy, fails here
+  // rather than as an empty greeting mid-game (PRD-16).
+  const personas = buildPersonas(personasDocument, content.value);
+  if (!personas.ok) return personas;
 
   // Validated against the content above for the same reason `buildCast` is: a
   // scene naming a backdrop that does not exist, or an authored scene whose cast
@@ -222,6 +234,7 @@ export function createAppRuntime(options: CreateAppRuntimeOptions = {}): Result<
     cast: cast.value,
     maps: maps.value,
     cardSets: cardSets.value,
+    personas: personas.value,
     scripture,
     session,
     cards,

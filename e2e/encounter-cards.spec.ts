@@ -23,6 +23,12 @@ test("full encounter: read both passages, pick three, lock, see the reveal and t
   // proximity-prompt click is needed.
   const [chronicler] = guidePositions(1);
   await clickWorldPoint(page, chronicler.x, chronicler.y);
+
+  // PRD-16: the persona intro brackets the encounter. Through it first.
+  await expect(page.getByTestId("guide-stage-text")).toContainText(
+    "Nothing ever happens without a backstory",
+  );
+  await page.getByTestId("guide-stage-advance").click();
   await expect(page.getByTestId("encounter-panel")).toBeVisible();
 
   // The card grid is present but locked until both passages are read.
@@ -76,7 +82,12 @@ test("full encounter: read both passages, pick three, lock, see the reveal and t
   const balanceAfterLock = await page.getByTestId("vale-stones-balance").innerText();
   expect(Number(balanceAfterLock)).toBeGreaterThan(Number(balanceBeforeLock));
 
+  // PRD-16: closing after the reveal hands off to the persona's farewell.
   await page.getByTestId("encounter-close").click();
+  await expect(page.getByTestId("guide-stage-text")).toContainText(
+    "It is written, and it is remembered",
+  );
+  await page.getByTestId("guide-stage-advance").click();
 
   // Revisiting renders the persisted summary with no regeneration: reopening
   // shows the same reveal straight away, with no read gate and no grid.

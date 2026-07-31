@@ -31,6 +31,17 @@ async function renderOpenEncounter(runtime: AppRuntime, reference = REFERENCE) {
       <EncounterPanel />
     </RuntimeProvider>,
   );
+  await passGuideIntro();
+}
+
+/**
+ * Steps through the persona intro (PRD-16) when one is showing, landing on
+ * the encounter panel the assertions below are about. A resolved encounter
+ * shows no intro, so this is a no-op for those.
+ */
+async function passGuideIntro() {
+  const advance = screen.queryByTestId("guide-stage-advance");
+  if (advance) await userEvent.click(advance);
 }
 
 function orderedCards(): EncounterCard[] {
@@ -163,7 +174,7 @@ describe("the insight card display order (PRD-14)", () => {
   // The authored fallback sets (and the Gloo generation) list cards
   // value-descending, so rendering them as stored let a player pick the top
   // three without reading anything — which defeats the encounter.
-  it("deals the grid in shuffled order, not the stored value-descending order", () => {
+  it("deals the grid in shuffled order, not the stored value-descending order", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const runtime = bootWithCards();
     const expected = shuffledCards(orderedCards(), () => 0).map((card) => card.text);
@@ -173,6 +184,7 @@ describe("the insight card display order (PRD-14)", () => {
         <EncounterPanel />
       </RuntimeProvider>,
     );
+    await passGuideIntro();
 
     const texts = renderedCardTexts(6);
     expect(texts.map((text) => text.trim())).toEqual(expected);
@@ -202,6 +214,113 @@ describe("the insight card display order (PRD-14)", () => {
   });
 });
 
+describe("the guide intro and closing (PRD-16)", () => {
+  it("greets the player with the persona intro before the encounter panel", () => {
+    const runtime = bootWithCards();
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <EncounterPanel />
+      </RuntimeProvider>,
+    );
+
+    // The intro stage, not the panel: gold-framed box, persona name, the
+    // authored line, and the guide's own sprite hung behind the box.
+    expect(screen.queryByTestId("encounter-panel")).not.toBeInTheDocument();
+    expect(screen.getByTestId("guide-stage")).toBeInTheDocument();
+    expect(screen.getByTestId("guide-stage-speaker")).toHaveTextContent("the Chronicler");
+    expect(screen.getByTestId("guide-stage-text")).toHaveTextContent(
+      "Nothing ever happens without a backstory",
+    );
+    expect(screen.getByTestId("guide-stage-portrait")).toHaveStyle({
+      backgroundImage: "url(assets/sprites/chronicler-tone1.png)",
+    });
+  });
+
+  it("advances from the intro into the encounter panel on 'Open the scrolls'", async () => {
+    const runtime = bootWithCards();
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <EncounterPanel />
+      </RuntimeProvider>,
+    );
+
+    expect(screen.getByTestId("guide-stage-advance")).toHaveTextContent("Open the scrolls");
+    await userEvent.click(screen.getByTestId("guide-stage-advance"));
+
+    expect(screen.queryByTestId("guide-stage")).not.toBeInTheDocument();
+    expect(screen.getByTestId("encounter-panel")).toBeInTheDocument();
+  });
+
+  it("plays the closing after a lock in the same open, then returns to the world", async () => {
+    const runtime = bootWithCards();
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <EncounterPanel />
+      </RuntimeProvider>,
+    );
+    await userEvent.click(screen.getByTestId("guide-stage-advance"));
+
+    runtime.view.getState().markPassageRead(REFERENCE, "DAN.1.1");
+    runtime.view.getState().markPassageRead(REFERENCE, REFERENCE);
+    await userEvent.click(screen.getByTestId("insight-card-0"));
+    await userEvent.click(screen.getByTestId("lock-selections"));
+    expect(screen.getByTestId("encounter-summary")).toBeInTheDocument();
+
+    // Close after the reveal hands off to the farewell rather than straight out.
+    await userEvent.click(screen.getByTestId("encounter-close"));
+    expect(screen.getByTestId("guide-stage-text")).toHaveTextContent(
+      "It is written, and it is remembered",
+    );
+
+    expect(screen.getByTestId("guide-stage-advance")).toHaveTextContent("Go well");
+    await userEvent.click(screen.getByTestId("guide-stage-advance"));
+    expect(screen.queryByTestId("guide-stage")).not.toBeInTheDocument();
+    expect(runtime.view.getState().openEncounterReference).toBeNull();
+  });
+
+  it("shows the guide's own sprite in the panel header, matching the intro and closing", async () => {
+    // The 24x24 dialogue busts only exist for the generic ex_* stand-ins
+    // (characters.json's note), so the panel used to show a different
+    // character than the sprite greeting the player. The header bust is now a
+    // crop of the same walk sheet the stage uses, so the guide is one
+    // character throughout the encounter.
+    const runtime = bootWithCards();
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <EncounterPanel />
+      </RuntimeProvider>,
+    );
+    await passGuideIntro();
+
+    expect(screen.getByTestId("encounter-portrait")).toHaveStyle({
+      backgroundImage: "url(assets/sprites/chronicler-tone1.png)",
+    });
+  });
+
+  it("opens a resolved encounter straight to the summary, with no intro and no closing", async () => {
+    const runtime = bootWithCards();
+    const locked = runtime.store
+      .getState()
+      .lockEncounterSelections(SCENE, REFERENCE, ["c1", "c2", "c3"]);
+    if (!locked.ok) throw new Error(`lock failed: ${locked.reason}`);
+
+    render(
+      <RuntimeProvider runtime={runtime}>
+        <EncounterPanel />
+      </RuntimeProvider>,
+    );
+
+    expect(screen.queryByTestId("guide-stage")).not.toBeInTheDocument();
+    expect(screen.getByTestId("encounter-summary")).toBeInTheDocument();
+
+    // The revisit's Close returns to the world directly: the farewell was said
+    // when the encounter resolved, and the guide has gone inactive since.
+    await userEvent.click(screen.getByTestId("encounter-close"));
+    expect(screen.queryByTestId("guide-stage")).not.toBeInTheDocument();
+    expect(runtime.view.getState().openEncounterReference).toBeNull();
+  });
+});
+
 describe("the Close button (PRD-14)", () => {
   // Operator request: no persistent top-right Close. The one Close lives in a
   // footer at the panel's bottom-right, clickable in every state — quiet
@@ -214,6 +333,7 @@ describe("the Close button (PRD-14)", () => {
         <EncounterPanel />
       </RuntimeProvider>,
     );
+    await passGuideIntro();
 
     const close = screen.getByTestId("encounter-close");
     expect(close.className).toContain("vv-button--quiet");

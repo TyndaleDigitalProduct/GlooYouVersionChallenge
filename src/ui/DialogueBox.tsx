@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import type { PassageResult } from "@/app/providers";
+import type { AppRuntime } from "@/app/runtime";
 import { findSceneContent } from "@/content/loadContent";
 import { substituteName } from "./nameSubstitution";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
@@ -50,6 +53,12 @@ export function DialogueBox() {
   // path — see nameSubstitution.ts.
   const playerName = useGameState((state) => state.playerName ?? "");
   const dialogueIndex = useViewState((state) => state.dialogueIndex);
+  // PRD-14: which step's passage card has been opened. Continue is gated on
+  // the deliberate read, matching the encounter passages' discipline. Keyed by
+  // scene AND step index: the component stays mounted across a room change,
+  // and most scenes author their card at the same position, so an index alone
+  // would let the next scene's card arrive already open.
+  const [openedStep, setOpenedStep] = useState<string | null>(null);
 
   const sceneId = roomSceneId ?? currentSceneId;
   const closed = useGameState((state) => (sceneId ? state.isSceneComplete(sceneId) : false));
@@ -68,6 +77,12 @@ export function DialogueBox() {
 
   const beat = openingBeats[dialogueIndex];
   const isLastBeat = dialogueIndex === openingBeats.length - 1;
+  // The scene passage card (PRD-14): the [SCRIPTURE CARD: …] step every
+  // scene-NN.md authors inside the opening. Continue stays locked until the
+  // passage has actually been opened.
+  const isScriptureStep = beat.kind === "scripture";
+  const stepKey = `${sceneId}:${dialogueIndex}`;
+  const passageOpened = openedStep === stepKey;
 
   return (
     // A stage wrapping the portrait and the panel so the Lamplighter can be a
@@ -104,9 +119,18 @@ export function DialogueBox() {
         {runtime.content.dialogueStatus === "placeholder" && (
           <p className="vv-placeholder-tag">Placeholder copy, not authored dialogue</p>
         )}
-        <p className="vv-dialogue__text" data-testid="dialogue-text">
-          {substituteName(beat.text, playerName)}
-        </p>
+        {beat.kind === "line" ? (
+          <p className="vv-dialogue__text" data-testid="dialogue-text">
+            {substituteName(beat.text, playerName)}
+          </p>
+        ) : (
+          <ScenePassageCard
+            runtime={runtime}
+            reference={beat.reference}
+            isOpen={passageOpened}
+            onOpen={() => setOpenedStep(stepKey)}
+          />
+        )}
 
         <footer className="vv-dialogue__footer">
           <p className="vv-dialogue__progress">
@@ -116,12 +140,72 @@ export function DialogueBox() {
             type="button"
             className="vv-button"
             data-testid="dialogue-advance"
+            disabled={isScriptureStep && !passageOpened}
             onClick={() => runtime.view.getState().advanceDialogue()}
           >
             {isLastBeat ? "Into the streets" : "Continue"}
           </button>
         </footer>
       </section>
+    </div>
+  );
+}
+
+/**
+ * The scene's own passage, presented inside the Lamplighter's opening
+ * (PRD-14). Same deliberate-read discipline as the encounter passages
+ * (EncounterPanel's ScripturePassageCard): the text is collapsed behind an
+ * explicit "Read" action, and the caller gates Continue on `isOpen`. Text
+ * comes from the runtime ScriptureProvider and degrades to the provider's
+ * `unavailable` reason, never a blank.
+ */
+function ScenePassageCard({
+  runtime,
+  reference,
+  isOpen,
+  onOpen,
+}: {
+  runtime: AppRuntime;
+  reference: string;
+  isOpen: boolean;
+  onOpen: () => void;
+}) {
+  const [passage, setPassage] = useState<PassageResult | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    runtime.scripture.getPassage(reference).then((result) => {
+      if (!cancelled) setPassage(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [runtime, reference]);
+
+  return (
+    <div className="vv-scripture-card" data-testid="scene-passage-card">
+      <div className="vv-scripture-card__header">
+        <p className="vv-scripture-card__label">Scripture · {reference}</p>
+        {isOpen ? (
+          <span className="vv-scripture-card__read-tag" aria-hidden="true">
+            Read
+          </span>
+        ) : null}
+      </div>
+      {isOpen ? (
+        <p className="vv-dialogue__text" data-testid="scene-passage-text">
+          {passage?.status === "available" ? passage.text : (passage?.reason ?? "Loading passage…")}
+        </p>
+      ) : (
+        <button
+          type="button"
+          className="vv-button"
+          data-testid="scene-passage-open"
+          onClick={onOpen}
+        >
+          Read {reference}
+        </button>
+      )}
     </div>
   );
 }

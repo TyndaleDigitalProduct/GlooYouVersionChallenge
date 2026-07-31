@@ -24,7 +24,11 @@ const SAVE_KEY = "verse-and-vale:save";
 const dialogueDocument = JSON.parse(
   readFileSync(new URL("../content/daniel-1.dialogue.json", import.meta.url), "utf-8"),
 ) as {
-  scenes: Array<{ id: number; lamplighterOpening: unknown[]; transitionCaption?: string }>;
+  scenes: Array<{
+    id: number;
+    lamplighterOpening: Array<{ text?: string; scriptureCard?: true }>;
+    transitionCaption?: string;
+  }>;
 };
 
 function sceneDialogue(ordinal: number) {
@@ -33,9 +37,17 @@ function sceneDialogue(ordinal: number) {
   return scene;
 }
 
-/** Clicks through one scene's forced opening, however many beats it is authored with. */
+/**
+ * Clicks through one scene's forced opening, however many beats it is authored
+ * with. The scene passage card step (PRD-14) gates Continue on a deliberate
+ * read, so that step is read before advancing.
+ */
 async function passOpeningDialogue(page: Page, ordinal = 1) {
-  for (let beat = 0; beat < sceneDialogue(ordinal).lamplighterOpening.length; beat += 1) {
+  for (const step of sceneDialogue(ordinal).lamplighterOpening) {
+    if (step.scriptureCard) {
+      await page.getByTestId("scene-passage-open").click();
+      await expect(page.getByTestId("scene-passage-text")).toBeVisible();
+    }
     await page.getByTestId("dialogue-advance").click();
   }
 }

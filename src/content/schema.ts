@@ -55,10 +55,18 @@ export const dialogueBeatSchema = z.object({
   branch: z.enum(["all", "some", "none"]).optional(),
 });
 
-/** One of the Lamplighter's opening lines, presenting the scene's passage. */
-export const lamplighterOpeningBeatSchema = z.object({
-  text: z.string().min(1),
-});
+/**
+ * One step of the Lamplighter's opening: a spoken line, or the point where
+ * the scene's passage card opens (PRD-14, the [SCRIPTURE CARD: …] marker in
+ * each scene-NN.md). The card's reference is deliberately not authored here;
+ * it is the curated scene's own `verses`, joined by loadContent.ts, so the
+ * dialogue document can never disagree with refs.json about which passage a
+ * scene opens with.
+ */
+export const lamplighterOpeningBeatSchema = z.union([
+  z.object({ text: z.string().min(1) }),
+  z.object({ scriptureCard: z.literal(true) }),
+]);
 
 /** One story character or NPC's lines for a scene, grouped by speaker. */
 export const characterDialogueSchema = z.object({

@@ -38,6 +38,17 @@ export interface DialogueBeat {
   branch?: "all" | "some" | "none";
 }
 
+/**
+ * One step of the Lamplighter's forced opening sequence (PRD-14): a spoken
+ * line, or the scene's passage card — the [SCRIPTURE CARD: …] beat every
+ * scene-NN.md authors, read before free movement begins. The card carries the
+ * curated scene's own `verses` reference, joined here rather than authored in
+ * the dialogue document.
+ */
+export type LamplighterOpeningStep =
+  | { kind: "line"; speaker: string; text: string }
+  | { kind: "scripture"; reference: string };
+
 /** One story character or NPC's lines for a scene, keyed for direct lookup. */
 export interface CharacterDialogue {
   speaker: string;
@@ -100,8 +111,12 @@ export interface SceneContent {
    * it is derived from the three fields below, not stored separately.
    */
   beats: DialogueBeat[];
-  /** The Lamplighter's lines that open the scene and present its passage. */
-  lamplighterOpening: DialogueBeat[];
+  /**
+   * The Lamplighter's opening sequence: his lines, plus the scene passage
+   * card at its authored position (PRD-14). DialogueBox.tsx plays these in
+   * order before free movement begins.
+   */
+  lamplighterOpening: LamplighterOpeningStep[];
   /** Every story character/NPC's lines, one entry per speaker. */
   characters: CharacterDialogue[];
   /** The Lamplighter's three closing lines. Absent only for a scene with no dialogue authored yet. */
@@ -369,10 +384,11 @@ export function findCharacterDialogue(
  * so the forced Continue sequence is unchanged.
  */
 function flattenBeats(scene: RawDialogueScene): DialogueBeat[] {
-  const beats: DialogueBeat[] = scene.lamplighterOpening.map((beat) => ({
-    speaker: "The Lamplighter",
-    text: beat.text,
-  }));
+  // The passage card is a reading step, not a line anyone says, so the flat
+  // beats array carries the spoken lines only (PRD-14).
+  const beats: DialogueBeat[] = scene.lamplighterOpening.flatMap((beat) =>
+    "text" in beat ? [{ speaker: "The Lamplighter", text: beat.text }] : [],
+  );
 
   for (const character of scene.characters) {
     for (const beat of character.beats) {
@@ -432,10 +448,11 @@ export function buildGameContent(rawRefs: unknown, rawDialogue: unknown): Result
       setting: scene.setting,
       playable: dialogueScene.playable,
       beats: flattenBeats(dialogueScene),
-      lamplighterOpening: dialogueScene.lamplighterOpening.map((beat) => ({
-        speaker: "The Lamplighter",
-        text: beat.text,
-      })),
+      lamplighterOpening: dialogueScene.lamplighterOpening.map((beat) =>
+        "text" in beat
+          ? { kind: "line" as const, speaker: "The Lamplighter", text: beat.text }
+          : { kind: "scripture" as const, reference: scene.verses },
+      ),
       characters: dialogueScene.characters.map((character) => ({
         speaker: character.speaker,
         characterId: characterIdFor(character.speaker),

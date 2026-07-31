@@ -18,19 +18,41 @@ import type { BibleClient } from "@youversion/platform-core";
 /** The narrow slice of BibleClient this lookup needs, so tests can inject a fake. */
 export type VersionLookupClient = Pick<BibleClient, "getVersions">;
 
-const WEB_ABBREVIATION = "WEB";
+/**
+ * How the World English Bible is actually published, most specific first.
+ *
+ * `GET /v1/bibles?language_ranges[]=eng` returns fourteen versions and none of
+ * them is abbreviated `WEB`: the WEB is `engWEBUS` (id 206), whose
+ * `localized_abbreviation` is `WEBUS`. Matching the bare `WEB` this module
+ * originally looked for therefore never matched anything, and both seams that
+ * depend on this lookup degraded permanently and silently — bundled text in
+ * the ScriptureProvider, `bible-version-unresolved` on every highlight sync.
+ * `WEB` is kept last so the lookup still works if YouVersion ever publishes it
+ * under the plain abbreviation. `WMB`/`WMBBE` (World *Messianic* Bible) are
+ * deliberately not here: they are a different translation.
+ */
+const WEB_ABBREVIATIONS = ["engwebus", "webus", "web"] as const;
 
 /**
- * Returns the numeric version id for WEB in English, or null if the lookup
- * fails or WEB is not present in the response. Never throws — a failed
+ * Returns the numeric version id for the WEB in English, or null if the lookup
+ * fails or the WEB is not present in the response. Never throws — a failed
  * lookup is one more reason a YouVersion-backed seam degrades to its bundled
  * or stub behaviour, never an exception a caller must catch.
  */
 export async function resolveWebVersionId(client: VersionLookupClient): Promise<number | null> {
   try {
     const versions = await client.getVersions("eng");
-    const web = versions.data.find((version) => version.abbreviation === WEB_ABBREVIATION);
-    return web?.id ?? null;
+    // Preference order comes from WEB_ABBREVIATIONS, not from the order the
+    // API happens to return versions in.
+    for (const wanted of WEB_ABBREVIATIONS) {
+      const match = versions.data.find(
+        (version) =>
+          version.abbreviation?.toLowerCase() === wanted ||
+          version.localized_abbreviation?.toLowerCase() === wanted,
+      );
+      if (match) return match.id;
+    }
+    return null;
   } catch {
     return null;
   }

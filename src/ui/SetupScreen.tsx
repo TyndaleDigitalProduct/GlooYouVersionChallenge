@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useRuntime } from "./RuntimeContext";
+import { reportSignInFailure, SignInFailureReason } from "./signInFailureReason";
+import { YouVersionProfile, type YouVersionProfileFields } from "./YouVersionProfile";
 
 /**
  * Sized to the dialogue box (52rem max-width, ~0.95em text): long enough for
@@ -22,6 +24,8 @@ export function SetupScreen() {
   const [name, setName] = useState("");
   const [touched, setTouched] = useState(false);
   const [signInStatus, setSignInStatus] = useState<SignInStatus>("idle");
+  const [connectedProfile, setConnectedProfile] = useState<YouVersionProfileFields | null>(null);
+  const [failureReason, setFailureReason] = useState<string | null>(null);
 
   const trimmed = name.trim();
   const isValid = trimmed.length > 0;
@@ -40,8 +44,13 @@ export function SetupScreen() {
     const result = await runtime.session.signIn();
     if (result.ok) {
       runtime.store.getState().setSession(result.value.yvpId);
+      setConnectedProfile({
+        displayName: result.value.displayName,
+        avatarUrl: result.value.avatarUrl,
+      });
       setSignInStatus("succeeded");
     } else {
+      setFailureReason(reportSignInFailure(result.reason));
       setSignInStatus("failed");
     }
   };
@@ -92,11 +101,21 @@ export function SetupScreen() {
           >
             {signInStatus === "succeeded" ? "Connected" : "Connect YouVersion"}
           </button>
+          {signInStatus === "succeeded" ? (
+            <YouVersionProfile
+              profile={connectedProfile}
+              label="Connected as"
+              testIdPrefix="setup"
+            />
+          ) : null}
           {signInStatus === "failed" ? (
-            <p data-testid="setup-signin-message">
-              Couldn't connect right now. You can try again later from the menu — this never blocks
-              play.
-            </p>
+            <>
+              <p data-testid="setup-signin-message">
+                Couldn't connect right now. You can try again later from the menu — this never
+                blocks play.
+              </p>
+              <SignInFailureReason reason={failureReason} />
+            </>
           ) : null}
         </div>
 

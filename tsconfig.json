@@ -28,6 +28,7 @@
     "tests",
     "e2e",
     "vite.config.ts",
+    "vite-plugin-api-routes.ts",
     "vitest.config.ts",
     "playwright.config.ts"
   ]

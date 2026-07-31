@@ -29,7 +29,8 @@ function fakeHighlightsClient(
 function fakeVersionLookupClient(id: number | null = 206): VersionLookupClient & {
   getVersions: ReturnType<typeof vi.fn>;
 } {
-  const versions = id == null ? [] : [{ id, abbreviation: "WEB" }];
+  const versions =
+    id == null ? [] : [{ id, abbreviation: "engWEBUS", localized_abbreviation: "WEBUS" }];
   return {
     getVersions: vi.fn(async () => ({ data: versions, next_page_token: null })),
   } as unknown as VersionLookupClient & { getVersions: ReturnType<typeof vi.fn> };
@@ -188,6 +189,44 @@ describe("createHighlightSyncProvider (PRD-10)", () => {
     });
 
     expect(result).toEqual({ ok: true, value: { synced: 2 } });
+  });
+
+  // Every other spec here injects a versionLookupClient, so none of them could
+  // see that the factory had no default for it: the provider runtime.ts builds
+  // could never resolve a version id, and so failed `bible-version-unresolved`
+  // on every highlight the real game ever tried to sync. This is the one spec
+  // that exercises the un-injected path, the way runtime.ts calls it.
+  it("resolves a Bible version with no lookup client injected, the way runtime.ts constructs it", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            data: [{ id: 206, abbreviation: "engWEBUS", localized_abbreviation: "WEBUS" }],
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const highlightsClient = fakeHighlightsClient();
+    const provider = createHighlightSyncProvider({
+      appKey: "test-app-key",
+      storage: signedInStorage(),
+      highlightsClient,
+    });
+
+    const result = await provider.syncOne("DAN.1.1", "ffeb3b");
+
+    expect(result).toEqual({ ok: true, value: undefined });
+    expect(highlightsClient.createHighlight).toHaveBeenCalledWith(
+      { version_id: 206, passage_id: "DAN.1.1", color: "ffeb3b" },
+      "access-123",
+    );
+
+    vi.unstubAllGlobals();
   });
 });
 

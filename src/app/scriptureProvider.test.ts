@@ -197,7 +197,11 @@ function fakePassageClient(
   return {
     getVersions:
       overrides.getVersions ??
-      (async () => ({ data: [{ id: 206, abbreviation: "WEB" }], next_page_token: null }) as never),
+      (async () =>
+        ({
+          data: [{ id: 206, abbreviation: "engWEBUS", localized_abbreviation: "WEBUS" }],
+          next_page_token: null,
+        }) as never),
     getPassage:
       overrides.getPassage ??
       (async (_versionId, usfm) => ({
@@ -219,7 +223,7 @@ describe("createYouVersionScriptureProvider (PRD-10)", () => {
 
   it("resolves the WEB version id once and fetches format=text passages against it", async () => {
     const getVersions = vi.fn(async () => ({
-      data: [{ id: 206, abbreviation: "WEB" }],
+      data: [{ id: 206, abbreviation: "engWEBUS", localized_abbreviation: "WEBUS" }],
       next_page_token: null,
     })) as unknown as VersionLookupClient["getVersions"];
     const getPassage = vi.fn(async (versionId: number, usfm: string) => ({

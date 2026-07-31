@@ -7,7 +7,7 @@
 // already written before either method here is ever called (see
 // highlightController.ts / runtime.ts), so a sync failure is recoverable by
 // construction and never loses it.
-import { ApiClient, HighlightsClient } from "@youversion/platform-core";
+import { ApiClient, BibleClient, HighlightsClient } from "@youversion/platform-core";
 import { createBrowserStorage } from "@/app/browserStorage";
 import type { Highlights } from "@/core/highlights";
 import { err, ok, type Result } from "@/core/result";
@@ -52,7 +52,12 @@ export function createHighlightSyncProvider(
   const {
     storage = createBrowserStorage(),
     highlightsClient = new HighlightsClient(new ApiClient({ appKey })),
-    versionLookupClient,
+    // Defaulted for the same reason scriptureProvider.ts defaults its
+    // BibleClient: without one, `resolvedVersionId` below has nothing to ask
+    // and every sync fails `bible-version-unresolved`. Left undefined here,
+    // this seam was inert in the real app while every test passed, because
+    // each test injects its own lookup client.
+    versionLookupClient = new BibleClient(new ApiClient({ appKey })),
   } = options;
 
   // Resolved once per provider instance and reused (youversionBibleVersion.ts

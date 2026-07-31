@@ -42,6 +42,13 @@ export function highlightPassage(runtime: AppRuntime, reference: string): void {
 
   void runtime.highlightSync.syncOne(reference, HIGHLIGHT_COLOR).then((result) => {
     if (!result.ok) {
+      // The player-facing notice is deliberately one message for every cause:
+      // nothing they can do differs. The reason still has to reach *someone*,
+      // though — `not-signed-in`, `bible-version-unresolved`, and
+      // `highlight-sync-failed` are three quite different faults that were
+      // previously indistinguishable from outside, which is why a seam that
+      // could never resolve a version id read as an ordinary network blip.
+      console.warn(`[highlight-sync] ${reference}: ${result.reason}`);
       runtime.view.getState().pushNotice({
         id: `highlight-sync-failed-${reference}`,
         tone: "warning",

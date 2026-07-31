@@ -3,9 +3,25 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { createEventBus } from "@/core/eventBus";
 import { createInMemoryStorage } from "@/core/fixtures";
+import { ok } from "@/core/result";
+import type { SessionProvider } from "../app/providers";
 import { createAppRuntime } from "../app/runtime";
 import { RuntimeProvider } from "./RuntimeContext";
 import { NAME_MAX_LENGTH, SetupScreen } from "./SetupScreen";
+
+/** A fake real (non-stub) SessionProvider whose signIn() always succeeds, for
+ * exercising the post-connect profile display without a real OAuth round-trip. */
+function fakeConnectedSessionProvider(profile: {
+  displayName?: string;
+  avatarUrl?: string;
+}): SessionProvider {
+  return {
+    isStub: false,
+    current: () => null,
+    signOut: () => undefined,
+    signIn: () => Promise.resolve(ok({ yvpId: "yvp-1", ...profile })),
+  };
+}
 
 function boot() {
   const result = createAppRuntime({
@@ -120,5 +136,35 @@ describe("SetupScreen (PRD-11, storyboard-v2.md §2)", () => {
     await user.click(screen.getByTestId("setup-connect-youversion"));
 
     expect(await screen.findByTestId("setup-signin-message")).toBeInTheDocument();
+  });
+
+  it("shows the connected account's name and avatar once sign-in succeeds", async () => {
+    const user = userEvent.setup();
+    const runtime = boot();
+    runtime.session = fakeConnectedSessionProvider({
+      displayName: "Test Player",
+      avatarUrl: "https://example.test/avatar.png",
+    });
+    renderSetup(runtime);
+
+    await user.click(screen.getByTestId("setup-connect-youversion"));
+
+    expect(await screen.findByTestId("setup-youversion-name")).toHaveTextContent("Test Player");
+    expect(screen.getByTestId("setup-youversion-avatar")).toHaveAttribute(
+      "src",
+      "https://example.test/avatar.png",
+    );
+  });
+
+  it("shows just Connected with no profile row when the account has no name or avatar", async () => {
+    const user = userEvent.setup();
+    const runtime = boot();
+    runtime.session = fakeConnectedSessionProvider({});
+    renderSetup(runtime);
+
+    await user.click(screen.getByTestId("setup-connect-youversion"));
+
+    expect(await screen.findByText("Connected")).toBeInTheDocument();
+    expect(screen.queryByTestId("setup-youversion-profile")).not.toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import type { AppRuntime } from "@/app/runtime";
 import { findSceneContent } from "@/content/loadContent";
 import { substituteName } from "./nameSubstitution";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
+import { displayReference } from "./scriptureReference";
 
 /**
  * The Lamplighter's opening beats for the room the player is standing in: the
@@ -113,7 +114,7 @@ export function DialogueBox() {
         <header className="vv-dialogue__header">
           <p className="vv-dialogue__speaker">The Lamplighter</p>
           <p className="vv-dialogue__setting">
-            {scene.verses} · {scene.setting}
+            {displayReference(scene.verses)} · {scene.setting}
           </p>
         </header>
 
@@ -133,10 +134,9 @@ export function DialogueBox() {
           />
         )}
 
+        {/* No "Beat N of M" counter (PRD-17, operator request): the button
+            alone carries the pacing. */}
         <footer className="vv-dialogue__footer">
-          <p className="vv-dialogue__progress">
-            Beat {dialogueIndex + 1} of {openingBeats.length}
-          </p>
           <button
             type="button"
             className="vv-button"
@@ -187,7 +187,7 @@ function ScenePassageCard({
   return (
     <div className="vv-scripture-card" data-testid="scene-passage-card">
       <div className="vv-scripture-card__header">
-        <p className="vv-scripture-card__label">Scripture · {reference}</p>
+        <p className="vv-scripture-card__label">Scripture · {displayReference(reference)}</p>
         {isOpen ? (
           <span className="vv-scripture-card__read-tag" aria-hidden="true">
             Read
@@ -229,7 +229,7 @@ function ScenePassageCard({
           data-testid="scene-passage-open"
           onClick={onOpen}
         >
-          Read {reference}
+          Read {displayReference(reference)}
         </button>
       )}
     </div>

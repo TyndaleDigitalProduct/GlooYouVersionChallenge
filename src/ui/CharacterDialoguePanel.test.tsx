@@ -37,6 +37,9 @@ describe("CharacterDialoguePanel (PRD-12)", () => {
     runtime.view.getState().openCharacter("scene-1", "daniel");
     renderPanel(runtime);
 
+    // No "Beat N of M" progress counter (PRD-17, operator request).
+    expect(screen.queryByText(/Beat \d+ of \d+/)).not.toBeInTheDocument();
+
     expect(screen.getByTestId("character-dialogue-speaker")).toHaveTextContent("Daniel");
     expect(screen.getByTestId("character-dialogue-text")).toHaveTextContent(
       "The watchmen say the army stretches past the horizon.",

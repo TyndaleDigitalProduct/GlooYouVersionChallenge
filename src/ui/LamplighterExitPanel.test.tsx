@@ -110,7 +110,7 @@ describe("the 'ready to move on' control (PRD-13 phase 5)", () => {
 
     // Scene 4 shares `babylon-palace` with scene 3, so the destination has to be
     // said in words: the backdrop will look identical on the other side.
-    expect(screen.getByTestId("lamplighter-onward")).toHaveTextContent("DAN.1.6-7");
+    expect(screen.getByTestId("lamplighter-onward")).toHaveTextContent("Daniel 1:6-7");
   });
 
   it("pressing it starts the fade toward the next scene and closes the panel", async () => {

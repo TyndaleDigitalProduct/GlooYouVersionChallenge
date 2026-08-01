@@ -2,6 +2,7 @@ import { planOnward } from "@/app/sceneFlow";
 import { findSceneContent } from "@/content/loadContent";
 import { substituteName } from "./nameSubstitution";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
+import { displayReference } from "./scriptureReference";
 
 /**
  * The Lamplighter's scene-exit interaction (PRD-12, storyboard-v2.md §4 step
@@ -94,7 +95,7 @@ function LamplighterExitPanelBody({ sceneId }: { sceneId: string }) {
 
         {closed && arriving ? (
           <p className="vv-dialogue__progress" data-testid="lamplighter-onward">
-            Next: {arriving.verses} · {arriving.setting}
+            Next: {displayReference(arriving.verses)} · {arriving.setting}
           </p>
         ) : null}
         {closed && !onward ? (

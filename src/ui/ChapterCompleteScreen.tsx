@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { chapterProgress } from "@/app/chapterMap";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
+import { displayReference } from "./scriptureReference";
 
 /**
  * The end state (PRD-13 phase 5): what the player sees after the ninth scene is
@@ -40,8 +41,9 @@ export function ChapterCompleteScreen() {
         <h2 className="vv-complete__title">Chapter one, closed</h2>
 
         <p className="vv-dialogue__text">
-          {playerName ? `${playerName}, you` : "You"} walked Daniel 1 from {first?.verses} to{" "}
-          {last?.verses}: {progress.scenesTotal} scenes, {"from "}
+          {playerName ? `${playerName}, you` : "You"} walked Daniel 1 from{" "}
+          {first ? displayReference(first.verses) : ""} to{" "}
+          {last ? displayReference(last.verses) : ""}: {progress.scenesTotal} scenes, {"from "}
           {first?.setting.toLowerCase()} to {last?.setting.toLowerCase()}.
         </p>
 

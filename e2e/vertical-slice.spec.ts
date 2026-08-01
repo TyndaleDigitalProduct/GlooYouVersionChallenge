@@ -101,7 +101,7 @@ test("walkthrough: engage a guide, talk to a story character, close scene 1 thro
   await page.getByTestId("guide-stage-advance").click();
 
   await expect(page.getByTestId("encounter-panel")).toBeVisible();
-  await expect(page.getByTestId("encounter-reference")).toContainText("2KI.24.1-4");
+  await expect(page.getByTestId("encounter-reference")).toContainText("2 Kings 24:1-4");
   // The guide's portrait loaded: onError would have unmounted a broken image.
   await expect(page.getByTestId("encounter-portrait")).toBeVisible();
   // PRD-08 phase 3: the passage is gated behind an explicit "Read" action —
@@ -182,7 +182,7 @@ test("walkthrough: engage a guide, talk to a story character, close scene 1 thro
   await expect(page.getByTestId("vale-stones-balance")).toHaveText("6");
   // The world has not moved yet: closing the scene and leaving it are two
   // separate presses, and the second one names where it is going.
-  await expect(page.getByTestId("lamplighter-onward")).toContainText("DAN.1.2");
+  await expect(page.getByTestId("lamplighter-onward")).toContainText("Daniel 1:2");
   await expect(page.getByTestId("scene-tag")).toContainText("Scene 1 of 9");
 
   await page.getByTestId("lamplighter-move-on").click();
@@ -284,7 +284,8 @@ test("touch: tapping a character walks to them and opens the interaction in one 
   // PRD-16: the tap lands on the persona intro; advancing opens the panel.
   await page.getByTestId("guide-stage-advance").click();
   await expect(page.getByTestId("encounter-panel")).toBeVisible();
-  await expect(page.getByTestId("encounter-reference")).toContainText(chronicler.reference);
+  // The marker data stays USFM; the screen shows the human-readable form (PRD-17).
+  await expect(page.getByTestId("encounter-reference")).toContainText("2 Kings 24:1-4");
 
   await context.close();
 });

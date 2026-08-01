@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { chapterProgress } from "@/app/chapterMap";
 import { planJump } from "@/app/sceneFlow";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
+import { displayReference } from "./scriptureReference";
 
 /**
  * The chapter map (PRD-13 phase 5, ADR-0004's "the chapter map becomes its own
@@ -115,7 +116,7 @@ function ChapterMapBody() {
               <div className="vv-chapter-scene__body">
                 <p className="vv-chapter-scene__verses">
                   <span className="vv-visually-hidden">Scene {entry.ordinal}, </span>
-                  {entry.verses}
+                  {displayReference(entry.verses)}
                   <span className="vv-chapter-scene__setting">{entry.setting}</span>
                 </p>
                 <p className="vv-chapter-scene__references">

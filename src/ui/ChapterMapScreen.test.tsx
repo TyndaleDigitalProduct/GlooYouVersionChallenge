@@ -44,9 +44,9 @@ describe("ChapterMapScreen (PRD-13 phase 5)", () => {
     for (const ordinal of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
       expect(scene(ordinal)).toBeInTheDocument();
     }
-    expect(scene(1)).toHaveTextContent("DAN.1.1");
+    expect(scene(1)).toHaveTextContent("Daniel 1:1");
     expect(scene(1)).toHaveTextContent("Jerusalem under siege");
-    expect(scene(9)).toHaveTextContent("DAN.1.20-21");
+    expect(scene(9)).toHaveTextContent("Daniel 1:20-21");
   });
 
   it("carries each state in words as well as in colour: locked, current, closed", () => {

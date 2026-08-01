@@ -1,5 +1,6 @@
 import { findSceneContent } from "@/content/loadContent";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
+import { displayReference } from "./scriptureReference";
 
 /**
  * The home screen (PRD-11, storyboard-v2.md §1). Always the first phase for
@@ -107,7 +108,7 @@ export function HomeScreen() {
           {hasSave ? (
             <>
               {scene
-                ? `Scene ${scene.ordinal} of ${runtime.content.scenes.length} · ${scene.verses}`
+                ? `Scene ${scene.ordinal} of ${runtime.content.scenes.length} · ${displayReference(scene.verses)}`
                 : "Every scene complete"}
               {" · "}
               {balance} Vale Stone{balance === 1 ? "" : "s"}

@@ -10,6 +10,7 @@ import { personaForSection } from "@/content/personas";
 import { type EncounterCard, type EncounterRecord, encounterRecord } from "@/core/encounters";
 import { shuffledCards } from "./cardOrder";
 import { useGameState, useRuntime, useViewState } from "./RuntimeContext";
+import { displayReference } from "./scriptureReference";
 
 export function EncounterPanel() {
   const openReference = useViewState((state) => state.openEncounterReference);
@@ -123,7 +124,7 @@ function EncounterPanelBody({ reference }: { reference: string }) {
       <section
         className="vv-panel vv-encounter"
         role="dialog"
-        aria-label={`Cross-reference encounter: ${crossRef.reference}`}
+        aria-label={`Cross-reference encounter: ${displayReference(crossRef.reference)}`}
         data-testid="encounter-panel"
       >
         <header className="vv-encounter__header">
@@ -144,7 +145,8 @@ function EncounterPanelBody({ reference }: { reference: string }) {
             <div>
               <h2 className="vv-encounter__title">{title}</h2>
               <p className="vv-encounter__reference" data-testid="encounter-reference">
-                {crossRef.reference} · illuminating {crossRef.anchor}
+                {displayReference(crossRef.reference)} · illuminating{" "}
+                {displayReference(crossRef.anchor)}
               </p>
             </div>
           </div>
@@ -260,7 +262,7 @@ function GuideStage({
             <p className="vv-dialogue__speaker" data-testid="guide-stage-speaker">
               {speaker}
             </p>
-            <p className="vv-dialogue__setting">{reference}</p>
+            <p className="vv-dialogue__setting">{displayReference(reference)}</p>
           </header>
 
           <p className="vv-dialogue__text" data-testid="guide-stage-text">
@@ -327,7 +329,7 @@ function ScripturePassageCard({
     <div className="vv-scripture-card" data-testid={testId}>
       <div className="vv-scripture-card__header">
         <p className="vv-scripture-card__label">
-          {label} · {reference}
+          {label} · {displayReference(reference)}
         </p>
         {isRead ? (
           <span className="vv-scripture-card__read-tag" aria-hidden="true">

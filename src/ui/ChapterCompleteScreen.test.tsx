@@ -41,8 +41,8 @@ describe("ChapterCompleteScreen (PRD-13 phase 5)", () => {
 
     const screen_ = screen.getByTestId("chapter-complete");
     expect(screen_).toHaveTextContent("Ezra");
-    expect(screen_).toHaveTextContent("DAN.1.1");
-    expect(screen_).toHaveTextContent("DAN.1.20-21");
+    expect(screen_).toHaveTextContent("Daniel 1:1");
+    expect(screen_).toHaveTextContent("Daniel 1:20-21");
   });
 
   it("tallies scenes, cross-references, and stones", () => {

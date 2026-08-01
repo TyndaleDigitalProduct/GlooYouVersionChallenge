@@ -77,10 +77,8 @@ function CharacterDialoguePanelBody({
           {substituteName(beat.text, playerName)}
         </p>
 
+        {/* No "Beat N of M" counter (PRD-17, operator request). */}
         <footer className="vv-dialogue__footer">
-          <p className="vv-dialogue__progress">
-            Beat {clampedIndex + 1} of {character.beats.length}
-          </p>
           <button
             type="button"
             className="vv-button"

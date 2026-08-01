@@ -14,6 +14,7 @@ import { ProximityPrompt } from "./ProximityPrompt";
 import { RuntimeProvider, useRuntime, useViewState } from "./RuntimeContext";
 import { SceneTransition } from "./SceneTransition";
 import { SetupScreen } from "./SetupScreen";
+import { displayReference } from "./scriptureReference";
 import { ValeStonesHud } from "./ValeStonesHud";
 
 /**
@@ -104,7 +105,7 @@ function SceneTag() {
 
   return (
     <p className="vv-build-tag" data-testid="scene-tag">
-      Scene {scene.ordinal} of {runtime.content.scenes.length} · {scene.verses}
+      Scene {scene.ordinal} of {runtime.content.scenes.length} · {displayReference(scene.verses)}
     </p>
   );
 }

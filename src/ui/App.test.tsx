@@ -93,7 +93,7 @@ describe("the chapter loop (PRD-13 phase 5)", () => {
     await user.click(screen.getByTestId("home-continue"));
 
     expect(screen.getByTestId("scene-tag")).toHaveTextContent("Scene 1 of 9");
-    expect(screen.getByTestId("scene-tag")).toHaveTextContent("DAN.1.1");
+    expect(screen.getByTestId("scene-tag")).toHaveTextContent("Daniel 1:1");
   });
 
   it("closes a scene through the Lamplighter, fades, and arrives in the next one", () => {

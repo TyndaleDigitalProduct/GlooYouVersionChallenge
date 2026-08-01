@@ -184,7 +184,9 @@ describe("the scene passage card (PRD-14)", () => {
     advanceToCard(runtime);
     renderBox(runtime);
 
-    expect(screen.getByTestId("scene-passage-card")).toHaveTextContent("DAN.1.1");
+    // Human-readable reference, never the machine code (PRD-17).
+    expect(screen.getByTestId("scene-passage-card")).toHaveTextContent("Daniel 1:1");
+    expect(screen.getByTestId("scene-passage-card")).not.toHaveTextContent("DAN.1.1");
   });
 
   it("keeps the passage behind a deliberate Read action and gates Continue on it", async () => {
@@ -207,7 +209,8 @@ describe("the scene passage card (PRD-14)", () => {
     advanceToCard(runtime);
     renderBox(runtime);
 
-    expect(screen.getByText("Beat 3 of 4")).toBeInTheDocument();
+    // No "Beat N of M" progress counter anywhere (PRD-17, operator request).
+    expect(screen.queryByText(/Beat \d+ of \d+/)).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId("scene-passage-open"));
     await screen.findByTestId("scene-passage-text");
@@ -256,7 +259,7 @@ describe("the scene passage card (PRD-14)", () => {
       advanceToCard(runtime);
     });
 
-    expect(screen.getByTestId("scene-passage-card")).toHaveTextContent("DAN.1.2");
+    expect(screen.getByTestId("scene-passage-card")).toHaveTextContent("Daniel 1:2");
     expect(screen.getByTestId("scene-passage-open")).toBeInTheDocument();
     expect(screen.getByTestId("dialogue-advance")).toBeDisabled();
   });

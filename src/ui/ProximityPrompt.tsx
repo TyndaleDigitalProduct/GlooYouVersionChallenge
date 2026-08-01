@@ -1,6 +1,8 @@
 import { openEncounter } from "@/app/encounterController";
 import { findCrossReferenceContent } from "@/content/loadContent";
+import { personaForSection } from "@/content/personas";
 import { useRuntime, useViewState } from "./RuntimeContext";
+import { displayReference } from "./scriptureReference";
 
 /**
  * Offers the encounter when the player is standing next to a guide.
@@ -30,6 +32,12 @@ export function ProximityPrompt() {
   const crossRef = findCrossReferenceContent(runtime.content, nearbyReference);
   if (!crossRef) return null;
 
+  // PRD-17: the persona's own name ("the Chronicler", "Lady Wisdom" — each
+  // carries its article, or lack of one, in the name itself), falling back to
+  // the generic section title only if a persona is somehow missing.
+  const guideName =
+    personaForSection(runtime.personas, crossRef.section)?.name ?? `the ${crossRef.section} guide`;
+
   return (
     <button
       type="button"
@@ -39,7 +47,7 @@ export function ProximityPrompt() {
         void openEncounter(runtime, nearbyReference);
       }}
     >
-      Speak with the {crossRef.section} guide about {crossRef.reference}
+      Speak with {guideName} about {displayReference(crossRef.reference)}
     </button>
   );
 }
